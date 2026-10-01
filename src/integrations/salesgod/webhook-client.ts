@@ -14,18 +14,12 @@ export class SalesGodWebhookClient {
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
-  /**
-   * Sends a caller-defined payload to the configured SalesGod webhook.
-   *
-   * The payload schema is intentionally not hard-coded because the supplied
-   * endpoint is a webhook URL and no official payload contract was provided.
-   */
   async send(payload: Record<string, unknown>): Promise<void> {
     const response = await this.fetchImpl(this.config.webhookUrl, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Bearer ${this.config.token}`,
+        [this.config.tokenHeader]: `${this.config.tokenPrefix}${this.config.token}`,
       },
       body: JSON.stringify(payload),
     });
