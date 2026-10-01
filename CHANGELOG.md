@@ -12,3 +12,7 @@ All notable project changes will be documented here.
 - Bootstrapped JML repository operating structure.
 - Added initial architecture and integration discovery documents.
 - Added deterministic call-state domain core and tests.
+
+- Completed a strict JML repository audit and documented release-blocking gaps.
+- Added CONTRIBUTING, agent/skill operating contracts, and Engineering Memory summaries/index/bug record.
+- Corrected START-HERE to reflect the actual implementation state.
