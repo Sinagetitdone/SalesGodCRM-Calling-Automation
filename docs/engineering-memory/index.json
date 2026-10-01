@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "generated": true,
+  "records": [
+    {
+      "id": "LL-2026-001",
+      "type": "lesson",
+      "path": "docs/engineering-memory/LESSONS_LEARNED.md",
+      "tags": ["integration", "salesgod", "security"]
+    }
+  ]
+}
