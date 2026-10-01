@@ -8,26 +8,53 @@ The system will manage campaign intake, eligibility, campaign state, provider in
 
 ## Current status
 
-This repository is in architecture/discovery bootstrap. It contains no application implementation yet.
+The repository now contains the deterministic domain and application orchestration core, SalesGod integration boundary/client primitives, tests, CI, architecture documentation, and JML Engineering Memory.
 
-The first implementation milestone is to establish the supported SalesGodCRM integration contract and then implement the smallest end-to-end testable slice.
+It is **not production-ready**. Live calling remains disabled because the supplied SalesGod integration endpoint does not establish a verified call-initiation/event contract.
 
 ## Architecture principles
 
 1. SalesGodCRM is an external provider.
 2. Provider-specific behavior is isolated behind an adapter.
-3. Our system owns campaign state and business rules.
+3. Our system owns campaign state and business rules once persistence is implemented.
 4. Calling eligibility and suppression are hard gates.
 5. The AI caller operates from approved campaign instructions and knowledge.
 6. Unknown facts must not be invented by the conversational agent.
-7. Production calling is blocked until provider integration, compliance controls, and end-to-end tests are verified.
+7. Production calling is blocked until provider integration, compliance controls, authorization, persistence, and end-to-end tests are verified.
 8. Browser automation against the SalesGodCRM UI is not an accepted integration path unless SalesGodCRM explicitly authorizes it.
 
-## Immediate architecture spike
+## Current implementation boundary
 
-Determine the supported SalesGodCRM integration mechanism available to this account: API, webhook, native workflow, supported connector, or another provider-approved mechanism.
+Implemented:
+- deterministic call state machine;
+- eligibility evaluation;
+- voicemail model;
+- call orchestration;
+- idempotency behavior;
+- in-memory repository for testing;
+- configurable SalesGod webhook client;
+- secret-safe configuration;
+- integration/unit tests;
+- JML architecture and knowledge artifacts.
 
-Do not infer endpoints, authentication schemes, webhook payloads, or undocumented UI behavior.
+Not implemented:
+- verified SalesGod call-initiation adapter;
+- provider event/webhook lifecycle processing;
+- production persistence;
+- production API/runtime;
+- authenticated user/tenant model;
+- production authorization enforcement;
+- audit persistence;
+- production end-to-end calling workflow.
+
+## Immediate gates
+
+1. Obtain or verify the provider-approved SalesGod call/event contract.
+2. Resolve the authorization architecture gate.
+3. Design persistent storage and audit records.
+4. Implement the production runtime/API.
+5. Add provider contract and end-to-end tests.
+6. Complete independent testing, security review, critical review, and human release approval.
 
 ## Working branches
 
@@ -35,6 +62,17 @@ Do not infer endpoints, authentication schemes, webhook payloads, or undocumente
 - dev: active integration and implementation work.
 - Feature branches should be short-lived and merged through pull requests.
 
-## Next action
+## Validation
 
-Obtain and document the provider-approved SalesGodCRM integration contract, then finalize the architecture gates in docs/architecture.
+    npm install
+    npm run check
+
+The latest GitHub Actions CI run for the current dev head is green.
+
+## Documentation
+
+- AGENTS.md: agent operating contract.
+- docs/architecture/: current architecture and gates.
+- docs/engineering-memory/: reusable lessons and bugs.
+- EVOLUTION.md: system-direction history.
+- docs/architecture/JML-AUDIT-2026-10-01.md: latest strict JML audit.
