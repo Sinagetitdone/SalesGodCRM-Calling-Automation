@@ -16,3 +16,7 @@ The first architecture spike is to establish the provider-approved integration c
 - Changelog records user-visible changes.
 - Engineering Memory records reusable lessons and bugs.
 - Evolution records system-direction history.
+
+## 2026-10-01 — Strict JML audit
+
+The repository was re-audited against the supplied JML standards. CI is green, but production release remains blocked by unresolved provider contract, authorization, persistence, runtime, audit, and security-validation gates. The repository now records those gaps explicitly and corrects stale onboarding/status documentation.
