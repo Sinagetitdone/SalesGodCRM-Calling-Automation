@@ -9,10 +9,6 @@ import { SQLiteCallRepository } from "./application/sqlite-call-repository.js";
 import { followUpFor } from "./domain/call-outcome.js";
 import type { ConsentRecord } from "./domain/consent.js";
 import { type ConversationStage, nextTurn, openingTurn } from "./domain/conversation.js";
-import {
-  createVoicemailMessage,
-  type VoicemailMessage,
-} from "./domain/voicemail.js";
 import { VOICEMAIL_SCRIPT } from "./domain/voicemail-script.js";
 import { FakeSalesGodProvider } from "./integrations/salesgod/fake-provider.js";
 
@@ -49,61 +45,29 @@ app.get("/demo/data", async () => {
   };
 });
 
+// Only the official JML logo files are served from this route.
+const brandFiles = new Set([
+  "JML-Logo-Full-Dark.svg",
+  "JML-Logo-Full-Light.svg",
+  "JML-Logo-J-Dark.svg",
+  "JML-Logo-J-Light.svg",
+]);
+
+app.get<{ Params: { file: string } }>("/brand/:file", async (request, reply) => {
+  if (!brandFiles.has(request.params.file)) {
+    return reply.code(404).send({ error: "NOT_FOUND" });
+  }
+
+  return reply
+    .type("image/svg+xml")
+    .send(readFileSync(new URL(`./public/brand/${request.params.file}`, import.meta.url), "utf8"));
+});
+
 app.get("/calls", async () => {
   return repository.list();
 });
 
-const VOICEMAIL_SETTING = "voicemail-script";
-
-// The saved voicemail text, or the original script if none has been saved.
-async function currentVoicemail(): Promise<VoicemailMessage> {
-  const saved = await repository.getSetting(VOICEMAIL_SETTING);
-  if (!saved) return VOICEMAIL_SCRIPT;
-
-  const parsed = JSON.parse(saved) as VoicemailMessage;
-  return createVoicemailMessage(parsed.version, parsed.text);
-}
-
 app.get("/voicemail-script", async () => {
-  return currentVoicemail();
-});
-
-app.put<{ Body: { text: string } }>(
-  "/voicemail-script",
-  {
-    schema: {
-      body: {
-        type: "object",
-        additionalProperties: false,
-        required: ["text"],
-        properties: {
-          text: { type: "string", minLength: 1, maxLength: 2000 },
-        },
-      },
-    },
-  },
-  async (request, reply) => {
-    let message: VoicemailMessage;
-
-    try {
-      message = createVoicemailMessage(
-        `edited-${new Date().toISOString()}`,
-        request.body.text,
-      );
-    } catch (error) {
-      return reply.code(400).send({
-        error: "INVALID_VOICEMAIL",
-        message: (error as Error).message,
-      });
-    }
-
-    await repository.setSetting(VOICEMAIL_SETTING, JSON.stringify(message));
-    return message;
-  },
-);
-
-app.delete("/voicemail-script", async () => {
-  await repository.setSetting(VOICEMAIL_SETTING, "");
   return VOICEMAIL_SCRIPT;
 });
 
@@ -208,12 +172,10 @@ app.post<{
         orchestrator,
       );
 
-      const voicemail = await currentVoicemail();
-
       return reply.send({
         accepted: accepted.map((call) => ({
           ...call,
-          followUp: followUpFor(call, voicemail),
+          followUp: followUpFor(call),
         })),
         rejected: imported.rejected,
       });

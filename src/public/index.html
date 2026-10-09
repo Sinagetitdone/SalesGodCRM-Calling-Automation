@@ -3,146 +3,164 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Calling Automation Demo</title>
+  <title>Calling Automation Demo | Jay Marketing Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    /* JML brand tokens (source: jml-brand skill). Purple anchors, lime is a single highlight. */
     :root {
-      --bg: #f6f7f9;
-      --card: #ffffff;
-      --text: #1d2330;
-      --muted: #5b6475;
-      --line: #dde1ea;
-      --accent: #2f5bd3;
-      --ok: #1f7a4d;
-      --ok-bg: #e4f5ec;
-      --bad: #b42318;
-      --bad-bg: #fde8e6;
-      --warn-bg: #fff4d6;
-      --info-bg: #e8effc;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --bg: #12151c;
-        --card: #1b1f2a;
-        --text: #e7eaf2;
-        --muted: #9aa3b5;
-        --line: #303647;
-        --accent: #7b9bff;
-        --ok: #5fd39a;
-        --ok-bg: #173526;
-        --bad: #ff8a80;
-        --bad-bg: #3a1c1c;
-        --warn-bg: #3a3218;
-        --info-bg: #1d2740;
-      }
-    }
-    :root[data-theme="dark"] {
-      --bg: #12151c;
-      --card: #1b1f2a;
-      --text: #e7eaf2;
-      --muted: #9aa3b5;
-      --line: #303647;
-      --accent: #7b9bff;
-      --ok: #5fd39a;
-      --ok-bg: #173526;
-      --bad: #ff8a80;
-      --bad-bg: #3a1c1c;
-      --warn-bg: #3a3218;
-      --info-bg: #1d2740;
+      --jml-purple: #4C0099;
+      --jml-lime: #B1EB1E;
+      --jml-ink: #1A1A1A;
+      --jml-paper: #FFFFFF;
+      --jml-mist: #F7F5FA;
+      --jml-line: #E4DFEB;
+      --jml-muted: #5C5C5C;
+      --jml-red: #A4161A;
+      --jml-red-tint: #FBEAEA;
+      --jml-purple-tint: #EFE8F8;
+
+      --jml-font-display: "DM Serif Display", Georgia, serif;
+      --jml-font-body: "DM Sans", Arial, sans-serif;
+      --jml-font-mono: "JetBrains Mono", "Courier New", monospace;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--jml-mist);
+      color: var(--jml-ink);
+      font: 15px/1.55 var(--jml-font-body);
+    }
+    .site-header {
+      background: var(--jml-purple);
+      color: var(--jml-paper);
+    }
+    .site-header .inner {
+      max-width: 1080px; margin: 0 auto; padding: 18px 16px;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px;
+    }
+    .site-header img { height: 44px; width: auto; display: block; }
+    .site-header .title { font-family: var(--jml-font-display); font-size: 1.35rem; margin: 0; }
+    .site-header .tag {
+      font-family: var(--jml-font-mono); font-size: 12px; color: var(--jml-lime);
+      border: 1px solid var(--jml-lime); padding: 2px 8px; border-radius: 3px;
     }
     main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
-    h1 { font-size: 1.6rem; margin: 0 0 4px; }
-    h2 { font-size: 1.1rem; margin: 0 0 12px; }
-    h3 { font-size: 0.95rem; margin: 16px 0 8px; }
+    h1, h2 { font-family: var(--jml-font-display); font-weight: 400; color: var(--jml-purple); margin: 0 0 12px; }
+    h1 { font-size: 1.8rem; margin: 0 0 4px; }
+    h2 { font-size: 1.3rem; }
+    h3 { font-family: var(--jml-font-body); font-size: 0.95rem; font-weight: 700; color: var(--jml-ink); margin: 16px 0 8px; }
     p { margin: 0 0 12px; }
-    .muted { color: var(--muted); }
+    code { font-family: var(--jml-font-mono); font-size: 13px; background: var(--jml-purple-tint); padding: 1px 5px; border-radius: 3px; }
+    .muted { color: var(--jml-muted); }
     .banner {
-      background: var(--warn-bg);
-      border: 1px solid var(--line);
-      border-radius: 10px;
+      background: var(--jml-paper);
+      border: 1px solid var(--jml-line);
+      border-left: 6px solid var(--jml-lime);
+      border-radius: 4px;
       padding: 12px 14px;
       margin: 16px 0;
     }
     .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 18px;
+      background: var(--jml-paper);
+      border: 1px solid var(--jml-line);
+      border-radius: 6px;
+      padding: 20px;
       margin-bottom: 16px;
     }
     .grid-2 { display: grid; gap: 16px; }
     @media (min-width: 780px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
-    label { display: block; font-weight: 600; margin-bottom: 6px; }
-    .hint { font-weight: 400; color: var(--muted); font-size: 13px; margin: 4px 0 0; }
-    textarea, input[type="text"], select {
+    label { display: block; font-weight: 700; margin-bottom: 6px; }
+    .hint { font-weight: 400; color: var(--jml-muted); font-size: 13px; margin: 4px 0 0; }
+    textarea, input[type="text"] {
       width: 100%;
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--line);
-      border-radius: 8px;
+      background: var(--jml-paper);
+      color: var(--jml-ink);
+      border: 1px solid #A6A6A6;
+      border-radius: 4px;
       padding: 8px 10px;
-      font: 14px/1.4 system-ui, sans-serif;
+      font: 14px/1.4 var(--jml-font-body);
     }
     textarea {
       min-height: 140px;
       resize: vertical;
-      font: 13px/1.4 ui-monospace, Consolas, monospace;
+      font: 13px/1.4 var(--jml-font-mono);
     }
     input[type="file"] { font-size: 14px; max-width: 100%; }
     .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
     button {
-      background: var(--accent); color: #fff; border: 0;
-      border-radius: 8px; padding: 9px 16px;
-      font-weight: 600; cursor: pointer; font-size: 14px;
+      background: var(--jml-purple); color: var(--jml-paper); border: 1px solid var(--jml-purple);
+      border-radius: 4px; padding: 9px 18px;
+      font: 700 14px/1.2 var(--jml-font-body); cursor: pointer;
     }
-    button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-    button.small { padding: 4px 10px; font-size: 13px; }
-    .mapping {
-      display: grid; gap: 10px; margin-top: 12px; padding: 12px;
-      border: 1px dashed var(--line); border-radius: 10px;
+    button:hover { opacity: .88; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--jml-lime); outline-offset: 2px;
     }
-    @media (min-width: 780px) { .mapping { grid-template-columns: repeat(4, 1fr); } }
+    button.secondary { background: transparent; color: var(--jml-purple); }
+    button.secondary:hover { background: var(--jml-purple-tint); }
+    button.small { padding: 5px 10px; font-size: 13px; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
     .stats { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
-    .stat { flex: 1 1 160px; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
-    .stat b { display: block; font-size: 1.5rem; }
-    .ok { color: var(--ok); }
-    .bad { color: var(--bad); }
+    .stat {
+      flex: 1 1 160px; border: 1px solid var(--jml-line); border-radius: 4px;
+      padding: 12px 14px; background: var(--jml-paper);
+    }
+    .stat b { display: block; font-family: var(--jml-font-display); font-weight: 400; font-size: 1.9rem; color: var(--jml-purple); line-height: 1.2; }
+    .stat.highlight { background: var(--jml-purple); border-color: var(--jml-purple); }
+    .stat.highlight span, .stat.highlight b { color: var(--jml-paper); }
+    .stat.highlight b { color: var(--jml-lime); }
+    .stat.alert b { color: var(--jml-red); }
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--jml-line); vertical-align: top; }
+    th {
+      background: var(--jml-purple); color: var(--jml-paper);
+      font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+    }
+    tbody tr:nth-child(even) td { background: var(--jml-mist); }
+    td.bad { color: var(--jml-red); }
     .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 999px;
-      font-size: 12px; font-weight: 600; background: var(--line);
+      display: inline-block; padding: 2px 9px; border-radius: 3px;
+      font: 600 12px/1.5 var(--jml-font-mono); border: 1px solid var(--jml-purple); color: var(--jml-purple);
     }
-    .badge.dispatched, .badge.answered { background: var(--ok-bg); color: var(--ok); }
-    .badge.voicemail { background: var(--info-bg); color: var(--accent); }
-    .badge.blocked { background: var(--bad-bg); color: var(--bad); }
-    .empty { color: var(--muted); padding: 10px 0; }
+    .badge.answered, .badge.dispatched { background: var(--jml-purple); color: var(--jml-paper); }
+    .badge.voicemail { background: var(--jml-purple-tint); }
+    .badge.blocked { background: var(--jml-red-tint); color: var(--jml-red); border-color: var(--jml-red); }
+    .empty { color: var(--jml-muted); padding: 10px 0; }
     .status { min-height: 1.5em; margin-top: 10px; }
+    .status.ok { color: var(--jml-purple); font-weight: 700; }
+    .status.bad { color: var(--jml-red); font-weight: 700; }
     .voicemail-box {
-      white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line);
-      border-radius: 8px; padding: 10px; margin-top: 8px; font-size: 14px;
+      white-space: pre-wrap; background: var(--jml-mist); border: 1px solid var(--jml-line);
+      border-left: 4px solid var(--jml-purple);
+      border-radius: 4px; padding: 10px 12px; margin-top: 8px; font-size: 14px;
     }
+    summary { cursor: pointer; color: var(--jml-purple); font-weight: 700; }
     .chat {
-      border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+      border: 1px solid var(--jml-line); border-radius: 4px; padding: 12px;
       max-height: 340px; overflow-y: auto; display: grid; gap: 8px; margin-bottom: 12px;
+      background: var(--jml-mist);
     }
-    .bubble { padding: 8px 12px; border-radius: 10px; max-width: 85%; white-space: pre-wrap; }
-    .bubble.ai { background: var(--info-bg); justify-self: start; }
-    .bubble.person { background: var(--ok-bg); justify-self: end; }
+    .bubble { padding: 8px 12px; border-radius: 4px; max-width: 85%; white-space: pre-wrap; }
+    .bubble.ai { background: var(--jml-paper); border: 1px solid var(--jml-line); justify-self: start; }
+    .bubble.person { background: var(--jml-purple-tint); justify-self: end; }
     .chat-input { display: flex; gap: 8px; }
     .chat-input input { flex: 1; }
+    .site-footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 32px; font-size: 13px; color: var(--jml-muted); }
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
+<header class="site-header">
+  <div class="inner">
+    <img src="/brand/JML-Logo-Full-Light.svg" alt="Jay Marketing Lab">
+    <p class="title">Calling Automation Demo</p>
+    <span class="tag">DEMO</span>
+  </div>
+</header>
+
 <main>
   <h1>Calling Automation Demo</h1>
   <p class="muted">Load a contact list, check every row, then see who answered, who went to voicemail, and talk to the automated assistant.</p>
@@ -192,23 +210,11 @@
   </div>
 
   <div class="card">
-    <h2>Voicemail text</h2>
-    <p class="muted">This is the message left when a call goes to voicemail. Saved edits are kept on the server
-      and used by the next import.</p>
-    <textarea id="voicemailText" style="min-height:200px" spellcheck="false"></textarea>
-    <div class="row">
-      <button id="voicemailSave">Save voicemail text</button>
-      <button class="secondary" id="voicemailRestore">Restore original</button>
-    </div>
-    <div id="voicemailStatus" class="status muted" role="status"></div>
-  </div>
-
-  <div class="card">
     <h2>2. Results</h2>
     <div class="stats">
-      <div class="stat"><span class="muted">Answered</span><b id="count-answered" class="ok">0</b></div>
+      <div class="stat highlight"><span>Answered</span><b id="count-answered">0</b></div>
       <div class="stat"><span class="muted">Voicemail</span><b id="count-voicemail">0</b></div>
-      <div class="stat"><span class="muted">Rejected at import</span><b id="count-rejected" class="bad">0</b></div>
+      <div class="stat alert"><span class="muted">Rejected at import</span><b id="count-rejected">0</b></div>
       <div class="stat"><span class="muted">Blocked</span><b id="count-blocked">0</b></div>
     </div>
     <h3>Contacts that passed the checks</h3>
@@ -235,6 +241,8 @@
     <div class="row"><button class="secondary" id="refresh">Refresh log</button></div>
   </div>
 </main>
+
+<footer class="site-footer">Jay Marketing Lab. Demo only: no calls are placed and no audio is played.</footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -586,61 +594,6 @@ function readFileInto(input, target, after) {
   });
 }
 
-// ---------- Voicemail text ----------
-
-function setVoicemailStatus(text, kind) {
-  const status = $("voicemailStatus");
-  status.className = "status " + (kind || "muted");
-  status.textContent = text;
-}
-
-async function loadVoicemail() {
-  try {
-    const message = await (await fetch("/voicemail-script")).json();
-    $("voicemailText").value = message.text;
-    setVoicemailStatus("Current version: " + message.version);
-  } catch (error) {
-    setVoicemailStatus("Could not load the voicemail text: " + error.message, "bad");
-  }
-}
-
-async function saveVoicemail() {
-  const text = $("voicemailText").value.trim();
-  if (!text) {
-    setVoicemailStatus("The voicemail text cannot be empty.", "bad");
-    return;
-  }
-
-  try {
-    const response = await fetch("/voicemail-script", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: text }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      setVoicemailStatus("Not saved: " + (data.message || data.error), "bad");
-      return;
-    }
-    setVoicemailStatus("Saved as " + data.version + ". The next import will use this text.", "ok");
-  } catch (error) {
-    setVoicemailStatus("Not saved: " + error.message, "bad");
-  }
-}
-
-async function restoreVoicemail() {
-  try {
-    const message = await (await fetch("/voicemail-script", { method: "DELETE" })).json();
-    $("voicemailText").value = message.text;
-    setVoicemailStatus("Restored the original text (" + message.version + ").", "ok");
-  } catch (error) {
-    setVoicemailStatus("Could not restore: " + error.message, "bad");
-  }
-}
-
-$("voicemailSave").addEventListener("click", saveVoicemail);
-$("voicemailRestore").addEventListener("click", restoreVoicemail);
-
 $("run").addEventListener("click", runImport);
 $("reset").addEventListener("click", loadDemo);
 $("refresh").addEventListener("click", loadCalls);
@@ -653,7 +606,6 @@ readFileInto($("consentFile"), $("consents"));
 
 loadDemo();
 loadCalls();
-loadVoicemail();
 </script>
 </body>
 </html>

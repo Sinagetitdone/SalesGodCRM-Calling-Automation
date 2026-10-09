@@ -18,8 +18,6 @@ export interface CallRepository {
   list(): Promise<CallRecord[]>;
   listDoNotCall(): Promise<string[]>;
   addDoNotCall(phoneNumber: string): Promise<void>;
-  getSetting(key: string): Promise<string | undefined>;
-  setSetting(key: string, value: string): Promise<void>;
   save(call: CallRecord): Promise<void>;
   findByIdempotencyKey(idempotencyKey: string): Promise<CallRecord | undefined>;
   saveIfIdempotencyKeyAbsent(
@@ -32,15 +30,6 @@ export class InMemoryCallRepository implements CallRepository {
   private readonly calls = new Map<string, CallRecord>();
   private readonly idempotency = new Map<string, string>();
   private readonly doNotCall = new Set<string>();
-  private readonly settings = new Map<string, string>();
-
-  async getSetting(key: string): Promise<string | undefined> {
-    return this.settings.get(key);
-  }
-
-  async setSetting(key: string, value: string): Promise<void> {
-    this.settings.set(key, value);
-  }
 
   async get(id: string): Promise<CallRecord | undefined> {
     return this.calls.get(id);

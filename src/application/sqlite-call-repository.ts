@@ -52,11 +52,6 @@ export class SQLiteCallRepository implements CallRepository {
       CREATE TABLE IF NOT EXISTS do_not_call (
         phone_number TEXT PRIMARY KEY
       );
-
-      CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      );
     `);
 
     // Databases created before outcomes existed need the column added.
@@ -67,24 +62,6 @@ export class SQLiteCallRepository implements CallRepository {
     if (!columns.some((column) => column.name === "outcome")) {
       this.db.exec("ALTER TABLE calls ADD COLUMN outcome TEXT");
     }
-  }
-
-  async getSetting(key: string): Promise<string | undefined> {
-    const row = this.db
-      .prepare("SELECT value FROM settings WHERE key = ?")
-      .get(key) as { value: string } | undefined;
-
-    return row?.value;
-  }
-
-  async setSetting(key: string, value: string): Promise<void> {
-    this.db
-      .prepare(`
-        INSERT INTO settings (key, value)
-        VALUES (?, ?)
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value
-      `)
-      .run(key, value);
   }
 
   async listDoNotCall(): Promise<string[]> {

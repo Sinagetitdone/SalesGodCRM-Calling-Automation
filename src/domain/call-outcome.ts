@@ -1,4 +1,3 @@
-import type { VoicemailMessage } from "./voicemail.js";
 import { VOICEMAIL_SCRIPT } from "./voicemail-script.js";
 
 export type CallOutcome = "ANSWERED" | "VOICEMAIL" | "NO_ANSWER";
@@ -15,13 +14,10 @@ export type FollowUp =
 
 // Decides the next step for a dispatched call. Calls that were not dispatched
 // (blocked or failed) have no follow-up.
-export function followUpFor(
-  call: {
-    readonly state: string;
-    readonly outcome?: CallOutcome;
-  },
-  voicemail: VoicemailMessage = VOICEMAIL_SCRIPT,
-): FollowUp {
+export function followUpFor(call: {
+  readonly state: string;
+  readonly outcome?: CallOutcome;
+}): FollowUp {
   if (call.state !== "DISPATCHED") return { action: "NONE" };
 
   switch (call.outcome) {
@@ -30,8 +26,8 @@ export function followUpFor(
     case "VOICEMAIL":
       return {
         action: "LEAVE_VOICEMAIL",
-        voicemailVersion: voicemail.version,
-        text: voicemail.text,
+        voicemailVersion: VOICEMAIL_SCRIPT.version,
+        text: VOICEMAIL_SCRIPT.text,
       };
     default:
       return { action: "RETRY_LATER" };

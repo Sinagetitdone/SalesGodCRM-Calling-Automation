@@ -29,16 +29,6 @@ describe("followUpFor", () => {
     expect(VOICEMAIL_SCRIPT.text).toContain("760-205-8290");
   });
 
-  it("uses the voicemail text it is given instead of the original", () => {
-    const custom = { version: "edited-test", text: "Please call back." };
-
-    expect(followUpFor({ state: "DISPATCHED", outcome: "VOICEMAIL" }, custom)).toEqual({
-      action: "LEAVE_VOICEMAIL",
-      voicemailVersion: "edited-test",
-      text: "Please call back.",
-    });
-  });
-
   it("has no follow-up for calls that were blocked", () => {
     expect(followUpFor({ state: "BLOCKED" })).toEqual({ action: "NONE" });
   });
@@ -168,19 +158,6 @@ describe("outcome storage", () => {
 
     expect((await repo.get("c-1"))?.outcome).toBe("ANSWERED");
     expect(await repo.listDoNotCall()).toEqual(["+12125550100"]);
-    repo.close();
-  });
-});
-
-describe("settings storage", () => {
-  it("saves and reads a setting in SQLite", async () => {
-    const repo = new SQLiteCallRepository(":memory:");
-
-    expect(await repo.getSetting("voicemail-script")).toBeUndefined();
-    await repo.setSetting("voicemail-script", "first");
-    await repo.setSetting("voicemail-script", "second");
-
-    expect(await repo.getSetting("voicemail-script")).toBe("second");
     repo.close();
   });
 });
