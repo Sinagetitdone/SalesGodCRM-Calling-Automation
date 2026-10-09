@@ -1,0 +1,7 @@
+[
+  { "contactExternalId": "T-001", "phoneNumber": "+12125550100", "consentedAt": "2026-01-01T00:00:00Z", "source": "synthetic-web-form", "method": "ELECTRONIC_SIGNATURE", "coversAutomatedCalls": true },
+  { "contactExternalId": "T-003", "phoneNumber": "+12125550102", "consentedAt": "2026-01-01T00:00:00Z", "source": "synthetic-web-form", "method": "WRITTEN", "coversAutomatedCalls": true, "revokedAt": "2026-02-01T00:00:00Z" },
+  { "contactExternalId": "T-004", "phoneNumber": "+12125550103", "consentedAt": "2026-01-01T00:00:00Z", "source": "synthetic-web-form", "method": "WRITTEN", "coversAutomatedCalls": false },
+  { "contactExternalId": "T-005", "phoneNumber": "+12125550104", "consentedAt": "2099-01-01T00:00:00Z", "source": "synthetic-web-form", "method": "WRITTEN", "coversAutomatedCalls": true },
+  { "contactExternalId": "T-008", "phoneNumber": "+12125550105", "consentedAt": "2026-01-01T00:00:00Z", "source": "synthetic-web-form", "method": "WRITTEN", "coversAutomatedCalls": true }
+]

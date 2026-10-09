@@ -1,8 +1,16 @@
+import { readFileSync } from "node:fs";
+
 import Fastify from "fastify";
 
 import { CallOrchestrator } from "./application/call-orchestrator.js";
+import { importContacts } from "./application/contact-import.js";
+import { dispatchImportedContacts } from "./application/import-service.js";
 import { SQLiteCallRepository } from "./application/sqlite-call-repository.js";
+import type { ConsentRecord } from "./domain/consent.js";
 import { FakeSalesGodProvider } from "./integrations/salesgod/fake-provider.js";
+
+const demoDir = new URL("../fixtures/", import.meta.url);
+const publicDir = new URL("./public/", import.meta.url);
 
 const app = Fastify({
   logger: true,
@@ -17,6 +25,88 @@ const provider = new FakeSalesGodProvider();
 const orchestrator = new CallOrchestrator(
   repository,
   provider,
+);
+
+app.get("/", async (_request, reply) => {
+  return reply
+    .type("text/html; charset=utf-8")
+    .send(readFileSync(new URL("index.html", publicDir), "utf8"));
+});
+
+app.get("/demo/data", async () => {
+  return {
+    csv: readFileSync(new URL("synthetic-contacts.csv", demoDir), "utf8"),
+    consents: JSON.parse(
+      readFileSync(new URL("synthetic-consent.json", demoDir), "utf8"),
+    ),
+  };
+});
+
+app.get("/calls", async () => {
+  return repository.list();
+});
+
+app.post<{
+  Body: {
+    campaignExternalId: string;
+    csv: string;
+    consents: ConsentRecord[];
+    doNotCallPhones?: string[];
+    withinCallingWindow: boolean;
+  };
+}>(
+  "/imports",
+  {
+    schema: {
+      body: {
+        type: "object",
+        additionalProperties: false,
+        required: ["campaignExternalId", "csv", "consents", "withinCallingWindow"],
+        properties: {
+          campaignExternalId: { type: "string", minLength: 1 },
+          csv: { type: "string", minLength: 1 },
+          consents: { type: "array", items: { type: "object" } },
+          doNotCallPhones: { type: "array", items: { type: "string" } },
+          withinCallingWindow: { type: "boolean" },
+        },
+      },
+    },
+  },
+  async (request, reply) => {
+    let imported;
+
+    try {
+      imported = importContacts(
+        request.body.csv,
+        request.body.consents,
+        new Set(request.body.doNotCallPhones ?? []),
+      );
+    } catch (error) {
+      return reply.code(400).send({
+        error: "INVALID_CSV",
+        message: (error as Error).message,
+      });
+    }
+
+    try {
+      const accepted = await dispatchImportedContacts(
+        imported,
+        {
+          campaignExternalId: request.body.campaignExternalId,
+          withinCallingWindow: request.body.withinCallingWindow,
+        },
+        orchestrator,
+      );
+
+      return reply.send({ accepted, rejected: imported.rejected });
+    } catch (error) {
+      request.log.error(error);
+
+      return reply.code(502).send({
+        error: "PROVIDER_DISPATCH_FAILED",
+      });
+    }
+  },
 );
 
 app.get("/health", async () => {

@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calling Automation Demo</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --text: #1d2330;
+      --muted: #5b6475;
+      --line: #dde1ea;
+      --accent: #2f5bd3;
+      --ok: #1f7a4d;
+      --ok-bg: #e4f5ec;
+      --bad: #b42318;
+      --bad-bg: #fde8e6;
+      --warn-bg: #fff4d6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #12151c;
+        --card: #1b1f2a;
+        --text: #e7eaf2;
+        --muted: #9aa3b5;
+        --line: #303647;
+        --accent: #7b9bff;
+        --ok: #5fd39a;
+        --ok-bg: #173526;
+        --bad: #ff8a80;
+        --bad-bg: #3a1c1c;
+        --warn-bg: #3a3218;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #12151c;
+      --card: #1b1f2a;
+      --text: #e7eaf2;
+      --muted: #9aa3b5;
+      --line: #303647;
+      --accent: #7b9bff;
+      --ok: #5fd39a;
+      --ok-bg: #173526;
+      --bad: #ff8a80;
+      --bad-bg: #3a1c1c;
+      --warn-bg: #3a3218;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; }
+    p { margin: 0 0 12px; }
+    .muted { color: var(--muted); }
+    .banner {
+      background: var(--warn-bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 16px 0;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .steps li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+    .num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: grid; place-items: center; font-weight: 600; font-size: 13px;
+    }
+    .grid-2 { display: grid; gap: 16px; }
+    @media (min-width: 780px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    textarea, input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: 13px/1.4 ui-monospace, Consolas, monospace;
+    }
+    textarea { min-height: 150px; resize: vertical; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+    button {
+      background: var(--accent); color: #fff; border: 0;
+      border-radius: 8px; padding: 10px 18px;
+      font-weight: 600; cursor: pointer; font-size: 15px;
+    }
+    button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    .stats { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+    .stat {
+      flex: 1 1 160px; border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+    }
+    .stat b { display: block; font-size: 1.5rem; }
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; background: var(--line);
+    }
+    .badge.dispatched { background: var(--ok-bg); color: var(--ok); }
+    .badge.blocked { background: var(--bad-bg); color: var(--bad); }
+    .empty { color: var(--muted); padding: 10px 0; }
+    #status { min-height: 1.5em; margin-top: 10px; }
+    code { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Calling Automation Demo</h1>
+  <p class="muted">Walk through how a contact list becomes calls, one check at a time.</p>
+
+  <div class="banner">
+    <strong>Demo only.</strong> The contacts are synthetic (reserved 555-01XX numbers) and the calling
+    provider is a fake. No real calls are placed.
+  </div>
+
+  <div class="card">
+    <h2>How a contact moves through the system</h2>
+    <ol class="steps">
+      <li><span class="num">1</span><span>Each row is checked for a valid US phone number and for duplicate numbers.</span></li>
+      <li><span class="num">2</span><span>The number is checked against the do-not-call list you provide.</span></li>
+      <li><span class="num">3</span><span>A consent record must exist for that contact and number. It must cover automated calls, must not be revoked, and must already be in effect.</span></li>
+      <li><span class="num">4</span><span>Accepted contacts go to the call orchestrator. It checks the calling window and then dispatches the call to the provider.</span></li>
+      <li><span class="num">5</span><span>Each call is saved. Running the same import again returns the existing call and does not dial again.</span></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>1. Load the contacts and consent records</h2>
+    <div class="grid-2">
+      <div>
+        <label for="csv">Contacts (CSV)</label>
+        <textarea id="csv" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <label for="consents">Consent records (JSON)</label>
+        <textarea id="consents" spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:12px">
+      <div>
+        <label for="campaign">Campaign id</label>
+        <input id="campaign" type="text" value="demo-campaign">
+      </div>
+      <div>
+        <label for="dnc">Do-not-call numbers (one per line, optional)</label>
+        <textarea id="dnc" style="min-height:60px" spellcheck="false" placeholder="+12125550105"></textarea>
+      </div>
+    </div>
+    <div class="row">
+      <label style="font-weight:400"><input id="window" type="checkbox" checked> Inside calling window</label>
+    </div>
+    <div class="row">
+      <button id="run">Run import</button>
+      <button class="secondary" id="reset">Reload demo data</button>
+    </div>
+    <div id="status" class="muted" role="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Results</h2>
+    <div class="stats">
+      <div class="stat"><span class="muted">Dispatched</span><b id="count-dispatched" class="ok">0</b></div>
+      <div class="stat"><span class="muted">Rejected at import</span><b id="count-rejected" class="bad">0</b></div>
+      <div class="stat"><span class="muted">Blocked by calling window</span><b id="count-blocked">0</b></div>
+    </div>
+    <h2 style="margin-top:8px">Rejected rows</h2>
+    <div class="table-wrap" id="rejected"><p class="empty">Run an import to see results.</p></div>
+    <h2 style="margin-top:18px">Calls from this run</h2>
+    <div class="table-wrap" id="accepted"><p class="empty">Run an import to see results.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Call log</h2>
+    <p class="muted">Every call the system has recorded, across all runs.</p>
+    <div class="table-wrap" id="calls"></div>
+    <div class="row"><button class="secondary" id="refresh">Refresh log</button></div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+const REASONS = {
+  INVALID_PHONE: "Phone number is not a valid US number",
+  DUPLICATE_PHONE: "Same phone number already used by an earlier row",
+  DO_NOT_CALL_LIST: "Number is on the do-not-call list",
+  NO_ACTIVE_CONSENT: "No active consent covering automated calls for this contact and number",
+};
+
+function cell(text, className) {
+  const td = document.createElement("td");
+  td.textContent = text;
+  if (className) td.className = className;
+  return td;
+}
+
+function badgeCell(state) {
+  const td = document.createElement("td");
+  const span = document.createElement("span");
+  span.className = "badge " + String(state).toLowerCase();
+  span.textContent = state;
+  td.appendChild(span);
+  return td;
+}
+
+function table(headers, rows) {
+  const wrap = document.createElement("table");
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  headers.forEach((h) => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  wrap.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    row.forEach((c) => tr.appendChild(c));
+    tbody.appendChild(tr);
+  });
+  wrap.appendChild(tbody);
+  return wrap;
+}
+
+function emptyNote(text) {
+  const p = document.createElement("p");
+  p.className = "empty";
+  p.textContent = text;
+  return p;
+}
+
+function renderResults(data) {
+  const blocked = data.accepted.filter((c) => c.state === "BLOCKED").length;
+  const dispatched = data.accepted.filter((c) => c.state === "DISPATCHED").length;
+
+  $("count-dispatched").textContent = dispatched;
+  $("count-rejected").textContent = data.rejected.length;
+  $("count-blocked").textContent = blocked;
+
+  const rejected = $("rejected");
+  rejected.replaceChildren();
+  if (data.rejected.length === 0) {
+    rejected.appendChild(emptyNote("No rows were rejected."));
+  } else {
+    rejected.appendChild(table(
+      ["CSV line", "Contact", "Reason"],
+      data.rejected.map((r) => [
+        cell(String(r.line)),
+        cell(r.contactExternalId),
+        cell(REASONS[r.reason] ? r.reason + " - " + REASONS[r.reason] : r.reason, "bad"),
+      ]),
+    ));
+  }
+
+  const accepted = $("accepted");
+  accepted.replaceChildren();
+  if (data.accepted.length === 0) {
+    accepted.appendChild(emptyNote("No contacts passed the import checks."));
+  } else {
+    accepted.appendChild(table(
+      ["Contact", "Campaign", "State", "Provider call id"],
+      data.accepted.map((c) => [
+        cell(c.contactExternalId),
+        cell(c.campaignExternalId),
+        badgeCell(c.state),
+        cell(c.providerCallId || "-"),
+      ]),
+    ));
+  }
+}
+
+async function loadCalls() {
+  const calls = await (await fetch("/calls")).json();
+  const box = $("calls");
+  box.replaceChildren();
+  if (calls.length === 0) {
+    box.appendChild(emptyNote("No calls recorded yet."));
+    return;
+  }
+  box.appendChild(table(
+    ["Call id", "Contact", "Campaign", "State", "Provider call id"],
+    calls.map((c) => [
+      cell(c.id),
+      cell(c.contactExternalId),
+      cell(c.campaignExternalId),
+      badgeCell(c.state),
+      cell(c.providerCallId || "-"),
+    ]),
+  ));
+}
+
+async function loadDemoData() {
+  const data = await (await fetch("/demo/data")).json();
+  $("csv").value = data.csv;
+  $("consents").value = JSON.stringify(data.consents, null, 2);
+}
+
+async function runImport() {
+  const status = $("status");
+  status.className = "muted";
+
+  let consents;
+  try {
+    consents = JSON.parse($("consents").value);
+  } catch (error) {
+    status.className = "bad";
+    status.textContent = "Consent records are not valid JSON.";
+    return;
+  }
+
+  const body = {
+    campaignExternalId: $("campaign").value.trim() || "demo-campaign",
+    csv: $("csv").value,
+    consents: consents,
+    doNotCallPhones: $("dnc").value.split("\n").map((s) => s.trim()).filter(Boolean),
+    withinCallingWindow: $("window").checked,
+  };
+
+  status.textContent = "Running import...";
+  const response = await fetch("/imports", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    status.className = "bad";
+    status.textContent = "Import failed: " + (data.message || data.error);
+    return;
+  }
+
+  renderResults(data);
+  await loadCalls();
+  status.textContent = "Import finished. Run it again to see that no contact is dialed twice.";
+}
+
+$("run").addEventListener("click", runImport);
+$("refresh").addEventListener("click", loadCalls);
+$("reset").addEventListener("click", loadDemoData);
+
+loadDemoData();
+loadCalls();
+</script>
+</body>
+</html>

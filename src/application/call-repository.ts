@@ -13,6 +13,7 @@ export interface CallRecord {
 
 export interface CallRepository {
   get(id: string): Promise<CallRecord | undefined>;
+  list(): Promise<CallRecord[]>;
   save(call: CallRecord): Promise<void>;
   findByIdempotencyKey(idempotencyKey: string): Promise<CallRecord | undefined>;
   saveIfIdempotencyKeyAbsent(
@@ -27,6 +28,10 @@ export class InMemoryCallRepository implements CallRepository {
 
   async get(id: string): Promise<CallRecord | undefined> {
     return this.calls.get(id);
+  }
+
+  async list(): Promise<CallRecord[]> {
+    return [...this.calls.values()];
   }
 
   async save(call: CallRecord): Promise<void> {

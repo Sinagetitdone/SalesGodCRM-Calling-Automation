@@ -61,6 +61,18 @@ export class SQLiteCallRepository implements CallRepository {
     return row ? this.toCallRecord(row) : undefined;
   }
 
+  async list(): Promise<CallRecord[]> {
+    const rows = this.db
+      .prepare(`
+        SELECT *
+        FROM calls
+        ORDER BY rowid
+      `)
+      .all() as unknown as CallRow[];
+
+    return rows.map((row) => this.toCallRecord(row));
+  }
+
   async save(call: CallRecord): Promise<void> {
     this.db
       .prepare(`
