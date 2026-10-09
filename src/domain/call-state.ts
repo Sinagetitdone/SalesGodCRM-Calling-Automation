@@ -23,7 +23,7 @@ export type CallState = (typeof callStates)[number];
 const transitions: Record<CallState, readonly CallState[]> = {
   PENDING_ELIGIBILITY: ["BLOCKED", "READY"],
   BLOCKED: [],
-  READY: ["DISPATCHED", "DO_NOT_CALL"],
+  READY: ["DISPATCHED", "DO_NOT_CALL", "FAILED"],
   DISPATCHED: ["RINGING", "VOICEMAIL", "NO_ANSWER", "FAILED"],
   RINGING: ["HUMAN_CONNECTED", "VOICEMAIL", "NO_ANSWER", "FAILED"],
   HUMAN_CONNECTED: ["IN_CONVERSATION", "DO_NOT_CALL", "FAILED"],

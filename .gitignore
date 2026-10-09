@@ -5,3 +5,5 @@ coverage/
 .env.*
 !.env.example
 *.log
+# Local SQLite databases (runtime data, never commit)
+data/*.db

@@ -7,3 +7,4 @@ export * from "./config.js";
 export * from "./integrations/salesgod/types.js";
 export * from "./integrations/salesgod/webhook-client.js";
 export * from "./integrations/salesgod/webhook-auth.js";
+export * from "./application/sqlite-call-repository.js";

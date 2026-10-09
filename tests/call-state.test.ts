@@ -20,4 +20,6 @@ describe("call-state transitions", () => {
       "Invalid call-state transition",
     );
   });
-});
+it("allows a ready call to fail during provider dispatch", () => {
+  expect(transitionCall("READY", "FAILED")).toBe("FAILED");
+});});

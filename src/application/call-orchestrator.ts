@@ -20,7 +20,10 @@ export class CallOrchestrator {
   ) {}
 
   async start(input: StartCallInput): Promise<CallRecord> {
-    const existing = await this.repository.findByIdempotencyKey(input.idempotencyKey);
+    const existing = await this.repository.findByIdempotencyKey(
+      input.idempotencyKey,
+    );
+
     if (existing) return existing;
 
     const decision = evaluateEligibility({
@@ -30,7 +33,11 @@ export class CallOrchestrator {
     });
 
     let state: CallState = "PENDING_ELIGIBILITY";
-    state = transitionCall(state, decision.status === "ELIGIBLE" ? "READY" : "BLOCKED");
+
+    state = transitionCall(
+      state,
+      decision.status === "ELIGIBLE" ? "READY" : "BLOCKED",
+    );
 
     const initial: CallRecord = {
       id: input.id,
@@ -42,15 +49,35 @@ export class CallOrchestrator {
       state,
     };
 
-    await this.repository.save(initial);
+    const concurrentExisting =
+      await this.repository.saveIfIdempotencyKeyAbsent(
+        input.idempotencyKey,
+        initial,
+      );
+
+    if (concurrentExisting) {
+      return concurrentExisting;
+    }
 
     if (state !== "READY") return initial;
 
-    const result = await this.provider.initiateCall({
-      idempotencyKey: input.idempotencyKey,
-      contactExternalId: input.contactExternalId,
-      campaignExternalId: input.campaignExternalId,
-    });
+    let result;
+
+    try {
+      result = await this.provider.initiateCall({
+        idempotencyKey: input.idempotencyKey,
+        contactExternalId: input.contactExternalId,
+        campaignExternalId: input.campaignExternalId,
+      });
+    } catch (error) {
+      const failed: CallRecord = {
+        ...initial,
+        state: transitionCall(initial.state, "FAILED"),
+      };
+
+      await this.repository.save(failed);
+      throw error;
+    }
 
     const dispatched: CallRecord = {
       ...initial,
@@ -59,11 +86,6 @@ export class CallOrchestrator {
     };
 
     await this.repository.save(dispatched);
-    if ("rememberIdempotencyKey" in this.repository) {
-      (this.repository as CallRepository & {
-        rememberIdempotencyKey(key: string, id: string): void;
-      }).rememberIdempotencyKey(input.idempotencyKey, input.id);
-    }
 
     return dispatched;
   }

@@ -15,6 +15,10 @@ export interface CallRepository {
   get(id: string): Promise<CallRecord | undefined>;
   save(call: CallRecord): Promise<void>;
   findByIdempotencyKey(idempotencyKey: string): Promise<CallRecord | undefined>;
+  saveIfIdempotencyKeyAbsent(
+    idempotencyKey: string,
+    call: CallRecord,
+  ): Promise<CallRecord | undefined>;
 }
 
 export class InMemoryCallRepository implements CallRepository {
@@ -29,12 +33,26 @@ export class InMemoryCallRepository implements CallRepository {
     this.calls.set(call.id, call);
   }
 
-  async findByIdempotencyKey(idempotencyKey: string): Promise<CallRecord | undefined> {
+  async findByIdempotencyKey(
+    idempotencyKey: string,
+  ): Promise<CallRecord | undefined> {
     const id = this.idempotency.get(idempotencyKey);
     return id ? this.calls.get(id) : undefined;
   }
 
-  rememberIdempotencyKey(idempotencyKey: string, callId: string): void {
-    this.idempotency.set(idempotencyKey, callId);
+  async saveIfIdempotencyKeyAbsent(
+    idempotencyKey: string,
+    call: CallRecord,
+  ): Promise<CallRecord | undefined> {
+    const existingId = this.idempotency.get(idempotencyKey);
+
+    if (existingId) {
+      return this.calls.get(existingId);
+    }
+
+    this.idempotency.set(idempotencyKey, call.id);
+    this.calls.set(call.id, call);
+
+    return undefined;
   }
 }

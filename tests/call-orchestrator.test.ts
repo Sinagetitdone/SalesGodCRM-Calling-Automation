@@ -69,4 +69,70 @@ describe("CallOrchestrator", () => {
 
     expect(salesGod.initiateCall).toHaveBeenCalledOnce();
   });
+
+  it("marks a call as failed when the provider dispatch fails", async () => {
+    const repo = new InMemoryCallRepository();
+
+    const salesGod: SalesGodProvider = {
+      initiateCall: vi.fn().mockRejectedValue(
+        new Error("provider unavailable"),
+      ),
+    };
+
+    const orchestrator = new CallOrchestrator(repo, salesGod);
+
+    await expect(
+      orchestrator.start({
+        id: "call-failure",
+        contactExternalId: "contact-failure",
+        campaignExternalId: "campaign-1",
+        consentConfirmed: true,
+        doNotCall: false,
+        withinCallingWindow: true,
+        idempotencyKey: "idem-failure",
+      }),
+    ).rejects.toThrow("provider unavailable");
+
+    const stored = await repo.get("call-failure");
+
+    expect(stored?.state).toBe("FAILED");
+  });
+
+  it("does not concurrently dispatch the same idempotency key twice", async () => {
+    const repo = new InMemoryCallRepository();
+
+    let dispatchCount = 0;
+
+    const salesGod: SalesGodProvider = {
+      initiateCall: vi.fn().mockImplementation(async () => {
+        dispatchCount += 1;
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        return {
+          providerCallId: "sg-concurrent-call",
+        };
+      }),
+    };
+
+    const orchestrator = new CallOrchestrator(repo, salesGod);
+
+    const input = {
+      id: "call-concurrent",
+      contactExternalId: "contact-concurrent",
+      campaignExternalId: "campaign-1",
+      consentConfirmed: true,
+      doNotCall: false,
+      withinCallingWindow: true,
+      idempotencyKey: "idem-concurrent",
+    };
+
+    await Promise.all([
+      orchestrator.start(input),
+      orchestrator.start(input),
+    ]);
+
+    expect(dispatchCount).toBe(1);
+    expect(salesGod.initiateCall).toHaveBeenCalledOnce();
+  });
 });
