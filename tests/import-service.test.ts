@@ -31,9 +31,9 @@ describe("dispatchImportedContacts", () => {
       orchestrator,
     );
 
-    expect(calls.map((c) => c.contactExternalId)).toEqual(["T-001", "T-008"]);
+    expect(calls.map((c) => c.contactExternalId)).toEqual(["T-001", "T-008", "T-009"]);
     expect(calls.every((c) => c.state === "DISPATCHED")).toBe(true);
-    expect(provider.initiateCall).toHaveBeenCalledTimes(2);
+    expect(provider.initiateCall).toHaveBeenCalledTimes(3);
   });
 
   it("does not dial the same contact twice when the import runs again", async () => {
@@ -44,8 +44,8 @@ describe("dispatchImportedContacts", () => {
     await dispatchImportedContacts(imported, input, orchestrator);
     const second = await dispatchImportedContacts(imported, input, orchestrator);
 
-    expect(second).toHaveLength(2);
-    expect(provider.initiateCall).toHaveBeenCalledTimes(2);
+    expect(second).toHaveLength(3);
+    expect(provider.initiateCall).toHaveBeenCalledTimes(3);
   });
 
   it("marks calls BLOCKED when the calling window is closed, without dialing", async () => {

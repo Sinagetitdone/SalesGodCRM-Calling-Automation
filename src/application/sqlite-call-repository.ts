@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import type { CallOutcome } from "../domain/call-outcome.js";
 import type { CallState } from "../domain/call-state.js";
 import type {
   CallRecord,
@@ -17,6 +18,7 @@ interface CallRow {
   within_calling_window: number;
   state: CallState;
   provider_call_id: string | null;
+  outcome: CallOutcome | null;
 }
 
 export class SQLiteCallRepository implements CallRepository {
@@ -46,7 +48,61 @@ export class SQLiteCallRepository implements CallRepository {
         call_id TEXT NOT NULL,
         FOREIGN KEY (call_id) REFERENCES calls(id)
       );
+
+      CREATE TABLE IF NOT EXISTS do_not_call (
+        phone_number TEXT PRIMARY KEY
+      );
+
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
     `);
+
+    // Databases created before outcomes existed need the column added.
+    const columns = this.db
+      .prepare("PRAGMA table_info(calls)")
+      .all() as unknown as { name: string }[];
+
+    if (!columns.some((column) => column.name === "outcome")) {
+      this.db.exec("ALTER TABLE calls ADD COLUMN outcome TEXT");
+    }
+  }
+
+  async getSetting(key: string): Promise<string | undefined> {
+    const row = this.db
+      .prepare("SELECT value FROM settings WHERE key = ?")
+      .get(key) as { value: string } | undefined;
+
+    return row?.value;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    this.db
+      .prepare(`
+        INSERT INTO settings (key, value)
+        VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+      `)
+      .run(key, value);
+  }
+
+  async listDoNotCall(): Promise<string[]> {
+    const rows = this.db
+      .prepare("SELECT phone_number FROM do_not_call ORDER BY phone_number")
+      .all() as unknown as { phone_number: string }[];
+
+    return rows.map((row) => row.phone_number);
+  }
+
+  async addDoNotCall(phoneNumber: string): Promise<void> {
+    this.db
+      .prepare(`
+        INSERT INTO do_not_call (phone_number)
+        VALUES (?)
+        ON CONFLICT(phone_number) DO NOTHING
+      `)
+      .run(phoneNumber);
   }
 
   async get(id: string): Promise<CallRecord | undefined> {
@@ -84,9 +140,10 @@ export class SQLiteCallRepository implements CallRepository {
           do_not_call,
           within_calling_window,
           state,
-          provider_call_id
+          provider_call_id,
+          outcome
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           contact_external_id = excluded.contact_external_id,
           campaign_external_id = excluded.campaign_external_id,
@@ -94,7 +151,8 @@ export class SQLiteCallRepository implements CallRepository {
           do_not_call = excluded.do_not_call,
           within_calling_window = excluded.within_calling_window,
           state = excluded.state,
-          provider_call_id = excluded.provider_call_id
+          provider_call_id = excluded.provider_call_id,
+          outcome = excluded.outcome
       `)
       .run(
         call.id,
@@ -105,6 +163,7 @@ export class SQLiteCallRepository implements CallRepository {
         call.withinCallingWindow ? 1 : 0,
         call.state,
         call.providerCallId ?? null,
+        call.outcome ?? null,
       );
   }
 
@@ -179,6 +238,7 @@ export class SQLiteCallRepository implements CallRepository {
       ...(row.provider_call_id
         ? { providerCallId: row.provider_call_id }
         : {}),
+      ...(row.outcome ? { outcome: row.outcome } : {}),
     };
   }
 }

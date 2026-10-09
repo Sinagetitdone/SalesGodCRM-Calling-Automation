@@ -72,10 +72,22 @@ export function importContacts(
   const accepted: ContactRow[] = [];
   const rejected: RejectedRow[] = [];
   const seenPhones = new Set<string>();
+  const seenContactIds = new Set<string>();
 
   dataRows.forEach((row, index) => {
     const line = index + 2; // header is line 1
     const contactExternalId = column("contact_id", row);
+
+    if (!contactExternalId) {
+      rejected.push({ line, contactExternalId, reason: "MISSING_CONTACT_ID" });
+      return;
+    }
+
+    if (seenContactIds.has(contactExternalId)) {
+      rejected.push({ line, contactExternalId, reason: "DUPLICATE_CONTACT_ID" });
+      return;
+    }
+    seenContactIds.add(contactExternalId);
 
     const phoneNumber = normalizePhone(column("phone", row));
     if (!phoneNumber) {

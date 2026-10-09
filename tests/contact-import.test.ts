@@ -21,7 +21,7 @@ describe("importContacts", () => {
   it("accepts only contacts with active, automated-call consent", () => {
     const result = importContacts(csv, consents, new Set(), now);
 
-    expect(result.accepted.map((c) => c.contactExternalId)).toEqual(["T-001", "T-008"]);
+    expect(result.accepted.map((c) => c.contactExternalId)).toEqual(["T-001", "T-008", "T-009"]);
   });
 
   it("gives a reason for every rejected row", () => {
@@ -44,7 +44,7 @@ describe("importContacts", () => {
     const dnc = new Set(["+12125550100", "+12125550105"]);
     const result = importContacts(csv, consents, dnc, now);
 
-    expect(result.accepted).toHaveLength(0);
+    expect(result.accepted.map((c) => c.contactExternalId)).toEqual(["T-009"]);
     expect(result.rejected.find((r) => r.contactExternalId === "T-001")?.reason).toBe(
       "DO_NOT_CALL_LIST",
     );

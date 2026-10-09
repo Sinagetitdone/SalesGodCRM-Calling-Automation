@@ -6,7 +6,14 @@ import { CallOrchestrator } from "./application/call-orchestrator.js";
 import { importContacts } from "./application/contact-import.js";
 import { dispatchImportedContacts } from "./application/import-service.js";
 import { SQLiteCallRepository } from "./application/sqlite-call-repository.js";
+import { followUpFor } from "./domain/call-outcome.js";
 import type { ConsentRecord } from "./domain/consent.js";
+import { type ConversationStage, nextTurn, openingTurn } from "./domain/conversation.js";
+import {
+  createVoicemailMessage,
+  type VoicemailMessage,
+} from "./domain/voicemail.js";
+import { VOICEMAIL_SCRIPT } from "./domain/voicemail-script.js";
 import { FakeSalesGodProvider } from "./integrations/salesgod/fake-provider.js";
 
 const demoDir = new URL("../fixtures/", import.meta.url);
@@ -46,6 +53,103 @@ app.get("/calls", async () => {
   return repository.list();
 });
 
+const VOICEMAIL_SETTING = "voicemail-script";
+
+// The saved voicemail text, or the original script if none has been saved.
+async function currentVoicemail(): Promise<VoicemailMessage> {
+  const saved = await repository.getSetting(VOICEMAIL_SETTING);
+  if (!saved) return VOICEMAIL_SCRIPT;
+
+  const parsed = JSON.parse(saved) as VoicemailMessage;
+  return createVoicemailMessage(parsed.version, parsed.text);
+}
+
+app.get("/voicemail-script", async () => {
+  return currentVoicemail();
+});
+
+app.put<{ Body: { text: string } }>(
+  "/voicemail-script",
+  {
+    schema: {
+      body: {
+        type: "object",
+        additionalProperties: false,
+        required: ["text"],
+        properties: {
+          text: { type: "string", minLength: 1, maxLength: 2000 },
+        },
+      },
+    },
+  },
+  async (request, reply) => {
+    let message: VoicemailMessage;
+
+    try {
+      message = createVoicemailMessage(
+        `edited-${new Date().toISOString()}`,
+        request.body.text,
+      );
+    } catch (error) {
+      return reply.code(400).send({
+        error: "INVALID_VOICEMAIL",
+        message: (error as Error).message,
+      });
+    }
+
+    await repository.setSetting(VOICEMAIL_SETTING, JSON.stringify(message));
+    return message;
+  },
+);
+
+app.delete("/voicemail-script", async () => {
+  await repository.setSetting(VOICEMAIL_SETTING, "");
+  return VOICEMAIL_SCRIPT;
+});
+
+app.get("/conversation/opening", async () => {
+  return openingTurn();
+});
+
+app.post<{
+  Body: {
+    contactExternalId: string;
+    phoneNumber: string;
+    stage: ConversationStage;
+    message: string;
+  };
+}>(
+  "/conversation",
+  {
+    schema: {
+      body: {
+        type: "object",
+        additionalProperties: false,
+        required: ["contactExternalId", "phoneNumber", "stage", "message"],
+        properties: {
+          contactExternalId: { type: "string", minLength: 1 },
+          phoneNumber: { type: "string", pattern: "^\\+[1-9][0-9]{7,14}$" },
+          stage: {
+            type: "string",
+            enum: ["GREETING", "SCHEDULING", "DONE", "OPTED_OUT"],
+          },
+          message: { type: "string", maxLength: 1000 },
+        },
+      },
+    },
+  },
+  async (request) => {
+    const turn = nextTurn(request.body.stage, request.body.message);
+
+    // An opt-out is stored right away so no later import can dial this number.
+    if (turn.optedOut && request.body.stage !== "OPTED_OUT") {
+      await repository.addDoNotCall(request.body.phoneNumber);
+    }
+
+    return turn;
+  },
+);
+
 app.post<{
   Body: {
     campaignExternalId: string;
@@ -76,10 +180,16 @@ app.post<{
     let imported;
 
     try {
+      // Numbers from the request and numbers that opted out earlier are both excluded.
+      const doNotCall = new Set([
+        ...(request.body.doNotCallPhones ?? []),
+        ...(await repository.listDoNotCall()),
+      ]);
+
       imported = importContacts(
         request.body.csv,
         request.body.consents,
-        new Set(request.body.doNotCallPhones ?? []),
+        doNotCall,
       );
     } catch (error) {
       return reply.code(400).send({
@@ -98,7 +208,15 @@ app.post<{
         orchestrator,
       );
 
-      return reply.send({ accepted, rejected: imported.rejected });
+      const voicemail = await currentVoicemail();
+
+      return reply.send({
+        accepted: accepted.map((call) => ({
+          ...call,
+          followUp: followUpFor(call, voicemail),
+        })),
+        rejected: imported.rejected,
+      });
     } catch (error) {
       request.log.error(error);
 

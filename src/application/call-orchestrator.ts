@@ -83,6 +83,7 @@ export class CallOrchestrator {
       ...initial,
       state: transitionCall(initial.state, "DISPATCHED"),
       providerCallId: result.providerCallId,
+      ...(result.outcome ? { outcome: result.outcome } : {}),
     };
 
     await this.repository.save(dispatched);
