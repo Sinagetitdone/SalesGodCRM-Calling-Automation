@@ -7,6 +7,18 @@
       "type": "lesson",
       "path": "docs/engineering-memory/LESSONS_LEARNED.md",
       "tags": ["integration", "salesgod", "security"]
+    },
+    {
+      "id": "LL-2026-002",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-browser-audio-proof.md",
+      "tags": ["integration", "testing", "calling"]
+    },
+    {
+      "id": "LL-2026-003",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-sqlite-request-isolation.md",
+      "tags": ["architecture", "testing", "calling"]
     }
   ]
 }

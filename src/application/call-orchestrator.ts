@@ -7,7 +7,7 @@ export interface StartCallInput {
   readonly id: string;
   readonly contactExternalId: string;
   readonly campaignExternalId: string;
-  readonly consentConfirmed: boolean;
+  readonly consentConfirmed?: boolean;
   readonly doNotCall: boolean;
   readonly withinCallingWindow: boolean;
   readonly idempotencyKey: string;
@@ -27,7 +27,7 @@ export class CallOrchestrator {
     if (existing) return existing;
 
     const decision = evaluateEligibility({
-      consentConfirmed: input.consentConfirmed,
+      consentConfirmed: input.consentConfirmed ?? false,
       doNotCall: input.doNotCall,
       withinCallingWindow: input.withinCallingWindow,
     });
@@ -43,7 +43,7 @@ export class CallOrchestrator {
       id: input.id,
       contactExternalId: input.contactExternalId,
       campaignExternalId: input.campaignExternalId,
-      consentConfirmed: input.consentConfirmed,
+      consentConfirmed: input.consentConfirmed ?? false,
       doNotCall: input.doNotCall,
       withinCallingWindow: input.withinCallingWindow,
       state,

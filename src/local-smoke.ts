@@ -47,14 +47,14 @@ async function main(): Promise<void> {
   console.log("Result:");
   console.log(eligible);
 
-  console.log("\n=== SCENARIO 2: BLOCKED - NO CONSENT ===");
+  console.log("\n=== SCENARIO 2: BLOCKED - DO NOT CALL ===");
 
   const blocked = await orchestrator.start({
     id: "local-call-2",
     contactExternalId: "synthetic-contact-2",
     campaignExternalId: "synthetic-campaign-1",
     consentConfirmed: false,
-    doNotCall: false,
+    doNotCall: true,
     withinCallingWindow: true,
     idempotencyKey: "local-idem-2",
   });
@@ -94,7 +94,7 @@ async function main(): Promise<void> {
 
   if (blocked.state !== "BLOCKED") {
     throw new Error(
-      `No-consent call should be BLOCKED, got ${blocked.state}`,
+      `Suppressed call should be BLOCKED, got ${blocked.state}`,
     );
   }
 

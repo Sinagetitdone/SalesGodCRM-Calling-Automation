@@ -3,7 +3,8 @@ export type EligibilityDecision =
   | { status: "BLOCKED"; reason: string };
 
 export interface EligibilityInput {
-  consentConfirmed: boolean;
+  /** Legacy metadata only; imported lists are authorized at campaign level. */
+  consentConfirmed?: boolean;
   doNotCall: boolean;
   withinCallingWindow: boolean;
 }
@@ -11,10 +12,6 @@ export interface EligibilityInput {
 export function evaluateEligibility(input: EligibilityInput): EligibilityDecision {
   if (input.doNotCall) {
     return { status: "BLOCKED", reason: "DO_NOT_CALL" };
-  }
-
-  if (!input.consentConfirmed) {
-    return { status: "BLOCKED", reason: "CONSENT_NOT_CONFIRMED" };
   }
 
   if (!input.withinCallingWindow) {

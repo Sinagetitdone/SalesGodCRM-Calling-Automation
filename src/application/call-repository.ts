@@ -1,5 +1,12 @@
 import type { CallState } from "../domain/call-state.js";
 
+export class CallIdConflictError extends Error {
+  constructor() {
+    super("Call ID is already assigned to another request");
+    this.name = "CallIdConflictError";
+  }
+}
+
 export interface CallRecord {
   readonly id: string;
   readonly contactExternalId: string;
@@ -49,6 +56,8 @@ export class InMemoryCallRepository implements CallRepository {
     if (existingId) {
       return this.calls.get(existingId);
     }
+
+    if (this.calls.has(call.id)) throw new CallIdConflictError();
 
     this.idempotency.set(idempotencyKey, call.id);
     this.calls.set(call.id, call);

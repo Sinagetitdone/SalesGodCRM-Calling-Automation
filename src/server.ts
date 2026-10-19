@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 
 import { CallOrchestrator } from "./application/call-orchestrator.js";
+import { CallIdConflictError } from "./application/call-repository.js";
 import { SQLiteCallRepository } from "./application/sqlite-call-repository.js";
 import { FakeSalesGodProvider } from "./integrations/salesgod/fake-provider.js";
 
@@ -9,7 +10,7 @@ const app = Fastify({
 });
 
 const repository = new SQLiteCallRepository(
-  "data/local-app.db",
+  process.env.CALL_DATABASE_PATH ?? "data/local-app.db",
 );
 
 const provider = new FakeSalesGodProvider();
@@ -48,7 +49,7 @@ app.post<{
     id: string;
     contactExternalId: string;
     campaignExternalId: string;
-    consentConfirmed: boolean;
+    consentConfirmed?: boolean;
     doNotCall: boolean;
     withinCallingWindow: boolean;
     idempotencyKey: string;
@@ -64,7 +65,6 @@ app.post<{
           "id",
           "contactExternalId",
           "campaignExternalId",
-          "consentConfirmed",
           "doNotCall",
           "withinCallingWindow",
           "idempotencyKey",
@@ -107,6 +107,9 @@ app.post<{
 
       return reply.code(200).send(result);
     } catch (error) {
+      if (error instanceof CallIdConflictError) {
+        return reply.code(409).send({ error: "CALL_ID_CONFLICT" });
+      }
       request.log.error(error);
 
       return reply.code(502).send({
@@ -118,7 +121,7 @@ app.post<{
 
 async function main(): Promise<void> {
   await app.listen({
-    host: "0.0.0.0",
+    host: process.env.HOST ?? "0.0.0.0",
     port: Number(process.env.PORT ?? 3000),
   });
 }
