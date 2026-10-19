@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-19 — Supervised Realtime setup and local audio pairing
+
+Version 0.2.0 pairs the extension's generated-microphone and incoming-audio graphs to a loopback voice window using a short-lived token and MessagePort. The private WebRTC peer uses the original constructor to avoid capturing its own output. Synthetic routing can be tested without OpenAI; both audio signal peaks and RTP directions are required. Realtime setup keeps the standard API key server-side, requests one explicit AI introduction, waits for audio playback to drain, and disconnects automatically. Turn detection is disabled and a new dialer peer cancels setup. No phone calls or live conversation mode are enabled.
+
+Local browser pairing and synthetic two-way routing passed. The supplied key was configured in the ignored local .env file at the owner's request, but OpenAI rejected it with HTTP 401 invalid_api_key; successful live AI audio remains unverified. A mistakenly committed value was removed from the current .env.example on main, without rewriting history. No key value is retained in documentation, test fixtures, or reports.
+
 ## 2026-10-19 — Pre-push verification and storage fixes
 
 Added real SQLite concurrency/collision coverage and an isolated HTTP API check using the fake provider. Reservations no longer yield inside DatabaseSync transactions; a call ID owned by another request is rejected without overwriting records and is mapped to HTTP 409. CI now runs all core, HTTP, audio-server, and extension tests with npm ci. Setup instructions reflect the driver-free diagnostic direction, obsolete cable UI code is removed, and local credentials, databases, vendor binaries, screenshots, and manual trace files stay out of Git.

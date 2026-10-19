@@ -15,6 +15,12 @@
       "tags": ["integration", "testing", "calling"]
     },
     {
+      "id": "LL-2026-004",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-realtime-setup-boundaries.md",
+      "tags": ["integration", "testing", "security", "calling"]
+    },
+    {
       "id": "LL-2026-003",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-sqlite-request-isolation.md",

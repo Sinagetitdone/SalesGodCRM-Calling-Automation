@@ -1,6 +1,6 @@
 # ADR-0002: Browser dialer with an OpenAI voice bridge
 
-- Status: Accepted direction; integration not implemented
+- Status: Accepted direction; supervised audio setup implemented, telephone integration unverified
 - Date: 2026-10-19
 - Supersedes: ADR-0001's provider-authorization requirement for browser automation and native SalesGod AI caller assumption
 
@@ -12,7 +12,7 @@ The old consent field remains optional legacy metadata for compatibility with ex
 
 ## Intended flow
 
-Update 2026-10-19: the owner chose a driver-free custom Chrome extension. A diagnostic prototype is installed and recognized by the CRM microphone selector; see tools/audio-extension/TEST-RESULTS.md. Real CRM microphone acquisition, telephone audio, and OpenAI voice remain unverified. VB-CABLE is not required by this direction.
+Update 2026-10-19: the owner chose a driver-free custom Chrome extension. A diagnostic prototype is installed and recognized by the CRM microphone selector; see tools/audio-extension/TEST-RESULTS.md. Version 0.2.0 adds opt-in audio pairing to a loopback setup window, a synthetic routing test independent of OpenAI, and a server-mediated Realtime test. The key stays server-side; no extension permissions were expanded. Setup has automatic turn detection disabled and stops on a new dialer peer. This is deliberately not live telephone forwarding. Real CRM microphone acquisition, telephone audio, and successful OpenAI voice remain unverified; the supplied key returned HTTP 401. VB-CABLE is not required by this direction.
 
 Import list -> durable queue -> browser dialer adapter -> two-way audio bridge -> OpenAI Realtime voice session -> outcome and event log.
 
@@ -27,7 +27,7 @@ Persist call attempts, timestamps, observed states, errors, transcript events wh
 - SalesGodCRM site URL and read-only dialer inspection.
 - Verified audio routing and call-state detection on the target machine.
 - Secure OpenAI API configuration, approved conversation instructions, and voicemail message.
-- Durable queue and crash recovery, SQLite concurrency fixes, suppression handling, and campaign authorization records.
+- Durable queue and crash recovery, authoritative suppression handling, and campaign authorization records. SQLite reservation concurrency and call-ID conflict handling are implemented and tested.
 - Controlled end-to-end test before list execution.
 
 No live call was placed as part of this decision. The runtime continues to use the fake provider.

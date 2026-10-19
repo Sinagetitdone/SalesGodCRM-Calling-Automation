@@ -54,3 +54,8 @@ The 0.1.1 helper also bounds signaling waits, handles candidates that arrive bef
 - No number was entered and no call control was activated.
 
 Screenshots are local ignored artifacts under tests/: crm-audio-proof.png records the selected generated microphone and passing graph result; final-state.png records disabled routing. The restored default microphone was separately verified in the settings UI.
+# Version 0.2.0 — installed CRM to local setup link
+
+2026-10-19: The owner reloaded the unpacked extension, and the CRM Calls view showed **No ongoing calls** before refresh. The extension paired the idle https://www.salesgodcrm.net dashboard with the loopback setup page through an origin-checked MessagePort. **Test paired routing without OpenAI** passed: local link sent 6 RTP packets and received 6; synthetic customer peak 0.04364 and generated-microphone graph peak 0.05032. It then disconnected automatically. No OpenAI request, physical microphone capture, telephone call, or number entry occurred. An earlier attempt closed before connectivity; it was not counted as a pass.
+
+Live OpenAI setup was separately attempted from the standalone page, and failed with HTTP 401. The upstream model-access check reported invalid_api_key. The setup released its peers, generated tracks and audio context. Successful live model audio remains unverified. See VOICE-SETUP.md for the version 0.2.0 boundaries; older measurements below concern the earlier diagnostic prototype.

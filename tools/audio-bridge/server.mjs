@@ -19,13 +19,15 @@ export function createBridge({ env = process.env, fetchImpl = fetch } = {}) {
     reply.header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src 'self' blob:; object-src 'none'; frame-ancestors 'none'");
   });
   for (const [route, name, type] of [
-    ['/', 'index.html', 'text/html; charset=utf-8'],
+    ['/', 'setup.html', 'text/html; charset=utf-8'],
     ['/style.css', 'style.css', 'text/css; charset=utf-8'],
     ['/panel.css', 'panel.css', 'text/css; charset=utf-8'],
+    ['/voice-test', 'voice.html', 'text/html; charset=utf-8'],
+    ['/voice.js', 'voice.js', 'text/javascript; charset=utf-8'],
   ]) app.get(route, async (_request, reply) => reply.type(type).send(await readFile(new URL(`public/${name}`, import.meta.url))));
   app.get('/extension-lab', async (_request, reply) => reply.type('text/html; charset=utf-8').send(await readFile(new URL('../audio-extension/tests/lab.html', import.meta.url))));
   app.get('/audio-diagnostics', async (_request, reply) => reply.type('text/html; charset=utf-8').send(await readFile(new URL('../audio-extension/tests/lab.html', import.meta.url))));
-  for (const name of ['local-rtc.js', 'audio-hook.js', 'panel.js']) app.get(`/extension-lab/${name}`, async (_request, reply) => reply.type('text/javascript; charset=utf-8').send(await readFile(new URL(`../audio-extension/${name}`, import.meta.url))));
+  for (const name of ['local-rtc.js', 'window-rtc.js', 'audio-hook.js', 'panel.js']) app.get(`/extension-lab/${name}`, async (_request, reply) => reply.type('text/javascript; charset=utf-8').send(await readFile(new URL(`../audio-extension/${name}`, import.meta.url))));
   app.get('/extension-lab/lab.js', async (_request, reply) => reply.type('text/javascript; charset=utf-8').send(await readFile(new URL('../audio-extension/tests/lab.js', import.meta.url))));
   app.get('/status', async () => ({
     keyConfigured: Boolean(env.OPENAI_API_KEY?.trim()),
@@ -44,13 +46,18 @@ export function createBridge({ env = process.env, fetchImpl = fetch } = {}) {
       form.set('session', JSON.stringify({
         type: 'realtime', model: env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2.1',
         instructions: 'You are an AI assistant in an audio setup test. Clearly identify yourself as an AI assistant. Help the owner verify hearing and speaking. Do not conduct sales conversations, make commitments, or invent business facts. No calls are authorized in this setup test.',
-        audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true } }, output: { voice: 'marin' } },
+        audio: { input: { turn_detection: null }, output: { voice: 'marin' } },
       }));
       const response = await fetchImpl('https://api.openai.com/v1/realtime/calls', {
         method: 'POST', headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
         body: form, signal: AbortSignal.timeout(30000),
       });
-      if (!response.ok) return reply.code(502).send({ error: `OpenAI connection failed (${response.status}). Check API access, model availability, and billing.` });
+      if (!response.ok) {
+        const hint = response.status === 401 ? 'OpenAI rejected the API key. Update OPENAI_API_KEY in the local .env file and restart the bridge.'
+          : response.status === 429 ? 'OpenAI rate limit or billing quota reached. Check billing and retry later.'
+          : `OpenAI connection failed (${response.status}). Check API access and model availability.`;
+        return reply.code(502).send({ error: hint, upstreamStatus: response.status });
+      }
       return reply.type('application/sdp').send(await response.text());
     } catch {
       return reply.code(502).send({ error: 'OpenAI connection could not be established. Check network access and retry.' });

@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "SalesGod Local Audio Bridge",
-  "version": "0.1.1",
-  "description": "Local-only audio routing diagnostics for the SalesGodCRM dialer. No calling or OpenAI requests.",
+  "version": "0.2.0",
+  "description": "Audio diagnostics and opt-in pairing to a local OpenAI voice test. No dialing controls or key storage.",
   "minimum_chrome_version": "111",
   "content_scripts": [
     {
       "matches": ["https://www.salesgodcrm.net/*", "https://salesgodcrm.net/*", "http://127.0.0.1:4318/extension-lab*"],
-      "js": ["local-rtc.js", "audio-hook.js"],
+      "js": ["local-rtc.js", "window-rtc.js", "audio-hook.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },

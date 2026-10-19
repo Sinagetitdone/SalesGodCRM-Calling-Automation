@@ -12,13 +12,17 @@ The standalone lab at `/audio-diagnostics` loads the same audio code as regular 
 
 Enter `OPENAI_API_KEY` in the ignored repository-root `.env` file using a local editor. Do not paste it into chat, AGENTS.md, source, or GitHub. Optional model override: `OPENAI_REALTIME_MODEL`. Restart the setup server after editing `.env`.
 
-The server retains a prepared `/session` SDP-exchange endpoint for later OpenAI integration. It uses a fixed OpenAI URL, a timeout, loopback binding, and origin/host checks. The current page and diagnostic extension do not invoke it. Possessing a key does not make the extension a working AI phone caller. Tests mock that endpoint's external request and incur no API usage.
+The `/voice-test` page invokes the `/session` SDP-exchange endpoint only when the owner starts an AI test. It uses a fixed OpenAI URL, a timeout, loopback binding, and origin/host checks. The browser receives SDP and connects to OpenAI over WebRTC, without receiving the standard API key. AI tests may incur usage; automated checks mock external requests.
+
+The extension's **Open AI voice setup** action explicitly pairs an idle CRM page with that local window through a short-lived token and MessagePort. **Test paired routing without OpenAI** checks both local audio directions using synthetic tones, without requiring a key. **Test paired AI connection** requests one setup introduction and disconnects after measuring its audio. See [VOICE-SETUP.md](../audio-extension/VOICE-SETUP.md).
+
+The setup mode has automatic turn detection disabled, a 45-second session limit, and no dialing controls. A new dialer peer stops setup. Live telephone conversations and campaign execution remain unimplemented. The configured key currently returns HTTP 401, so live AI output remains unverified.
 
 ## Validation
 
 - `npm run audio:check`: loopback server checks with mocked OpenAI.
 - `npm run audio:extension:check`: generated microphone, local signaling, cancellation, and boundary tests.
 - Browser local graph/WebRTC diagnostics: synthetic streams only, with no physical microphone capture, phone call, or OpenAI request.
-- Actual telephone audio and OpenAI are separate checks for the next implementation phase.
+- Actual telephone audio and successful live OpenAI output remain separate, unverified checks.
 
 The panel styles are served from this local origin to comply with its existing Content Security Policy; that policy is not relaxed for the test UI.

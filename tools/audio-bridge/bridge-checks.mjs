@@ -34,6 +34,7 @@ test('server exchanges SDP with fixed OpenAI endpoint and keeps the key server-s
     assert.equal(options.body.get('sdp'), 'v=0\r\n');
     const session = JSON.parse(options.body.get('session'));
     assert.equal(session.type, 'realtime'); assert.equal(session.audio.output.voice, 'marin');
+    assert.equal(session.audio.input.turn_detection, null);
     return new Response('v=0\r\nanswer');
   } });
   const response = await app.inject({ method: 'POST', url: '/session', headers, payload: 'v=0\r\n' });
@@ -45,7 +46,21 @@ test('upstream errors do not expose upstream bodies or credentials', async () =>
   const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-test-key' }, fetchImpl: async () => new Response('private upstream details', { status: 401 }) });
   const response = await app.inject({ method: 'POST', url: '/session', headers, payload: 'v=0\r\n' });
   assert.equal(response.statusCode, 502); assert.equal(response.body.includes('private upstream'), false);
+  assert.match(response.json().error, /rejected the API key/);
+  assert.equal(response.json().upstreamStatus, 401);
   await app.close();
+});
+
+test('voice setup and signaling assets are served locally with no key embedded', async () => {
+  const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-secret-must-not-be-sent' } });
+  try {
+    for (const url of ['/voice-test', '/voice.js', '/extension-lab/window-rtc.js']) {
+      const response = await app.inject({ url, headers });
+      assert.equal(response.statusCode, 200); assert.equal(response.body.includes('synthetic-secret-must-not-be-sent'), false);
+      assert.equal(response.headers['cache-control'], 'no-store');
+    }
+    assert.equal((await app.inject({ url: '/.env', headers })).statusCode, 404);
+  } finally { await app.close(); }
 });
 test('panel serves with restrictions and has no dial endpoint', async () => {
   const app = createBridge({ env: {} });

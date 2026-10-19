@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
+import { MessageChannel } from 'node:worker_threads';
 const source = await readFile(new URL('../audio-hook.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url), 'utf8'));
 function environment() {
@@ -32,13 +33,14 @@ function environment() {
   };
   const sandbox = vm.createContext({ window, navigator: { mediaDevices }, MediaStream: Stream, DOMException,
     Symbol, Set, Proxy, Reflect, Date, Object, Array, JSON, Math, Promise, Float32Array,
-    location: { origin: 'https://www.salesgodcrm.net' }, setTimeout, clearTimeout, performance });
+    location: { origin: 'https://www.salesgodcrm.net' }, setTimeout, clearTimeout, setInterval, clearInterval, MessageChannel, performance });
   vm.runInContext(source, sandbox);
   async function command(name, overrides = {}) {
     for (const fn of listeners.get('message') ?? []) await fn({ source: window, origin: 'https://www.salesgodcrm.net', data: { source: 'salesgod-local-audio-v1', type: 'command', command: name }, ...overrides });
     return messages.at(-1)?.status;
   }
-  return { mediaDevices, originals, command, messages, window, sandbox };
+  async function message(event) { for (const fn of listeners.get('message') ?? []) await fn(event); }
+  return { mediaDevices, originals, command, messages, window, sandbox, message };
 }
 test('manifest is limited to SalesGodCRM and the local test page, with no broad permissions', () => {
   assert.equal(manifest.permissions, undefined); assert.equal(manifest.host_permissions, undefined);
@@ -80,4 +82,35 @@ test('ignores messages from another origin or another window', async () => {
 test('duplicate execution does not wrap the media APIs again', () => {
   const env = environment(); const get = env.mediaDevices.getUserMedia;
   vm.runInContext(source, env.sandbox); assert.equal(env.mediaDevices.getUserMedia, get);
+});
+
+async function prepareVoice(env) {
+  await env.command('arm');
+  const token = '12345678-1234-1234-1234-123456789abc';
+  await env.command('prepare-voice', { data: { source: 'salesgod-local-audio-v1', type: 'command', command: 'prepare-voice', token } });
+  env.window[Symbol.for('salesgod.window.rtc.v1')] = { connect() { throw new Error('A peer must not start merely by pairing'); } };
+  const popup = { closed: false, postMessage(data, origin, ports) { this.pairing = { data, origin, ports }; } };
+  const hello = { origin: 'http://127.0.0.1:4318', source: popup, data: { source: 'salesgod-voice-link-v1', type: 'hello', token } };
+  return { popup, hello };
+}
+test('voice pairing requires the prepared nonce and exact loopback origin; pairing alone starts no audio peer', async () => {
+  const env = environment(); const { popup, hello } = await prepareVoice(env);
+  try {
+    await env.message({ ...hello, origin: 'https://other.example' });
+    await env.message({ ...hello, data: { ...hello.data, token: 'wrong-token' } });
+    assert.equal(popup.pairing, undefined);
+    await env.message(hello);
+    assert.equal((await env.command('status')).voiceState, 'paired');
+    assert.equal(popup.pairing.origin, 'http://127.0.0.1:4318');
+    assert.equal(env.originals.requests, 0); assert.equal((await env.command('status')).observedPeers, 0);
+  } finally { await env.command('disarm'); popup.pairing?.ports[0].close(); }
+});
+test('a new dialer peer immediately cancels paired setup and never opens a physical microphone', async () => {
+  const env = environment(); const { popup, hello } = await prepareVoice(env);
+  try {
+    await env.message(hello); assert.equal((await env.command('status')).voiceState, 'paired');
+    new env.window.RTCPeerConnection();
+    const report = await env.command('status');
+    assert.equal(report.voiceState, 'disconnected'); assert.equal(report.observedPeers, 1); assert.equal(env.originals.requests, 0);
+  } finally { await env.command('disarm'); popup.pairing?.ports[0].close(); }
 });

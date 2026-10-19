@@ -2,7 +2,7 @@
 
 Latest no-call test result: [TEST-RESULTS.md](TEST-RESULTS.md).
 
-Version 0.1.1 is a local audio proof of concept. It cannot place calls, call OpenAI, handle voicemail, or record conversations. No API key is needed for this version.
+Version 0.2.0 adds explicit pairing to a local Realtime setup window. See [VOICE-SETUP.md](VOICE-SETUP.md) for the current flow, limits, and authentication blocker. It cannot place calls, handle voicemail, or record conversations. The local diagnostic tests still need no API key. The following sections describe the original diagnostic behavior, retained in this version.
 
 ## Scope and access
 
@@ -10,7 +10,7 @@ The extension runs only on `https://www.salesgodcrm.net/*`, `https://salesgodcrm
 
 On SalesGodCRM it adds an audio diagnostic panel, exposes one generated microphone to page-level device enumeration, and observes newly created WebRTC audio peers. It never invokes the dialer's Call button or provider APIs. Routing starts disabled on every page load. It intercepts a microphone request only when the page explicitly requests the synthetic device ID; other microphone requests retain normal behavior.
 
-When enabled, the generated microphone is silent. Incoming WebRTC audio tracks are routed into a local Web Audio stream, without saving or sending them anywhere. Real OpenAI input/output routing will be a separate version after secure API configuration is available.
+When enabled, the generated microphone is silent until a diagnostic or explicitly paired setup test supplies audio. Incoming WebRTC audio tracks are routed locally. Version 0.2.0 can pair its graphs to the local voice setup window; setup stops immediately if a new dialer peer appears. Live telephone forwarding is not enabled.
 
 ## Install for a supervised test
 
@@ -47,7 +47,7 @@ Installing grants code access to the matched SalesGodCRM pages. Review the three
 - A no-call test cannot establish actual telephone media, voicemail detection, or OpenAI latency.
 - Do not leave the synthetic microphone selected while the bridge is disabled: it will reject acquisition rather than fall back to a physical microphone.
 - **Disable** aborts pending WebRTC signaling promptly and stops generated tracks; the test closes its peers and releases its silent renderers. A successful synthetic test still does not verify the CRM's actual telephone session or OpenAI.
-- Local MAIN-world commands are not a security boundary against the CRM itself. They deliberately expose only diagnostics; no credentials, external calls, or OpenAI session creation are available.
+- Local MAIN-world commands are not a security boundary against the CRM itself. They expose diagnostics and short-lived local-window pairing, with no credentials or phone controls. OpenAI session creation requires the separate local setup page.
 
 ## References
 
