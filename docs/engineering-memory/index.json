@@ -3,6 +3,12 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-006",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-voicemail-opportunity.md",
+      "tags": ["integration", "testing", "calling", "audio"]
+    },
+    {
       "id": "LL-2026-005",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-supervised-call-gates.md",

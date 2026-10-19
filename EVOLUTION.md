@@ -52,3 +52,7 @@ The first architecture spike is to establish the provider-approved integration c
 ## 2026-10-01 — Strict JML audit
 
 The repository was re-audited against the supplied JML standards. CI is green, but production release remains blocked by unresolved provider contract, authorization, persistence, runtime, audit, and security-validation gates. The repository now records those gaps explicitly and corrects stale onboarding/status documentation.
+
+## 2026-10-19 — Supervised voicemail delivery path
+
+The first phone test reached voicemail, exposing the missing greeting/beep handling. The local audio controls now prepare editable owner text through OpenAI TTS before dialing, screen incoming English transcription without generating responses, and require both a recognized greeting and completed beep before one playback through the generated dialer microphone. Outcomes distinguish playback completion, interruption, unavailable mailbox and review/timeouts. Synthetic end-to-end browser testing confirmed audio returned to the simulated mailbox without a phone call. Actual carrier recording and automatic phone hangup remain separate, unverified capabilities; operators still end the CRM call.

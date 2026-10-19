@@ -10,9 +10,10 @@
   let report = { mode: 'supervised-call', phase: 'preparing', dialingEnabled: false, physicalMicrophoneUsed: false, events: [] };
   const controls = () => {
     $('prepare').disabled = !configured || !port || Boolean(run);
-    $('answer').disabled = !run || !run.openaiReady || run.media.state !== 'ready' || !['ready', 'paused'].includes(report.phase);
-    $('pause').disabled = !run || !['starting', 'talking'].includes(report.phase);
+    $('answer').disabled = !run || !run.openaiReady || run.media.state !== 'ready' || !['ready', 'paused', 'screening', 'voicemail-waiting'].includes(report.phase);
+    $('pause').disabled = !run || !['starting', 'talking', 'screening', 'voicemail-waiting', 'voicemail-playing'].includes(report.phase);
     $('stop').disabled = !run || run.stopping;
+    $('voicemailEnabled').disabled = $('voicemailMessage').disabled = Boolean(run);
   };
   function render() { $('evidence').textContent = JSON.stringify(report, null, 2); controls(); }
   function phase(value, label) { report.phase = value; $('state').textContent = label; render(); }
@@ -36,6 +37,12 @@
   function send(message) { if (run?.dc.readyState === 'open') run.dc.send(JSON.stringify(message)); }
   function mute() {
     if (!run) return;
+    run.detector?.stop(); run.listenPending = false; clearTimeout(run.screenTimer);
+    if (run.voicemailSource) {
+      run.voicemailSource.onended = null; run.voicemailSource.stop(); run.voicemailSource = undefined;
+    }
+    if (report.voicemailOutcome === 'playing') { report.voicemailOutcome = 'incomplete'; void log('voicemail.incomplete'); }
+    run.voicemailStarting = false;
     run.input.enabled = false; run.output.gain.value = 0; run.vadPending = false; clearTimeout(run.vadTimer);
     run.link?.send({ type: 'live-gate', open: false });
     if (run.responseActive) send({ type: 'response.cancel' });
@@ -45,7 +52,7 @@
   async function finish(finalPhase = 'stopped', label = 'AI stopped — end the phone call in SalesGodCRM') {
     const current = run; if (!current || current.stopping) return;
     current.stopping = true; mute(); current.abort.abort(); clearTimeout(current.limit); clearTimeout(current.connectDeadline);
-    clearInterval(current.meterTimer); current.dc.close(); current.pc.close(); current.link?.close();
+    clearInterval(current.meterTimer); clearInterval(current.detectorTimer); clearTimeout(current.drainTimer); current.dc.close(); current.pc.close(); current.link?.close();
     current.renderers.forEach(audio => { audio.pause(); audio.srcObject = null; });
     current.nodes.forEach(node => node.disconnect());
     current.customer.stream.getTracks().forEach(track => track.stop()); current.ai.stream.getTracks().forEach(track => track.stop());
@@ -59,9 +66,58 @@
     if (!run || run.stopping || !['waiting', 'ready'].includes(report.phase)) return;
     phase(run.openaiReady && run.media.state === 'ready' ? 'ready' : 'waiting',
       run.openaiReady && run.media.state === 'ready' ? 'Audio ready · verify a person answered before starting AI' : 'AI prepared and silent · waiting for dialer audio');
+    if (run.openaiReady && run.media.state === 'ready' && run.voicemailBuffer && !run.screenStarted) void screenVoicemail();
+  }
+  async function screenVoicemail() {
+    const current = run; current.screenStarted = true;
+    phase('screening', 'Listening for a person or voicemail · AI stays silent');
+    await log('voicemail.listening');
+    if (run !== current || current.stopping || current.logFailed || report.phase !== 'screening' || current.media.state !== 'ready') return;
+    current.listenPending = true;
+    send({ type: 'session.update', session: { type: 'realtime', audio: { input: {
+      transcription: { model: 'gpt-4o-mini-transcribe', language: 'en' },
+      turn_detection: { type: 'server_vad', create_response: false, interrupt_response: false, silence_duration_ms: 600, prefix_padding_ms: 300 }
+    } } } });
+    current.screenTimer = setTimeout(() => {
+      if (run === current && ['screening', 'voicemail-waiting'].includes(report.phase)) {
+        report.voicemailOutcome = 'needs_review'; void log('voicemail.timeout'); mute(); phase('paused', 'No confirmed greeting and beep · review the call or end it');
+      }
+    }, 60000);
+  }
+  async function beginVoicemail() {
+    const current = run;
+    if (!current || current.stopping || !['screening', 'voicemail-waiting'].includes(report.phase) || current.media.state !== 'ready') return;
+    phase('voicemail-playing', 'Voicemail beep detected · opening message audio');
+    current.input.enabled = false; current.output.gain.value = 0; current.listenPending = false; clearTimeout(current.screenTimer);
+    send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: null } } } });
+    await log('voicemail.beep_detected');
+    if (run !== current || current.stopping || current.logFailed || report.phase !== 'voicemail-playing') return;
+    current.voicemailStarting = true; current.link.send({ type: 'live-gate', open: true });
+    current.vadTimer = setTimeout(() => { void finish('failed', 'Voicemail audio gate was not acknowledged · end the phone call'); }, 6000);
+  }
+  async function playVoicemail(current) {
+    clearTimeout(current.vadTimer); current.voicemailStarting = false;
+    await log('voicemail.playback_started');
+    if (run !== current || current.stopping || current.logFailed || report.phase !== 'voicemail-playing' || current.media.state !== 'ready') return;
+    const source = current.context.createBufferSource(); source.buffer = current.voicemailBuffer;
+    source.connect(current.ai); current.nodes.push(source); current.voicemailSource = source;
+    report.voicemailOutcome = 'playing'; $('voicemailState').textContent = 'Playing your prepared voicemail message once'; render();
+    source.onended = () => {
+      if (current.stopping || report.phase !== 'voicemail-playing') return;
+      current.voicemailSource = undefined;
+      current.drainTimer = setTimeout(async () => {
+        if (current.stopping || report.phase !== 'voicemail-playing') return;
+        report.voicemailOutcome = 'playback_completed'; await log('voicemail.playback_completed');
+        if (current.stopping || current.logFailed) return;
+        $('voicemailState').textContent = 'Message played · mailbox delivery is unverified';
+        await finish('stopped', 'Voicemail message played · hang up SalesGodCRM now');
+      }, 1000);
+    };
+    source.start();
   }
   async function confirmAnswer() {
     if (!run || $('answer').disabled) return;
+    run.detector?.stop(); run.listenPending = false; clearTimeout(run.screenTimer);
     phase('starting', 'Starting AI after owner-confirmed answer…');
     await log('owner.answer_confirmed'); if (!run || run.stopping || run.logFailed || report.phase !== 'starting') return;
     run.link.send({ type: 'live-gate', open: true });
@@ -80,6 +136,8 @@
     report = { mode: 'supervised-call', sessionId: crypto.randomUUID(), startedAt: new Date().toISOString(), phase: 'preparing',
       dialingEnabled: false, physicalMicrophoneUsed: false, customerTurns: 0, aiTurns: 0, interruptions: 0, aiAudioPeak: 0, events: [] };
     $('error').textContent = ''; phase('preparing', 'Preparing silent OpenAI audio…');
+    const voicemailEnabled = $('voicemailEnabled').checked;
+    const voicemailMessage = $('voicemailMessage').value?.trim();
     current.limit = setTimeout(() => void finish('stopped', 'Five-minute AI session limit reached — end the phone call in SalesGodCRM'), 300000);
     current.connectDeadline = setTimeout(() => { $('error').textContent = 'Audio preparation timed out.'; void finish('failed'); }, 40000);
     function consume(stream, destination, measure = false) {
@@ -91,10 +149,29 @@
         const meter = context.createAnalyser(); meter.fftSize = 2048; source.connect(meter); current.nodes.push(meter);
         const values = new Float32Array(2048);
         current.meterTimer = setInterval(() => { meter.getFloatTimeDomainData(values); for (const value of values) report.aiAudioPeak = Math.max(report.aiAudioPeak, Math.abs(value)); report.aiAudioPeak = Number(report.aiAudioPeak.toFixed(5)); render(); }, 200);
+      } else if (voicemailEnabled) {
+        const meter = context.createAnalyser(); meter.fftSize = 2048; source.connect(meter); current.nodes.push(meter);
+        const values = new Float32Array(2048);
+        current.detectorTimer = setInterval(() => {
+          if (current.detector && ['screening', 'voicemail-waiting'].includes(report.phase) && !current.listenPending) {
+            meter.getFloatTimeDomainData(values); current.detector.samples(values, context.sampleRate);
+          }
+        }, 20);
       }
     }
     try {
       await context.resume(); await log('session.started'); if (current.stopping || current.logFailed) return;
+      if (voicemailEnabled) {
+        if (!voicemailMessage || voicemailMessage.length < 10 || voicemailMessage.length > 1000) throw new Error('Enter a voicemail message between 10 and 1000 characters.');
+        $('voicemailState').textContent = 'Preparing your voicemail voice before dialing…';
+        const speech = await fetch('/voicemail-speech', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: voicemailMessage }), signal: current.abort.signal });
+        if (!speech.ok) throw new Error('Voicemail voice preparation failed. Do not start a call.');
+        const buffer = await context.decodeAudioData(await speech.arrayBuffer());
+        if (current.stopping) return;
+        if (!Number.isFinite(buffer.duration) || buffer.duration < 0.5 || buffer.duration > 60) throw new Error('Voicemail audio must be between half a second and 60 seconds.');
+        current.voicemailBuffer = buffer; report.voicemailEnabled = true; report.voicemailOutcome = 'not_started'; report.voicemailDurationSeconds = Number(buffer.duration.toFixed(2));
+        $('voicemailState').textContent = 'Voicemail message prepared · waiting for greeting and beep';
+      }
       current.linkPc = new RTCPeerConnection(); const selectedPort = port; port = undefined;
       selectedPort.postMessage({ type: 'start', mode: 'live' });
       current.link = window[Symbol.for('salesgod.window.rtc.v1')].connect(selectedPort, {
@@ -103,11 +180,15 @@
         onMessage: async data => {
           if (current.stopping) return;
           if (data?.type === 'dialer-media-ended') { void log('dialer.media_ended'); void finish('stopped', 'Dialer audio ended · AI stopped'); return; }
+          if (data?.type === 'gate-state' && current.voicemailStarting && report.phase === 'voicemail-playing') {
+            if (!data.open || current.media.state !== 'ready') { void finish('failed', 'Voicemail audio is not ready'); return; }
+            void playVoicemail(current).catch(() => { $('error').textContent = 'Voicemail playback failed · end the phone call'; void finish('failed'); }); return;
+          }
           if (data?.type === 'call-media' && ['ready', 'connecting', 'waiting'].includes(data.state)) {
             current.media = { state: data.state, bridgeMicrophone: data.bridgeMicrophone === true };
             if (!current.media.bridgeMicrophone && current.media.state === 'ready') current.media.state = 'connecting';
             report.media = current.media; $('media').textContent = current.media.state === 'ready' ? 'Dialer audio connected · generated microphone verified' : 'Waiting for connected dialer audio and the generated microphone';
-            if (current.media.state !== 'ready' && ['starting', 'talking', 'paused'].includes(report.phase)) {
+            if (current.media.state !== 'ready' && ['starting', 'talking', 'paused', 'screening', 'voicemail-waiting', 'voicemail-playing'].includes(report.phase)) {
               void finish('failed', 'Dialer audio lost · AI stopped'); return;
             }
             if (current.media.state === 'ready') void log('dialer.media_ready'); ready();
@@ -133,6 +214,18 @@
         if (current.stopping) return;
         let message; try { message = JSON.parse(data); } catch { return; }
         const vad = message.session?.audio?.input?.turn_detection;
+        if (message.type === 'session.updated' && current.listenPending && ['screening', 'voicemail-waiting'].includes(report.phase) && vad?.type === 'server_vad' && vad.create_response === false && vad.interrupt_response === false && message.session?.audio?.input?.transcription?.model === 'gpt-4o-mini-transcribe') {
+          current.listenPending = false; current.input.enabled = true;
+          current.detector = new window.SalesGodVoicemail.Detector({
+            onGreeting() { phase('voicemail-waiting', 'Voicemail greeting recognized · waiting silently for beep'); void log('voicemail.greeting_detected'); },
+            onReady: () => void beginVoicemail(), onTimeout() {},
+            onUnavailable() { report.voicemailOutcome = 'mailbox_unavailable'; void log('voicemail.unavailable'); mute(); phase('paused', 'Mailbox unavailable · no message played · end the phone call'); }
+          });
+        }
+        if (message.type === 'conversation.item.input_audio_transcription.completed' && ['screening', 'voicemail-waiting'].includes(report.phase)) current.detector?.transcript(message.transcript);
+        if (message.type === 'conversation.item.input_audio_transcription.failed' && ['screening', 'voicemail-waiting'].includes(report.phase)) {
+          report.voicemailOutcome = 'needs_review'; void log('voicemail.recognition_failed'); mute(); phase('paused', 'Greeting recognition unavailable · review the call or end it');
+        }
         if (message.type === 'session.updated' && current.vadPending && report.phase === 'starting' && vad?.type === 'server_vad' && vad.create_response === true && vad.interrupt_response === true) {
           current.vadPending = false; clearTimeout(current.vadTimer); await log('conversation.started');
           if (current.stopping || current.logFailed || report.phase !== 'starting' || current.media.state !== 'ready' || !current.media.bridgeMicrophone) return;

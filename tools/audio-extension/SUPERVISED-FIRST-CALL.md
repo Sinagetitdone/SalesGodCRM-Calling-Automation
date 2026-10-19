@@ -1,5 +1,7 @@
 # Version 0.3.1 — supervised first call
 
+Current update: [voicemail handling is implemented](VOICEMAIL.md) in the local controls and enabled by default. It prepares your editable message before dialing and listens silently for a greeting plus beep. The earlier first-call results below describe the historical mode without voicemail. For a person use the answer control; for voicemail leave screening active. Phone hangup remains manual. Real carrier voicemail recording still needs verification.
+
 This version routes a supervised manual dialer call to OpenAI Realtime. It starts disabled. It does not enter numbers, click Call, hang up the phone, execute contact lists, or deliver voicemail. The owner or browser operator controls the SalesGodCRM phone. Actual telephone media must still be verified on the first authorized test call.
 
 ## Operator sequence

@@ -8,7 +8,8 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
   const host = '127.0.0.1:4318';
   const origin = `http://${host}`;
   let connecting = false;
-  let journal = suppliedJournal, simulationSpeech;
+  let journal = suppliedJournal;
+  const simulationSpeech = new Map();
   const getJournal = () => journal ??= new SessionJournal(env.AUDIO_DATABASE_PATH || 'data/live-audio.db');
   app.addHook('onClose', async () => { if (!suppliedJournal) journal?.close(); });
   app.addHook('onRequest', async (request, reply) => {
@@ -30,6 +31,7 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     ['/voice.js', 'voice.js', 'text/javascript; charset=utf-8'],
     ['/supervised-call', 'call.html', 'text/html; charset=utf-8'],
     ['/call.js', 'call.js', 'text/javascript; charset=utf-8'],
+    ['/voicemail.js', 'voicemail.js', 'text/javascript; charset=utf-8'],
     ['/call-simulator', 'simulator.html', 'text/html; charset=utf-8'],
     ['/simulator.js', 'simulator.js', 'text/javascript; charset=utf-8'],
   ]) app.get(route, async (_request, reply) => reply.type(type).send(await readFile(new URL(`public/${name}`, import.meta.url))));
@@ -52,19 +54,39 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     catch { return reply.code(409).send({ error: 'The local session log could not be saved in sequence.' }); }
   });
   app.get('/live-log/:id', { schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', pattern: idPattern } } } } }, async request => ({ events: getJournal().read(request.params.id) }));
-  app.post('/simulation-speech', async (_request, reply) => {
+  let speechBusy = false;
+  app.post('/voicemail-speech', { schema: { body: { type: 'object', additionalProperties: false, required: ['message'],
+    properties: { message: { type: 'string', minLength: 10, maxLength: 1000, pattern: '\\S' } } } } }, async (request, reply) => {
     if (!env.OPENAI_API_KEY?.trim()) return reply.code(503).send({ error: 'Configure the local OpenAI key first.' });
+    if (speechBusy) return reply.code(409).send({ error: 'A voice message is already being prepared.' });
+    speechBusy = true;
     try {
-      simulationSpeech ??= (async () => {
+      const response = await fetchImpl('https://api.openai.com/v1/audio/speech', { method: 'POST',
+        headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: 'marin', response_format: 'wav', input: request.body.message,
+          instructions: 'Read the supplied voicemail message exactly, clearly and naturally. Do not add any words.' }), signal: AbortSignal.timeout(30000) });
+      if (!response.ok) throw new Error('Speech unavailable');
+      const audio = Buffer.from(await response.arrayBuffer());
+      if (audio.length > 12 * 1024 * 1024) throw new Error('Speech too large');
+      return reply.type('audio/wav').send(audio);
+    } catch { return reply.code(502).send({ error: 'The voicemail voice could not be prepared. No call should be started.' }); }
+    finally { speechBusy = false; }
+  });
+  app.post('/simulation-speech', { schema: { body: { type: 'object', additionalProperties: false,
+    properties: { scenario: { type: 'string', enum: ['customer', 'voicemail'] } } } } }, async (request, reply) => {
+    if (!env.OPENAI_API_KEY?.trim()) return reply.code(503).send({ error: 'Configure the local OpenAI key first.' });
+    const scenario = request.body?.scenario || 'customer';
+    try {
+      if (!simulationSpeech.has(scenario)) simulationSpeech.set(scenario, (async () => {
         const response = await fetchImpl('https://api.openai.com/v1/audio/speech', { method: 'POST',
           headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: 'alloy', response_format: 'wav',
-            input: 'Yes, I can hear you clearly. Please say the word orange so I know you can hear me too.' }), signal: AbortSignal.timeout(30000) });
+            input: scenario === 'voicemail' ? 'Hello, you have reached the voicemail service. Please leave your message after the beep.' : 'Yes, I can hear you clearly. Please say the word orange so I know you can hear me too.' }), signal: AbortSignal.timeout(30000) });
         if (!response.ok) throw new Error('Synthetic speech unavailable.');
         return Buffer.from(await response.arrayBuffer());
-      })();
-      return reply.type('audio/wav').send(await simulationSpeech);
-    } catch { simulationSpeech = undefined; return reply.code(502).send({ error: 'The synthetic customer voice could not be generated.' }); }
+      })());
+      return reply.type('audio/wav').send(await simulationSpeech.get(scenario));
+    } catch { simulationSpeech.delete(scenario); return reply.code(502).send({ error: 'The synthetic customer voice could not be generated.' }); }
   });
   app.addContentTypeParser('application/sdp', { parseAs: 'string' }, (_req, body, done) => done(null, body));
   app.post('/session', async (request, reply) => {
@@ -80,7 +102,7 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
       form.set('session', JSON.stringify({
         type: 'realtime', model: env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2.1',
         instructions: live
-          ? 'You are an AI assistant calling for Sina in a supervised audio test. Introduce yourself clearly as an AI assistant and ask whether the listener can hear you. Keep replies brief and natural. Help test two-way hearing and interruptions. Do not conduct sales, invent facts, make commitments, request private information, or pretend to be human. If the listener asks to stop or not be called, politely acknowledge and stop speaking. Do not treat a voicemail greeting as a human answer and do not leave a voicemail in this first-call test. You have no tools and cannot dial or hang up. The owner controls the phone.'
+          ? 'You are an AI assistant calling for Sina in a supervised audio test. Introduce yourself clearly as an AI assistant and ask whether the listener can hear you. Keep replies brief and natural. Help test two-way hearing and interruptions. Do not conduct sales, invent facts, make commitments, request private information, or pretend to be human. If the listener asks to stop or not be called, politely acknowledge and stop speaking. Do not speak over a voicemail greeting. The application handles voicemail using a prepared owner message after greeting and beep detection. Do not improvise voicemail messages. You have no tools and cannot dial or hang up. The owner controls the phone.'
           : 'You are an AI assistant in an audio setup test. Clearly identify yourself as an AI assistant. Help the owner verify hearing and speaking. Do not conduct sales conversations, make commitments, or invent business facts. No calls are authorized in this setup test.',
         audio: { input: { turn_detection: null }, output: { voice: 'marin' } },
       }));

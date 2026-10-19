@@ -4,18 +4,18 @@
   const NativePeer = window.RTCPeerConnection;
   window.addEventListener('DOMContentLoaded', () => {
     const $ = id => document.getElementById(id);
-    let call, speechBuffer;
+    let call, speechBuffer, voicemailBuffer;
     let report = { realPhoneCalls: 0, physicalMicrophoneUsed: false, aiReceivedPeak: 0, connected: false };
     const render = () => { $('simEvidence').textContent = JSON.stringify(report, null, 2); };
     async function hangup() {
       const current = call; if (!current) return; call = undefined;
       current.abort.abort(); clearInterval(current.meterTimer); clearTimeout(current.limit);
-      current.dialer.close(); current.customer.close(); current.speech?.stop();
+      current.dialer.close(); current.customer.close(); current.speech?.stop(); current.beep?.stop();
       current.microphone?.getTracks().forEach(track => track.stop()); current.voice.stream.getTracks().forEach(track => track.stop());
       current.nodes.forEach(node => node.disconnect()); current.audio?.pause(); if (current.audio) current.audio.srcObject = null;
       await current.context.close();
       report.connected = false; report.ended = true; render(); $('simState').textContent = 'Simulated call ended';
-      $('connectSim').disabled = false; $('speechSim').disabled = $('hangupSim').disabled = true;
+      $('connectSim').disabled = false; $('speechSim').disabled = $('hangupSim').disabled = $('voicemailSim').disabled = true;
     }
     $('connectSim').onclick = async () => {
       if (call) return;
@@ -38,7 +38,7 @@
         });
         await window[Symbol.for('salesgod.local.rtc.v1')].negotiate(dialer, customer, { signal: current.abort.signal });
         report.connected = true; render(); $('simState').textContent = 'Simulated dialer connected · waiting for owner-confirmed AI start';
-        $('speechSim').disabled = $('hangupSim').disabled = false;
+        $('speechSim').disabled = $('hangupSim').disabled = $('voicemailSim').disabled = false;
         current.limit = setTimeout(() => void hangup(), 180000);
       } catch (error) { $('simState').textContent = 'Simulation failed: ' + error.message; await hangup(); }
     };
@@ -62,5 +62,24 @@
       finally { if (call === current) $('speechSim').disabled = false; }
     };
     $('hangupSim').onclick = () => void hangup(); window.addEventListener('pagehide', () => void hangup()); render();
+    $('voicemailSim').onclick = async () => {
+      const current = call; if (!current || current.voicemailSent) return;
+      $('voicemailSim').disabled = true;
+      try {
+        if (!voicemailBuffer) {
+          const response = await fetch('/simulation-speech', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scenario: 'voicemail' }), signal: current.abort.signal });
+          if (!response.ok) throw new Error('Synthetic voicemail unavailable'); voicemailBuffer = await response.arrayBuffer();
+        }
+        const decoded = await current.context.decodeAudioData(voicemailBuffer.slice(0)); if (call !== current) return;
+        const source = current.context.createBufferSource(); source.buffer = decoded; source.connect(current.voice);
+        current.nodes.push(source); current.speech = source;
+        const beep = current.context.createOscillator(), gain = current.context.createGain();
+        beep.frequency.value = 1000; gain.gain.value = 0.2; beep.connect(gain).connect(current.voice);
+        current.beep = beep; current.nodes.push(beep, gain);
+        const at = current.context.currentTime; source.start(at); beep.start(at + decoded.duration + 0.4); beep.stop(at + decoded.duration + 0.9);
+        current.voicemailSent = true; report.voicemailGreetingPlayed = true; render();
+        $('simState').textContent = 'Synthetic voicemail greeting followed by a 1000 Hz beep · waiting for prepared message';
+      } catch { $('simState').textContent = 'Synthetic voicemail playback failed'; if (call === current) $('voicemailSim').disabled = false; }
+    };
   });
 })();
