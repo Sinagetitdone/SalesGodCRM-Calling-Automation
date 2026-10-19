@@ -12,14 +12,14 @@ describe("eligibility", () => {
     ).toEqual({ status: "BLOCKED", reason: "DO_NOT_CALL" });
   });
 
-  it("blocks contacts without confirmed consent", () => {
+  it("does not use legacy consent metadata as a gate for pre-authorized lists", () => {
     expect(
       evaluateEligibility({
         consentConfirmed: false,
         doNotCall: false,
         withinCallingWindow: true,
       }),
-    ).toEqual({ status: "BLOCKED", reason: "CONSENT_NOT_CONFIRMED" });
+    ).toEqual({ status: "ELIGIBLE", reason: "ALL_REQUIRED_GATES_PASSED" });
   });
 
   it("blocks outside the configured calling window", () => {

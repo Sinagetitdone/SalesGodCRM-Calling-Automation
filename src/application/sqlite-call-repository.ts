@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import type { CallState } from "../domain/call-state.js";
+import { CallIdConflictError } from "./call-repository.js";
 import type {
   CallRecord,
   CallRepository,
@@ -62,6 +63,10 @@ export class SQLiteCallRepository implements CallRepository {
   }
 
   async save(call: CallRecord): Promise<void> {
+    this.saveRecord(call);
+  }
+
+  private saveRecord(call: CallRecord): void {
     this.db
       .prepare(`
         INSERT INTO calls (
@@ -99,6 +104,10 @@ export class SQLiteCallRepository implements CallRepository {
   async findByIdempotencyKey(
     idempotencyKey: string,
   ): Promise<CallRecord | undefined> {
+    return this.findByKey(idempotencyKey);
+  }
+
+  private findByKey(idempotencyKey: string): CallRecord | undefined {
     const row = this.db
       .prepare(`
         SELECT calls.*
@@ -119,15 +128,18 @@ export class SQLiteCallRepository implements CallRepository {
     this.db.exec("BEGIN IMMEDIATE");
 
     try {
-      const existing =
-        await this.findByIdempotencyKey(idempotencyKey);
+      // DatabaseSync transactions must not yield to another request on this connection.
+      const existing = this.findByKey(idempotencyKey);
 
       if (existing) {
         this.db.exec("COMMIT");
         return existing;
       }
 
-      await this.save(call);
+      if (this.db.prepare("SELECT id FROM calls WHERE id = ?").get(call.id)) {
+        throw new CallIdConflictError();
+      }
+      this.saveRecord(call);
 
       this.db
         .prepare(`

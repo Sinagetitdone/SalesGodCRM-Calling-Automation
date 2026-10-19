@@ -1,5 +1,7 @@
 # ADR-0001: SalesGodCRM Integration Boundary
 
+> Historical decision: ADR-0002 supersedes the native AI caller assumption and restriction on browser automation. The adapter boundary remains applicable. The webhook contract requirements below apply only to a webhook integration.
+
 - Status: Proposed
 - Date: 2026-09-29
 

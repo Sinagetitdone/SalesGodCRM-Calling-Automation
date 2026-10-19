@@ -7,3 +7,8 @@ coverage/
 *.log
 # Local SQLite databases (runtime data, never commit)
 data/*.db
+data/*.db-*
+tools/audio-bridge/vendor/
+tools/audio-bridge/proof.png
+tools/audio-extension/tests/*.png
+tools/audio-extension/tests/webrtc-success.txt

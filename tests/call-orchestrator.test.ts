@@ -20,7 +20,7 @@ describe("CallOrchestrator", () => {
       contactExternalId: "contact-1",
       campaignExternalId: "campaign-1",
       consentConfirmed: false,
-      doNotCall: false,
+      doNotCall: true,
       withinCallingWindow: true,
       idempotencyKey: "idem-1",
     });
@@ -29,7 +29,7 @@ describe("CallOrchestrator", () => {
     expect(salesGod.initiateCall).not.toHaveBeenCalled();
   });
 
-  it("dispatches an eligible call and persists the provider call id", async () => {
+  it("dispatches a pre-authorized call without a consent field and persists the provider call id", async () => {
     const repo = new InMemoryCallRepository();
     const salesGod = provider();
     const orchestrator = new CallOrchestrator(repo, salesGod);
@@ -38,7 +38,6 @@ describe("CallOrchestrator", () => {
       id: "call-2",
       contactExternalId: "contact-2",
       campaignExternalId: "campaign-2",
-      consentConfirmed: true,
       doNotCall: false,
       withinCallingWindow: true,
       idempotencyKey: "idem-2",
@@ -46,6 +45,7 @@ describe("CallOrchestrator", () => {
 
     expect(result.state).toBe("DISPATCHED");
     expect(result.providerCallId).toBe("sg-call-1");
+    expect(result.consentConfirmed).toBe(false);
     expect(salesGod.initiateCall).toHaveBeenCalledOnce();
   });
 
