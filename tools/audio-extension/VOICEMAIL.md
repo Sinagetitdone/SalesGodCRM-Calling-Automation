@@ -14,6 +14,10 @@ Open `/call-simulator`, enable local routing, and prepare a supervised call with
 
 Browser rehearsal `f8bfe465-a21b-434f-9510-3a0a5e34e505` passed on 2026-10-19: greeting recognition, beep detection, one prepared-message playback, simulated mailbox received peak 0.62636, session stopped, and all 11 event records read back from SQLite. No human-answer button was pressed, zero Realtime conversation responses were requested, and zero phone calls were placed. The first rehearsal fixture synthesis timed out; it stopped safely with no playback. A separate fixture retry succeeded before repeating the rehearsal. Actual carrier voicemail delivery still needs a new authorized test.
 
+## Real-phone follow-up
+
+On the next owner-authorized test, initial TTS preparation timed out at 30 seconds. No call was dispatched during that failure. An explicit preparation retry succeeded before a single phone call was placed. Session `5b46ada1-d9be-4f56-9de0-976d666d23c9` verified generated-microphone and incoming dialer media, recognized the actual greeting and beep, played the prepared 7.55-second message once, logged completion and automatically stopped AI. The operator then ended the CRM phone call and disabled routing. All 11 journal events were read back successfully. Owner confirmation of the saved mailbox recording is pending; this remains playback completion rather than verified delivery. No automatic redial occurred.
+
 ## API references
 
 - [Realtime transcription](https://developers.openai.com/api/docs/guides/realtime-transcription)
