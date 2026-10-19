@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SalesGod Local Audio Bridge",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Supervised dialer audio routing and local OpenAI voice controls. Starts disabled; no dialing or key storage.",
   "minimum_chrome_version": "111",
   "content_scripts": [

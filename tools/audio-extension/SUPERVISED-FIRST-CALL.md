@@ -1,11 +1,11 @@
-# Version 0.3.0 — supervised first call
+# Version 0.3.1 — supervised first call
 
 This version routes a supervised manual dialer call to OpenAI Realtime. It starts disabled. It does not enter numbers, click Call, hang up the phone, execute contact lists, or deliver voicemail. The owner or browser operator controls the SalesGodCRM phone. Actual telephone media must still be verified on the first authorized test call.
 
 ## Operator sequence
 
 1. Start `npm run audio:bridge`. Keep the key only in the ignored repository-root `.env` file. The server binds to 127.0.0.1:4318 and checks request origin and host.
-2. Reload extension 0.3.0 in Chrome and refresh SalesGodCRM only when no call is active. Enable local routing in the audio panel.
+2. Reload extension 0.3.1 in Chrome and refresh SalesGodCRM only when no call is active. Enable local routing in the audio panel.
 3. With the dialer idle, choose **Prepare supervised call**, then **Prepare AI — stay silent** in its local control tab. OpenAI is connected with turn detection disabled, customer input muted, and generated-microphone output gated off. No greeting is requested yet.
 4. In CRM call Settings refresh devices and select **SalesGod AI Bridge (local audio)** as Microphone. Keep the speaker on your headset. While a supervised pair exists, physical microphone requests are rejected; there is no fallback to your microphone. If the CRM rejects the generated device, stop and report that incompatibility.
 5. Only after receiving the intended test number and authorization to start, the operator enters it and starts the call through the ordinary CRM dialer. The bridge permits that new peer and verifies one connected audio peer, a live generated-microphone sender and a live incoming audio track. These establish media readiness, not a human answer.
@@ -38,3 +38,6 @@ After the owner reloaded extension 0.3.0 and confirmed a separate existing call 
 This rehearsal does not prove that SalesGodCRM's production SDK will acquire the selected generated track or carry it across the telephone network. Those are the explicit goals of the supervised first call. No actual call was placed by the assistant during preparation.
 
 References: [OpenAI WebRTC](https://developers.openai.com/api/docs/guides/voice-webrtc), [interruptions](https://developers.openai.com/api/docs/guides/realtime-conversations), [synthetic speech](https://developers.openai.com/api/docs/guides/text-to-speech).
+## Microphone preflight compatibility (0.3.1)
+
+The first live dispatch attempt stopped at the CRM microphone warning with no dialer media observed. The CRM probes generic microphone access even with the bridge selected. During paired live mode only, generic audio requests now return the generated bridge microphone; explicit physical devices remain blocked. Reload the extension before testing this update. Telephone audio remains unverified until a successful supervised call.

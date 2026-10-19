@@ -119,7 +119,14 @@ test('live bridge permits the next dialer peer but blocks physical microphone fa
   try {
     await env.message(hello); popup.pairing.ports[0].postMessage({ type: 'start', mode: 'live' });
     await new Promise(resolve => setTimeout(resolve, 20));
-    await assert.rejects(env.mediaDevices.getUserMedia({ audio: true }), /Select SalesGod AI Bridge/);
+    for (const audio of [true, { echoCancellation: true }]) {
+      const probe = await env.mediaDevices.getUserMedia({ audio });
+      assert.equal(probe.getAudioTracks()[0].getSettings().deviceId, 'salesgod-ai-bridge-local-v1');
+      probe.getTracks().forEach(track => track.stop());
+    }
+    assert.equal(env.originals.requests, 0);
+    await assert.rejects(env.mediaDevices.getUserMedia({ audio: { deviceId: { exact: 'physical' } } }), /Select SalesGod AI Bridge/);
+    await assert.rejects(env.mediaDevices.getUserMedia({ audio: true, video: true }), /audio-only/);
     const peer = new env.window.RTCPeerConnection();
     assert.equal((await env.command('status')).voiceState, 'audio-connected');
     await callbacks.onMessage({ type: 'live-gate', open: true }); assert.equal(sent.at(-1).open, false);
@@ -139,5 +146,14 @@ test('a new dialer peer immediately cancels paired setup and never opens a physi
     new env.window.RTCPeerConnection();
     const report = await env.command('status');
     assert.equal(report.voiceState, 'disconnected'); assert.equal(report.observedPeers, 1); assert.equal(env.originals.requests, 0);
+  } finally { await env.command('disarm'); popup.pairing?.ports[0].close(); }
+});
+
+test('generic microphone probes outside live pairing keep the original behavior', async () => {
+  const env = environment(); const { popup, hello } = await prepareVoice(env);
+  try {
+    await env.message(hello);
+    await env.mediaDevices.getUserMedia({ audio: true });
+    assert.equal(env.originals.requests, 1);
   } finally { await env.command('disarm'); popup.pairing?.ports[0].close(); }
 });

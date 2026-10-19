@@ -24,7 +24,7 @@
   let voiceToken, voiceExpiry = 0, voicePair, voiceState = 'disconnected', voiceKind = 'setup';
   const log = (event) => { events.push({ time: new Date().toISOString(), event }); if (events.length > 80) events.shift(); };
   function snapshot() {
-    return { version: '0.3.0', installed: true, armed, testing, virtualDevice: LABEL,
+    return { version: '0.3.1', installed: true, armed, testing, virtualDevice: LABEL,
       dialerRequests, dialerEnumerations, observedPeers,
       activeDialerConnections: [...peers].filter(pc => ['connected', 'connecting'].includes(pc.connectionState)).length,
       lastTest, lastPeerTest, lastVoiceTest, microphonePermission, voiceState, voiceKind, callMedia: voicePair?.media ?? null,
@@ -72,10 +72,14 @@
       toJSON() { return { deviceId: DEVICE, groupId: DEVICE, kind: 'audioinput', label: LABEL }; } }];
   } });
   Object.defineProperty(media, 'getUserMedia', { configurable: true, value: async (constraints) => {
-    if (voicePair?.kind === 'live' && constraints?.audio && !virtualRequested(constraints)) {
+    // CRM probes access without a device ID before requesting its selected input.
+    // In paired live mode these probes must also receive generated audio.
+    const liveProbe = voicePair?.kind === 'live' && constraints?.audio &&
+      (constraints.audio === true || (typeof constraints.audio === 'object' && constraints.audio.deviceId == null));
+    if (voicePair?.kind === 'live' && constraints?.audio && !virtualRequested(constraints) && !liveProbe) {
       throw new DOMException('Select SalesGod AI Bridge (local audio) as the dialer microphone before the supervised call.', 'NotAllowedError');
     }
-    if (!virtualRequested(constraints)) return originalGetUserMedia(constraints);
+    if (!virtualRequested(constraints) && !liveProbe) return originalGetUserMedia(constraints);
     if (constraints.video) throw new DOMException('The local bridge supports audio-only requests.', 'NotSupportedError');
     const stream = generatedMicrophone();
     dialerRequests++; log('The page requested the generated bridge microphone.'); publish();
