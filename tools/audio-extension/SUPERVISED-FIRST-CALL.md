@@ -41,3 +41,9 @@ References: [OpenAI WebRTC](https://developers.openai.com/api/docs/guides/voice-
 ## Microphone preflight compatibility (0.3.1)
 
 The first live dispatch attempt stopped at the CRM microphone warning with no dialer media observed. The CRM probes generic microphone access even with the bridge selected. During paired live mode only, generic audio requests now return the generated bridge microphone; explicit physical devices remain blocked. Reload the extension before testing this update. Telephone audio remains unverified until a successful supervised call.
+
+## First telephone test result
+
+After reloading 0.3.1, the CRM device refresh passed and one authorized test call reached an active state. The bridge verified its generated microphone sender and incoming dialer track. The owner described the endpoint as automatically answered and later confirmed it reached voicemail. Session `dea26df5-32ca-42ef-8197-d70e8ef6a9fb` recorded one incoming speech segment, two completed AI responses, and an OpenAI output peak of 0.65761. These observations confirm incoming audio reached OpenAI and AI audio was generated; they do not prove audible delivery or a saved voicemail. The owner reported that no voicemail was left. This version has no voicemail greeting/beep detection or voicemail delivery mode, so this is an unsuccessful voicemail test, not a completed conversation. The operator ended the phone call; dialer closure automatically stopped AI and all 13 metadata events were read back from the journal. Routing was then disabled. No automatic redial was performed.
+
+Version 0.3.1 also fixes the panel's version allowlist. A regression test now loads the real panel and checks its control states against the installed manifest version.
