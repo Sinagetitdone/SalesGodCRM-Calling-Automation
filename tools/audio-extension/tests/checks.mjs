@@ -5,6 +5,25 @@ import { readFile } from 'node:fs/promises';
 import { MessageChannel } from 'node:worker_threads';
 const source = await readFile(new URL('../audio-hook.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url), 'utf8'));
+const panelSource = await readFile(new URL('../panel.js', import.meta.url), 'utf8');
+
+test('panel accepts the installed manifest version and enables supervised controls only when armed', () => {
+  const nodes = new Map(); const listeners = new Map();
+  const node = () => ({ disabled: false, textContent: '', before() {}, after() {}, prepend() {} });
+  const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
+  const root = { innerHTML: '', querySelector: get, getElementById: get };
+  const document = { getElementById() { return null; }, documentElement: { append() {} },
+    createElement() { return { ...node(), set id(value) { nodes.set(value, this); }, style: {}, attachShadow() { return root; } }; } };
+  const window = { postMessage() {}, addEventListener(name, fn) { listeners.set(name, fn); } };
+  vm.runInNewContext(panelSource, { document, window, location: { origin: 'https://www.salesgodcrm.net' }, crypto: { randomUUID: () => 'test-id' } });
+  const report = { version: manifest.version, armed: false, testing: false, voiceState: 'disconnected' };
+  const publish = () => listeners.get('message')({ source: window, origin: 'https://www.salesgodcrm.net',
+    data: { source: 'salesgod-local-audio-v1', type: 'result', status: report } });
+  publish(); assert.equal(get('state').textContent, 'Local routing disabled · OpenAI disconnected');
+  assert.equal(get('callVoice').disabled, true);
+  report.armed = true; publish();
+  assert.equal(get('callVoice').disabled, false); assert.equal(get('voice').disabled, false);
+});
 function environment() {
   const listeners = new Map(); const messages = []; const originals = { requests: 0 };
   class Track extends EventTarget {
