@@ -1,5 +1,7 @@
 # Version 0.2.0 voice setup
 
+Historical setup-only procedure. Version 0.3.0 adds a separate [supervised first-call mode](SUPERVISED-FIRST-CALL.md). The replacement local API key has passed live OpenAI audio; HTTP 401 evidence below concerns the old revoked key.
+
 This is supervised setup, not a working telephone caller. No calls are placed, no physical microphone is opened, and no key is stored in the extension.
 
 ## Use

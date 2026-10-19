@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-19 — Supervised first-call conversation mode
+
+Added explicit live-audio pairing separately from setup diagnostics. The bridge permits and monitors one new dialer audio peer, requires the generated microphone sender and incoming track, and stays muted until an owner-confirmed answer plus gate/VAD acknowledgements. OpenAI server VAD handles customer interruption. Pause clears output and disables input; peer loss, tab closure, journal failure and a five-minute limit stop AI without redial or automatic phone hangup. Physical microphone fallback is blocked while the supervised pair exists.
+
+Added a local SQLite event journal with ordered idempotent writes and seven-day metadata retention, and a synthetic customer/dialer rehearsal. Live OpenAI heard the synthetic customer's request and generated the requested word through the return audio route; interruption, pause and hangup cleanup passed. Actual SalesGodCRM telephone media remains the next supervised-call verification. No real call was placed by the assistant.
+
 ## 2026-10-19 — Supervised Realtime setup and local audio pairing
 
 Version 0.2.0 pairs the extension's generated-microphone and incoming-audio graphs to a loopback voice window using a short-lived token and MessagePort. The private WebRTC peer uses the original constructor to avoid capturing its own output. Synthetic routing can be tested without OpenAI; both audio signal peaks and RTP directions are required. Realtime setup keeps the standard API key server-side, requests one explicit AI introduction, waits for audio playback to drain, and disconnects automatically. Turn detection is disabled and a new dialer peer cancels setup. No phone calls or live conversation mode are enabled.

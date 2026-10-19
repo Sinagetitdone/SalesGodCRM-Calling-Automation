@@ -1,5 +1,9 @@
 # Local audio setup server
 
+Version 0.3.0 adds [supervised first-call controls](../audio-extension/SUPERVISED-FIRST-CALL.md) at `/supervised-call`, with silent preparation, owner-confirmed answer, conversational VAD, pause and cleanup. The extension opens that page with an explicit pairing token. `/call-simulator` exercises the full conversation path with synthetic speech and no phone provider. The replacement key has passed live Realtime audio; older HTTP 401 notes below concern the revoked key.
+
+`/live-log` stores only validated event metadata in ignored `data/live-audio.db`; reads return the sequence for the given local session UUID. Seven-day retention is enforced on startup, new sessions and reads. Both log routes retain the existing loopback/origin restrictions; this is a local development service, not an authenticated multi-user API. Set `AUDIO_DATABASE_PATH` for an alternate database location. No transcript or recording fields are accepted. Automated tests use memory or temporary synthetic databases.
+
 Run `npm run audio:bridge` and open http://127.0.0.1:4318. This loopback-only panel documents the custom Chrome extension and serves its standalone audio lab. It cannot control the SalesGodCRM dialer or place phone calls.
 
 ## Driver-free setup

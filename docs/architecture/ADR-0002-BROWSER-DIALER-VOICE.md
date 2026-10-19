@@ -12,6 +12,8 @@ The old consent field remains optional legacy metadata for compatibility with ex
 
 ## Intended flow
 
+Version 0.3.0 update: a separate supervised conversation mode now permits the next observed dialer peer, verifies the generated microphone sender and incoming track, and waits for explicit owner-confirmed human answer. Its two-way synthetic conversation with OpenAI passed, including VAD interruptions, pause and hangup cleanup. The replacement local key is accepted. Metadata-only event logging is durable and idempotent. Actual telephone media, automatic dispatch, list jobs and voicemail remain unverified or unimplemented; see tools/audio-extension/SUPERVISED-FIRST-CALL.md. No live phone call was placed during this implementation.
+
 Update 2026-10-19: the owner chose a driver-free custom Chrome extension. A diagnostic prototype is installed and recognized by the CRM microphone selector; see tools/audio-extension/TEST-RESULTS.md. Version 0.2.0 adds opt-in audio pairing to a loopback setup window, a synthetic routing test independent of OpenAI, and a server-mediated Realtime test. The key stays server-side; no extension permissions were expanded. Setup has automatic turn detection disabled and stops on a new dialer peer. This is deliberately not live telephone forwarding. Real CRM microphone acquisition, telephone audio, and successful OpenAI voice remain unverified; the supplied key returned HTTP 401. VB-CABLE is not required by this direction.
 
 Import list -> durable queue -> browser dialer adapter -> two-way audio bridge -> OpenAI Realtime voice session -> outcome and event log.

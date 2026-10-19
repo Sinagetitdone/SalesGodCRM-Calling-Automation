@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SalesGod · Simulated customer</title><link rel="stylesheet" href="/style.css">
+<script src="/simulator.js"></script><script src="/extension-lab/local-rtc.js"></script><script src="/extension-lab/window-rtc.js"></script><script src="/extension-lab/audio-hook.js"></script></head>
+<body><main><header><span class="eyebrow">SALESGOD / NO-PHONE REHEARSAL</span><span class="badge">No phone provider</span><h1>A simulated customer.</h1><p>This page creates a local WebRTC dialer. It never uses SalesGodCRM, enters a number, opens your microphone, or places a phone call.</p></header>
+<section><h2>Rehearsal</h2><p>In the audio panel enable local routing and choose <b>Prepare supervised call</b>. In the new control tab choose <b>Prepare AI — stay silent</b>. Return here and connect the simulated call. Then use <b>Customer answered — start AI</b> in the control tab.</p>
+<button id="connectSim">Connect simulated call</button><button id="speechSim" disabled>Play synthetic customer speech</button><button id="hangupSim" disabled>Hang up simulated call</button>
+<p>The synthetic customer says: “Yes, I can hear you clearly. Please say the word orange so I know you can hear me too.” Voice generation uses the OpenAI speech API once per server process and may incur usage. The audio is sent only to the simulated call; speakers stay silent.</p>
+<p id="simState" role="status">No simulated call</p><pre id="simEvidence">No test started.</pre></section>
+<footer>Simulated customer · Synthetic speech · No actual telephone media</footer></main><script src="/extension-lab/panel.js"></script></body></html>

@@ -19,14 +19,16 @@
   let dialerRequests = 0, dialerEnumerations = 0, observedPeers = 0;
   let lastTest = null, lastPeerTest = null, lastVoiceTest = null, testController, microphonePermission = 'unknown';
   const peers = new Set();
+  const peerAudio = new WeakMap();
   const events = [];
-  let voiceToken, voiceExpiry = 0, voicePair, voiceState = 'disconnected';
+  let voiceToken, voiceExpiry = 0, voicePair, voiceState = 'disconnected', voiceKind = 'setup';
   const log = (event) => { events.push({ time: new Date().toISOString(), event }); if (events.length > 80) events.shift(); };
   function snapshot() {
-    return { version: '0.2.0', installed: true, armed, testing, virtualDevice: LABEL,
+    return { version: '0.3.0', installed: true, armed, testing, virtualDevice: LABEL,
       dialerRequests, dialerEnumerations, observedPeers,
       activeDialerConnections: [...peers].filter(pc => ['connected', 'connecting'].includes(pc.connectionState)).length,
-      lastTest, lastPeerTest, lastVoiceTest, microphonePermission, voiceState, openAIConnected: voiceState === 'disconnected' ? false : null, dialingEnabled: false, events: events.slice() };
+      lastTest, lastPeerTest, lastVoiceTest, microphonePermission, voiceState, voiceKind, callMedia: voicePair?.media ?? null,
+      openAIConnected: voiceState === 'disconnected' ? false : null, dialingEnabled: false, events: events.slice() };
   }
   const publish = (requestId, error) => window.postMessage({ source: SOURCE, type: 'result', requestId, status: snapshot(), ...(error ? { error } : {}) }, location.origin);
   async function arm() {
@@ -70,6 +72,9 @@
       toJSON() { return { deviceId: DEVICE, groupId: DEVICE, kind: 'audioinput', label: LABEL }; } }];
   } });
   Object.defineProperty(media, 'getUserMedia', { configurable: true, value: async (constraints) => {
+    if (voicePair?.kind === 'live' && constraints?.audio && !virtualRequested(constraints)) {
+      throw new DOMException('Select SalesGod AI Bridge (local audio) as the dialer microphone before the supervised call.', 'NotAllowedError');
+    }
     if (!virtualRequested(constraints)) return originalGetUserMedia(constraints);
     if (constraints.video) throw new DOMException('The local bridge supports audio-only requests.', 'NotSupportedError');
     const stream = generatedMicrophone();
@@ -85,17 +90,21 @@
   window.RTCPeerConnection = new Proxy(NativePeer, {
     construct(target, args) {
       // Setup mode must never forward a newly started dialer's telephone audio.
-      if (voicePair) { voicePair.close(); log('Voice setup stopped because the dialer created a peer.'); }
+      if (voicePair && voicePair.kind !== 'live') { voicePair.close(); log('Voice setup stopped because the dialer created a peer.'); }
       const pc = Reflect.construct(target, args);
-      peers.add(pc); observedPeers++; publish();
+      peers.add(pc); peerAudio.set(pc, new Set()); observedPeers++; voicePair?.onPeerCreated?.(pc); publish();
       pc.addEventListener('track', ({ track, streams }) => {
         if (track.kind === 'audio') {
+          peerAudio.get(pc).add(track);
           attachIncoming(streams[0] ?? new MediaStream([track]));
+          track.addEventListener('ended', () => voicePair?.refresh?.());
+          voicePair?.refresh?.();
           log('Incoming dialer audio track observed; routed locally only.'); publish();
         }
       });
       pc.addEventListener('connectionstatechange', () => {
         if (['closed', 'failed'].includes(pc.connectionState)) peers.delete(pc);
+        voicePair?.refresh?.();
         publish();
       });
       return pc;
@@ -267,34 +276,60 @@
     const channel = new MessageChannel();
     const popup = event.source, token = voiceToken;
     voiceToken = undefined;
-    let link, pc, source, tone, gain, meter, meterSource, silent, rendered, measurement, closed = false;
+    const live = voiceKind === 'live';
+    let link, pc, source, tone, gain, meter, meterSource, silent, rendered, measurement, gate, closed = false;
+    let wasReady = false, lastMedia = '', opened = false;
+    const callPeers = new Set();
     const pair = {
+      kind: live ? 'live' : 'setup', media: { state: 'waiting', bridgeMicrophone: false },
+      onPeerCreated(peer) { callPeers.add(peer); },
+      refresh() {
+        if (!live || closed || !link) return;
+        const candidates = [...callPeers].filter(peer => !['closed', 'failed'].includes(peer.connectionState));
+        const audioPeers = candidates.filter(peer => (peerAudio.get(peer)?.size ?? 0) || peer.getSenders?.().some(sender => sender.track?.kind === 'audio'));
+        if (audioPeers.length > 1) { log('Multiple audio peers observed; live bridge stopped.'); pair.close(); return; }
+        if (callPeers.size && !candidates.length) { link.send({ type: 'dialer-media-ended' }); log('Dialer media ended; live bridge stopped.'); pair.close(); return; }
+        const peer = audioPeers[0];
+        const mic = peer?.getSenders?.().some(sender => sender.track?.readyState === 'live' && sender.track.enabled !== false &&
+          (clones.has(sender.track) || sender.track.getSettings?.().deviceId === DEVICE)) ?? false;
+        const remote = peer && [...(peerAudio.get(peer) ?? [])].some(track => track.readyState === 'live');
+        const ready = Boolean(peer?.connectionState === 'connected' && mic && remote);
+        if (wasReady && !ready) { log('Dialer media lost; live bridge stopped.'); pair.close(); return; }
+        if (ready) wasReady = true;
+        pair.media = { state: ready ? 'ready' : peer ? 'connecting' : 'waiting', bridgeMicrophone: mic };
+        const next = JSON.stringify(pair.media);
+        if (next !== lastMedia) { lastMedia = next; link.send({ type: 'call-media', ...pair.media }); publish(); }
+      },
       close() {
         if (closed) return; closed = true; clearInterval(watch); clearTimeout(expiry);
         link?.close(); if (!link) channel.port1.postMessage({ type: 'close' }); pc?.close(); channel.port1.close();
         clearInterval(measurement); tone?.stop();
-        for (const node of [source, tone, gain, meter, meterSource, silent]) node?.disconnect();
+        if (gate) gate.gain.value = 0;
+        for (const node of [source, tone, gain, meter, meterSource, silent, gate]) node?.disconnect();
         if (rendered) { rendered.pause(); rendered.srcObject = null; }
         if (voicePair === pair) voicePair = undefined;
         voiceState = 'disconnected'; log('Voice setup pairing closed.'); publish();
       },
     };
     voicePair = pair; voiceState = 'paired';
-    const watch = setInterval(() => { if (popup.closed) pair.close(); }, 1000);
-    const expiry = setTimeout(() => pair.close(), 90000);
+    const watch = setInterval(() => { if (popup.closed) pair.close(); else pair.refresh(); }, 500);
+    const expiry = setTimeout(() => pair.close(), live ? 330000 : 90000);
     channel.port1.onmessage = async ({ data }) => {
       if (data?.type === 'close') { pair.close(); return; }
-      if (data?.type !== 'start' || closed || link) return;
+      if (data?.type !== 'start' || closed || link || (data.mode === 'live') !== live) return;
       if (!armed || testing || [...peers].some(pc => !['closed', 'failed'].includes(pc.connectionState))) { pair.close(); return; }
       try {
       pc = new NativePeer();
       // A synthetic customer-side tone verifies the local input leg without a telephone call.
-      tone = context.createOscillator(); tone.frequency.value = 550;
-      gain = context.createGain(); gain.gain.value = 0.05; tone.connect(gain).connect(incoming); tone.start();
+      gate = context.createGain(); gate.gain.value = live ? 0 : 1; gate.connect(outgoing);
+      if (!live) {
+        tone = context.createOscillator(); tone.frequency.value = 550;
+        gain = context.createGain(); gain.gain.value = 0.05; tone.connect(gain).connect(incoming); tone.start();
+      }
       link = helper.connect(channel.port1, { pc, stream: incoming.stream, offerer: false,
         onTrack(stream) {
           if (closed || !context) return;
-          source = context.createMediaStreamSource(stream); source.connect(outgoing);
+          source = context.createMediaStreamSource(stream); source.connect(gate);
           meter = context.createAnalyser(); meter.fftSize = 2048;
           meterSource = context.createMediaStreamSource(outgoing.stream); meterSource.connect(meter);
           silent = context.createGain(); silent.gain.value = 0; meter.connect(silent).connect(context.destination);
@@ -307,6 +342,12 @@
         },
         onClose(error) { log(error.message); pair.close(); },
         onMessage(data) {
+          if (live && data?.type === 'live-gate' && typeof data.open === 'boolean') {
+            pair.refresh(); if (closed) return;
+            opened = data.open && pair.media.state === 'ready'; gate.gain.value = opened ? 1 : 0;
+            link.send({ type: 'gate-state', open: opened });
+            log(opened ? 'Owner opened supervised AI audio.' : 'Supervised AI audio muted.'); publish(); return;
+          }
           if (data?.type !== 'setup-report' || !['paired-routing-only', 'paired-idle-CRM'].includes(data.mode) || typeof data.passed !== 'boolean') return;
           const peak = value => Number.isFinite(value) && value >= 0 && value <= 1 ? value : 0;
           const packets = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
@@ -317,7 +358,7 @@
           log(lastVoiceTest.passed ? 'Paired audio setup test passed.' : 'Paired audio setup test did not pass.'); publish();
         },
       });
-      await link.ready; if (!closed) { voiceState = 'audio-connected'; log('Local voice audio connected. OpenAI status is shown only in the setup window.'); publish(); }
+      await link.ready; if (!closed) { voiceState = 'audio-connected'; pair.refresh(); log('Local voice audio connected. OpenAI status is shown only in the setup window.'); publish(); }
       }
       catch (error) { log(`Voice setup failed (${['TypeError', 'InvalidStateError', 'OperationError', 'InvalidAccessError', 'NotSupportedError'].includes(error.name) ? error.name : 'Error'}).`); pair.close(); }
     };
@@ -334,6 +375,7 @@
         if (!armed || testing || voicePair) throw new Error('Enable local routing and finish any other tests before voice setup.');
         if (typeof event.data.token !== 'string' || !/^[a-f0-9-]{36}$/.test(event.data.token)) throw new Error('Invalid pairing token.');
         voiceToken = event.data.token; voiceExpiry = Date.now() + 15000;
+        voiceKind = event.data.mode === 'live' ? 'live' : 'setup';
       }
       if (command === 'arm') await arm();
       if (command === 'disarm') await disarm();

@@ -17,16 +17,19 @@
   root.querySelector('small').textContent = 'Audio setup · No dialing controls';
   const voiceButton = document.createElement('button'); voiceButton.id = 'voice'; voiceButton.disabled = true;
   voiceButton.textContent = 'Open AI voice setup'; $('stop').before(voiceButton);
+  const callButton = document.createElement('button'); callButton.id = 'callVoice'; callButton.disabled = true;
+  callButton.textContent = 'Prepare supervised call'; voiceButton.after(callButton);
   const voiceResult = document.createElement('p'); voiceResult.id = 'voiceResult'; $('rtcResult').after(voiceResult);
   let report;
   const command = name => window.postMessage({ source: SOURCE, type: 'command', command: name, requestId: crypto.randomUUID() }, location.origin);
   window.addEventListener('message', event => {
     if (event.source !== window || event.origin !== location.origin || event.data?.source !== SOURCE || event.data?.type !== 'result') return;
     report = event.data.status;
-    if (!report || !['0.1.0', '0.1.1', '0.2.0'].includes(report.version)) return;
+    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0'].includes(report.version)) return;
     $('state').textContent = report.testing ? 'Testing synthetic audio locally…' : report.armed ? 'Local routing enabled · OpenAI disconnected' : 'Local routing disabled · OpenAI disconnected';
     $('arm').disabled = report.armed || report.testing;
-    voiceButton.disabled = !report.armed || report.testing || report.version !== '0.2.0' || report.voiceState !== 'disconnected';
+    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0'].includes(report.version) || report.voiceState !== 'disconnected';
+    callButton.disabled = voiceButton.disabled || report.version !== '0.3.0';
     if (report.voiceState && report.voiceState !== 'disconnected') $('state').textContent = `Local routing enabled · Voice setup ${report.voiceState} · Check setup window for OpenAI status`;
     $('test').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
     $('rtc').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
@@ -48,6 +51,12 @@
     const url = 'http://127.0.0.1:4318/voice-test#' + new URLSearchParams({ token, origin: location.origin });
     const popup = window.open(url, 'salesgod-voice-' + token);
     if (!popup) $('error').textContent = 'Allow the local voice setup window to open, then try again.';
+  };
+  callButton.onclick = () => {
+    const token = crypto.randomUUID();
+    window.postMessage({ source: SOURCE, type: 'command', command: 'prepare-voice', mode: 'live', token, requestId: crypto.randomUUID() }, location.origin);
+    const url = 'http://127.0.0.1:4318/supervised-call#' + new URLSearchParams({ token, origin: location.origin });
+    if (!window.open(url, 'salesgod-call-' + token)) $('error').textContent = 'Allow the local call-control tab to open, then try again.';
   };
   $('min').onclick = () => { $('body').hidden = !$('body').hidden; $('min').textContent = $('body').hidden ? '+' : '−'; };
   $('download').onclick = () => {

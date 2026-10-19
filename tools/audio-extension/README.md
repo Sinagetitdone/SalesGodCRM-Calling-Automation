@@ -1,5 +1,7 @@
 # SalesGod Local Audio Bridge — diagnostic extension
 
+Latest: version 0.3.0 adds [supervised first-call controls](SUPERVISED-FIRST-CALL.md), conversational audio and local event logging. Live OpenAI and a two-way no-phone rehearsal passed. The diagnostics described below remain available; actual telephone media is the next verification step.
+
 Latest no-call test result: [TEST-RESULTS.md](TEST-RESULTS.md).
 
 Version 0.2.0 adds explicit pairing to a local Realtime setup window. See [VOICE-SETUP.md](VOICE-SETUP.md) for the current flow, limits, and authentication blocker. It cannot place calls, handle voicemail, or record conversations. The local diagnostic tests still need no API key. The following sections describe the original diagnostic behavior, retained in this version.

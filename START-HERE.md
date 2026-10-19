@@ -4,7 +4,9 @@ Read [README.md](README.md) for the current implementation and commands, then [A
 
 ## Active direction
 
-The owner requested browser automation of their logged-in SalesGodCRM **manual** dialer, with a separate OpenAI voice integration. The custom Chrome extension provides local diagnostics and opt-in audio pairing to a loopback Realtime setup page. It does not dial. Setup mode requests only one AI introduction and stops if a dialer peer appears. VB-CABLE is not required. The prior native-AI/webhook-only assumption and provider-authorization prerequisite for browser automation are superseded by [ADR-0002](docs/architecture/ADR-0002-BROWSER-DIALER-VOICE.md).
+Latest: [version 0.3.0 supervised first-call mode](tools/audio-extension/SUPERVISED-FIRST-CALL.md) is implemented and passed a two-way OpenAI conversation rehearsal without a phone call. Phone-network audio still requires the first authorized test call. The older setup-only mode remains available as a diagnostic.
+
+The owner requested browser automation of their logged-in SalesGodCRM **manual** dialer, with a separate OpenAI voice integration. The custom Chrome extension provides local diagnostics, opt-in audio pairing and supervised first-call conversation controls. It does not dial. The setup-only mode still stops if a dialer peer appears; supervised mode explicitly permits and monitors the next dialer peer. VB-CABLE is not required. The prior native-AI/webhook-only assumption and provider-authorization prerequisite for browser automation are superseded by [ADR-0002](docs/architecture/ADR-0002-BROWSER-DIALER-VOICE.md).
 
 The owner states imported lists are pre-authorized. Per-contact consent verification is removed; suppression, calling windows, access control, and campaign-level authorization records remain separate requirements. The current API trusts supplied policy flags and is a local fake-provider prototype.
 
@@ -21,7 +23,7 @@ The owner states imported lists are pre-authorized. Per-contact consent verifica
 
 ## Not implemented or unverified in this branch
 
-Live browser dialing, successful live OpenAI voice output (supplied key rejected with HTTP 401), actual telephone audio, conversation mode, list import/campaign jobs, production identity/authorization, authoritative contact policies, durable campaign audit logs, call outcome reconciliation, and voicemail delivery. A generated microphone appearing in the CRM selector does not establish that the CRM acquires its audio for a phone call.
+Automatic browser dialing, actual telephone audio, sales conversation instructions, list import/campaign jobs, production identity/authorization, authoritative contact policies, durable campaign audit logs, call outcome reconciliation, and voicemail delivery. Live OpenAI output and supervised conversation mode are now verified with synthetic customer audio. A generated microphone appearing in the CRM selector does not establish that the CRM acquires its audio for a phone call.
 
 ## Validation and workflow
 

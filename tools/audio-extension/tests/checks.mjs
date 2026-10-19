@@ -20,9 +20,15 @@ function environment() {
   }
   class Context {
     createMediaStreamDestination() { return { stream: new Stream() }; }
+    createGain() { return { gain: { value: 1 }, connect() { return this; }, disconnect() {} }; }
+    createMediaStreamSource() { return { connect() {}, disconnect() {} }; }
     async resume() {} async close() {}
   }
-  class Peer extends EventTarget { connectionState = 'new'; }
+  class Peer extends EventTarget {
+    connectionState = 'new'; senders = [];
+    getSenders() { return this.senders; } addTrack(track) { this.senders.push({ track }); }
+    close() { this.connectionState = 'closed'; this.dispatchEvent(new Event('connectionstatechange')); }
+  }
   const mediaDevices = {
     async enumerateDevices() { return [{ deviceId: 'physical', kind: 'audioinput', label: 'Physical microphone' }]; },
     async getUserMedia() { originals.requests++; return new Stream(); },
@@ -40,7 +46,7 @@ function environment() {
     return messages.at(-1)?.status;
   }
   async function message(event) { for (const fn of listeners.get('message') ?? []) await fn(event); }
-  return { mediaDevices, originals, command, messages, window, sandbox, message };
+  return { mediaDevices, originals, command, messages, window, sandbox, message, Stream, Track };
 }
 test('manifest is limited to SalesGodCRM and the local test page, with no broad permissions', () => {
   assert.equal(manifest.permissions, undefined); assert.equal(manifest.host_permissions, undefined);
@@ -84,10 +90,10 @@ test('duplicate execution does not wrap the media APIs again', () => {
   vm.runInContext(source, env.sandbox); assert.equal(env.mediaDevices.getUserMedia, get);
 });
 
-async function prepareVoice(env) {
+async function prepareVoice(env, mode = 'setup') {
   await env.command('arm');
   const token = '12345678-1234-1234-1234-123456789abc';
-  await env.command('prepare-voice', { data: { source: 'salesgod-local-audio-v1', type: 'command', command: 'prepare-voice', token } });
+  await env.command('prepare-voice', { data: { source: 'salesgod-local-audio-v1', type: 'command', command: 'prepare-voice', token, mode } });
   env.window[Symbol.for('salesgod.window.rtc.v1')] = { connect() { throw new Error('A peer must not start merely by pairing'); } };
   const popup = { closed: false, postMessage(data, origin, ports) { this.pairing = { data, origin, ports }; } };
   const hello = { origin: 'http://127.0.0.1:4318', source: popup, data: { source: 'salesgod-voice-link-v1', type: 'hello', token } };
@@ -103,6 +109,27 @@ test('voice pairing requires the prepared nonce and exact loopback origin; pairi
     assert.equal((await env.command('status')).voiceState, 'paired');
     assert.equal(popup.pairing.origin, 'http://127.0.0.1:4318');
     assert.equal(env.originals.requests, 0); assert.equal((await env.command('status')).observedPeers, 0);
+  } finally { await env.command('disarm'); popup.pairing?.ports[0].close(); }
+});
+
+test('live bridge permits the next dialer peer but blocks physical microphone fallback, requires real generated sender and remote track, and closes on hangup', async () => {
+  const env = environment(); const { popup, hello } = await prepareVoice(env, 'live');
+  const sent = []; let callbacks;
+  env.window[Symbol.for('salesgod.window.rtc.v1')] = { connect(_port, options) { callbacks = options; return { ready: Promise.resolve(), send(data) { sent.push(data); }, close() {} }; } };
+  try {
+    await env.message(hello); popup.pairing.ports[0].postMessage({ type: 'start', mode: 'live' });
+    await new Promise(resolve => setTimeout(resolve, 20));
+    await assert.rejects(env.mediaDevices.getUserMedia({ audio: true }), /Select SalesGod AI Bridge/);
+    const peer = new env.window.RTCPeerConnection();
+    assert.equal((await env.command('status')).voiceState, 'audio-connected');
+    await callbacks.onMessage({ type: 'live-gate', open: true }); assert.equal(sent.at(-1).open, false);
+    const mic = await env.mediaDevices.getUserMedia({ audio: { deviceId: { exact: 'salesgod-ai-bridge-local-v1' } } }); peer.addTrack(mic.getAudioTracks()[0]);
+    peer.connectionState = 'connected'; peer.dispatchEvent(new Event('connectionstatechange'));
+    assert.notEqual((await env.command('status')).callMedia.state, 'ready');
+    const event = new Event('track'); event.track = new env.Track(); event.streams = [new env.Stream([event.track])]; peer.dispatchEvent(event);
+    assert.equal((await env.command('status')).callMedia.state, 'ready');
+    await callbacks.onMessage({ type: 'live-gate', open: true }); assert.equal(sent.at(-1).open, true);
+    peer.close(); assert.equal((await env.command('status')).voiceState, 'disconnected'); assert.equal(env.originals.requests, 0);
   } finally { await env.command('disarm'); popup.pairing?.ports[0].close(); }
 });
 test('a new dialer peer immediately cancels paired setup and never opens a physical microphone', async () => {
