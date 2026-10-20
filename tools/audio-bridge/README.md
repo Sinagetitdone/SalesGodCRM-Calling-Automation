@@ -1,10 +1,12 @@
 # Local audio setup server
 
+Current: [calling lists](../audio-extension/CALLING-LISTS.md) at `/campaigns` default to simulation, import first_name/last_name/phone CSV, persist transcripts/outcomes in ignored `data/campaigns.db`, and show completion. No calls were placed during implementation. Automatic phone dispatch/classification/hangup has synthetic tests only. Keep live lists stopped under the owner's current **do not call anyone** instruction. See [ADR-0003](../../docs/architecture/ADR-0003-LOCAL-CALLING-LISTS.md). The following setup notes also describe historical versions.
+
 Version 0.3.0 adds [supervised first-call controls](../audio-extension/SUPERVISED-FIRST-CALL.md) at `/supervised-call`, with silent preparation, owner-confirmed answer, conversational VAD, pause and cleanup. The extension opens that page with an explicit pairing token. `/call-simulator` exercises the full conversation path with synthetic speech and no phone provider. The replacement key has passed live Realtime audio; older HTTP 401 notes below concern the revoked key.
 
 `/live-log` stores only validated event metadata in ignored `data/live-audio.db`; reads return the sequence for the given local session UUID. Seven-day retention is enforced on startup, new sessions and reads. Both log routes retain the existing loopback/origin restrictions; this is a local development service, not an authenticated multi-user API. Set `AUDIO_DATABASE_PATH` for an alternate database location. No transcript or recording fields are accepted. Automated tests use memory or temporary synthetic databases.
 
-Run `npm run audio:bridge` and open http://127.0.0.1:28431. This loopback-only panel documents the custom Chrome extension and serves its standalone audio lab. It cannot control the SalesGodCRM dialer or place phone calls.
+Run `npm run audio:bridge` and open http://127.0.0.1:28431. Setup/lab pages never dial. The separate calling-list page can command the 0.4.0 CRM adapter only after explicit Start on a live draft; imports and restarts never start calls.
 
 ## Driver-free setup
 
@@ -20,7 +22,7 @@ The `/voice-test` page invokes the `/session` SDP-exchange endpoint only when th
 
 The extension's **Open AI voice setup** action explicitly pairs an idle CRM page with that local window through a short-lived token and MessagePort. **Test paired routing without OpenAI** checks both local audio directions using synthetic tones, without requiring a key. **Test paired AI connection** requests one setup introduction and disconnects after measuring its audio. See [VOICE-SETUP.md](../audio-extension/VOICE-SETUP.md).
 
-The setup mode has automatic turn detection disabled, a 45-second session limit, and no dialing controls. A new dialer peer stops setup. Live telephone conversations and campaign execution remain unimplemented. The configured key currently returns HTTP 401, so live AI output remains unverified.
+Setup mode has automatic turn detection disabled, a 45-second session limit, and no dialing controls. A new dialer peer stops setup. Supervised mode supports live conversations; list mode adds automatic orchestration with synthetic validation pending a real integration test. The earlier revoked-key HTTP 401 blocker was resolved with a local replacement key.
 
 ## Validation
 

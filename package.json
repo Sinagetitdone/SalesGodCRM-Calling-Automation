@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "audio:bridge": "node --env-file-if-exists=.env tools/audio-bridge/server.mjs",
-    "audio:check": "node --test tools/audio-bridge/bridge-checks.mjs tools/audio-bridge/voice-checks.mjs tools/audio-bridge/call-checks.mjs tools/audio-bridge/voicemail-checks.mjs",
-    "audio:extension:check": "node --test tools/audio-extension/tests/checks.mjs tools/audio-extension/tests/signaling-checks.mjs tools/audio-extension/tests/window-signaling-checks.mjs",
+    "audio:check": "node --test tools/audio-bridge/bridge-checks.mjs tools/audio-bridge/voice-checks.mjs tools/audio-bridge/call-checks.mjs tools/audio-bridge/voicemail-checks.mjs tools/audio-bridge/campaign-checks.mjs",
+    "audio:extension:check": "node --test tools/audio-extension/tests/checks.mjs tools/audio-extension/tests/signaling-checks.mjs tools/audio-extension/tests/window-signaling-checks.mjs tools/audio-extension/tests/campaign-driver-checks.mjs",
     "api:check": "node --test tools/api-check.mjs",
     "build": "tsc --noEmit",
     "test": "vitest run",

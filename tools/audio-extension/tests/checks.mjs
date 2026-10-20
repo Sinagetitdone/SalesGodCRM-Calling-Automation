@@ -14,11 +14,11 @@ test('panel accepts the installed manifest version and enables supervised contro
   const root = { innerHTML: '', querySelector: get, getElementById: get };
   const document = { getElementById() { return null; }, documentElement: { append() {} },
     createElement() { return { ...node(), set id(value) { nodes.set(value, this); }, style: {}, attachShadow() { return root; } }; } };
-  const window = { postMessage() {}, addEventListener(name, fn) { listeners.set(name, fn); } };
+  const window = { postMessage() {}, addEventListener(name, fn) { if (!listeners.has(name)) listeners.set(name, []); listeners.get(name).push(fn); } };
   vm.runInNewContext(panelSource, { document, window, location: { origin: 'https://www.salesgodcrm.net' }, crypto: { randomUUID: () => 'test-id' } });
   const report = { version: manifest.version, armed: false, testing: false, voiceState: 'disconnected' };
-  const publish = () => listeners.get('message')({ source: window, origin: 'https://www.salesgodcrm.net',
-    data: { source: 'salesgod-local-audio-v1', type: 'result', status: report } });
+  const publish = () => listeners.get('message').forEach(fn => fn({ source: window, origin: 'https://www.salesgodcrm.net',
+    data: { source: 'salesgod-local-audio-v1', type: 'result', status: report } }));
   publish(); assert.equal(get('state').textContent, 'Local routing disabled · OpenAI disconnected');
   assert.equal(get('callVoice').disabled, true);
   report.armed = true; publish();

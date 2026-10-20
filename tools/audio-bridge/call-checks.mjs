@@ -57,7 +57,7 @@ function environment({ failJournal = false, voicemail = false, failSpeech = fals
   vm.runInNewContext(source, sandbox);
   const port = { postMessage() {}, close() {} };
   for (const fn of listeners.get('message')) fn({ source: opener, origin: 'https://www.salesgodcrm.net', data: { source: 'salesgod-voice-link-v1', type: 'paired', token: sessionId }, ports: [port] });
-  return { elements, peers, tracks, contexts, requests, links, detectors, setTime(value) { now = value; }, timers,
+  return { elements, peers, tracks, contexts, requests, links, detectors, api: window.SalesGodCall, setTime(value) { now = value; }, timers,
     async start() { await tick(); elements.get('prepare').onclick(); await tick(); await tick(); await tick(); },
     async media(bridgeMicrophone = true) { await links[0].options.onMessage({ type: 'call-media', state: 'ready', bridgeMicrophone }); await tick(); },
     async confirm() { elements.get('answer').onclick(); await tick(); await links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); },
@@ -88,6 +88,53 @@ test('owner instructions require a live human conversation, wait for matching ac
   } finally { await env.cleanup(); }
 });
 const listenAck = { type: 'session.updated', session: { audio: { input: { transcription: { model: 'gpt-4o-mini-transcribe' }, turn_detection: { type: 'server_vad', create_response: false, interrupt_response: false } } } } };
+test('automatic human classification stays silent until acknowledged media gates; transcripts save before natural end', async () => {
+  const env = environment({ voicemail: true }), saved = [];
+  try {
+    env.api.configure({ automatic: true, campaignId: sessionId, contactId: sessionId, workerId: sessionId, saveTurn: async turn => saved.push(turn) });
+    await env.start(); await env.media(); const dc = env.peers[0].channel;
+    const request = env.requests.find(r => r.url === '/session'); assert.equal(request.options.headers['X-Audio-Mode'], 'campaign-call');
+    dc.message(listenAck); await tick();
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'hello', transcript: 'Hello, who is calling?' }); await tick();
+    const classification = dc.sent.find(r => r.response?.metadata?.purpose === 'answer_classification'); assert.ok(classification); assert.equal(classification.response.conversation, 'none');
+    dc.message({ type: 'response.created', response: { id: 'class1', metadata: { purpose: 'answer_classification' } } });
+    dc.message({ type: 'response.output_text.done', response_id: 'class1', text: 'human' });
+    dc.message({ type: 'response.done', response: { id: 'class1', status: 'completed' } });
+    await new Promise(r => setTimeout(r, 1050)); await tick();
+    assert.equal(env.api.status().phase, 'starting'); assert.equal(env.contexts[0].sources.length, 0); assert.equal(env.peers[0].input.enabled, true); // screening input stays enabled; output remains gated
+    assert.equal(dc.sent.filter(r => r.type === 'response.create' && !r.response.metadata).length, 0);
+    await env.links[0].options.onMessage({ type: 'gate-state', open: true }); dc.message(vadAck); await tick(); await tick();
+    assert.equal(env.api.status().phase, 'talking');
+    dc.message({ type: 'response.output_audio_transcript.done', item_id: 'reply', transcript: 'You can contact Cena if you would like to talk more. Goodbye.' }); await tick();
+    dc.message({ type: 'response.created', response: { id: 'closing' } });
+    dc.message({ type: 'output_audio_buffer.started' });
+    dc.message({ type: 'response.function_call_arguments.done', name: 'finish_call', arguments: '{"reason":"completed"}' });
+    dc.message({ type: 'response.done', response: { id: 'closing', status: 'completed' } }); await tick();
+    assert.equal(env.api.status().phase, 'talking');
+    dc.message({ type: 'output_audio_buffer.stopped' }); await new Promise(r => setTimeout(r, 2050)); await tick();
+    assert.equal(env.api.status().phase, 'stopped'); assert.equal(env.api.status().conversationOutcome, 'completed');
+    assert.deepEqual(saved.map(t => t.speaker), ['customer', 'assistant']); assert.equal(saved[0].text, 'Hello, who is calling?');
+    assert.doesNotMatch(env.elements.get('evidence').textContent, /Hello, who is calling/);
+  } finally { await env.cleanup(); }
+});
+test('failed transcript persistence stops automatic conversation with a failure result', async () => {
+  const env = environment();
+  try {
+    env.api.configure({ automatic: true, saveTurn: async () => { throw new Error('Synthetic storage failure'); } });
+    await env.start(); await env.media(); await env.confirm(); env.peers[0].channel.message(vadAck); await tick(); await tick();
+    env.peers[0].channel.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'turn', transcript: 'Synthetic private conversation.' });
+    await tick(); await tick(); await tick(); assert.equal(env.api.status().phase, 'failed');
+    assert.doesNotMatch(env.elements.get('evidence').textContent, /Synthetic private conversation/);
+  } finally { await env.cleanup(); }
+});
+test('customer transcription failure cannot silently complete a calling-list conversation', async () => {
+  const env = environment();
+  try {
+    env.api.configure({ automatic: true }); await env.start(); await env.media(); await env.confirm(); env.peers[0].channel.message(vadAck); await tick(); await tick();
+    env.peers[0].channel.message({ type: 'conversation.item.input_audio_transcription.failed', item_id: 'unrecognized' });
+    await tick(); await tick(); assert.equal(env.api.status().phase, 'failed');
+  } finally { await env.cleanup(); }
+});
 async function beep(env) {
   const values = Float32Array.from({ length: 2048 }, (_, i) => 0.2 * Math.sin(2 * Math.PI * 1000 * i / 48000));
   env.setTime(100); env.detectors[0].samples(values, 48000); env.setTime(400); env.detectors[0].samples(values, 48000);

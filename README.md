@@ -33,7 +33,7 @@ Optional synthetic demonstrations:
 
     npm run audio:bridge
 
-Open http://127.0.0.1:28431 for setup instructions. Reload `tools/audio-extension` version 0.3.1 and refresh SalesGodCRM only when no call is active. See the [supervised first-call procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md). For a standalone AI voice test use `/voice-test`; for a no-phone conversation or voicemail rehearsal use `/call-simulator`. OpenAI tests may incur API usage. VB-CABLE is not required. The voicemail update changes local server/pages only; an already loaded extension 0.3.1 needs no additional extension reload.
+Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.0**; reload and refresh the CRM only while idle. Opening/importing never starts calls. `/campaigns` defaults to simulation without calls or OpenAI requests. The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
 
 - [Extension setup and limits](tools/audio-extension/README.md)
 - [Observed no-call test results](tools/audio-extension/TEST-RESULTS.md)
@@ -48,9 +48,8 @@ A generic webhook client is retained as an alternative integration primitive. Do
 
 ## Remaining work before real campaigns
 
-- Verify actual SalesGodCRM microphone acquisition and telephone media with an authorized test contact. The implemented conversation mode is limited to a supervised audio test; approved sales conversation instructions are still needed for campaigns.
-- Verify voicemail audibility and mailbox recording on an explicitly authorized real test call; synthetic voicemail routing passed. Implement list import, durable campaign queue/recovery, approved campaign conversation instructions, and persistent campaign event logs in this branch.
-- Implement application authentication/authorization, authoritative suppression and calling-window checks, campaign authorization records, audit retention, and provider outcome reconciliation.
-- Complete end-to-end review and explicit human release approval before enabling live calling.
+- Prior supervised calls established audible AI and a received voicemail according to the owner. The new **automatic list mode** needs a controlled real integration test after renewed calling authorization; the current instruction is **do not call anyone**.
+- CSV lists, local suppression/window checks, explicit Start authorization, crash recovery, transcripts and completion UI are now implemented in the audio bridge and tested synthetically. Hosted multi-user authentication and provider reconciliation remain future work.
+- Supply an approved business brief before real lists. Playback cannot prove carrier recording. Review unknown attempts in the CRM before explicit resume; they are never redialed automatically.
 
-The existing fake runtime stays active until the real integration is implemented and tested. See [START-HERE.md](START-HERE.md) and [AGENTS.md](AGENTS.md) for contribution guidance.
+The TypeScript fake-provider runtime remains separate from audio-bridge lists. See [ADR-0003](docs/architecture/ADR-0003-LOCAL-CALLING-LISTS.md), [START-HERE.md](START-HERE.md) and [AGENTS.md](AGENTS.md).

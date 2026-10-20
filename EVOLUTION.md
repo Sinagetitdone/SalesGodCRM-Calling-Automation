@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-10-20 — Local calling lists, transcripts and completion
+
+The owner requested sequential CSV contacts, conversation transcripts plus event logs, voicemail outcomes and completion notification, then explicitly instructed **do not call anyone**. Extension 0.4.0 and the loopback bridge now implement an opt-in list worker with default simulation, draft preview, backend Start authorization, suppression/windows, single-use durable dispatch, transcript persistence and export. Interrupted/uncertain attempts pause without redial; paused active attempts are recovered too. The automatic audio controller adds silent answer classification and a scoped natural-end/opt-out tool, retaining existing media and voicemail gates. A two-contact no-call browser simulation verified import, sequential results, saved transcript and completion notice. The new real automatic dispatch/answer/hangup lifecycle remains unverified, and the installed extension has not been reloaded for this change. See ADR-0003 and CALLING-LISTS.md. No calls were placed.
+
 ## 2026-10-20 — Owner guidance during human conversations
 
 The owner requested a scheduling question during an already-running conversation, which had no instruction input. Newly opened local controls can now submit a bounded system-context note for the AI's next reply, restricted to live human conversation and correlated with API acknowledgement. The context update does not create another response or claim customer delivery; text is not persisted in the metadata journal. Existing sessions require reopening and cannot receive newly deployed UI code without reconnecting. The original scheduling request was not delivered and no meeting was booked.
