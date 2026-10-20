@@ -14,6 +14,7 @@
     $('pause').disabled = !run || !['starting', 'talking', 'screening', 'voicemail-waiting', 'voicemail-playing'].includes(report.phase);
     $('stop').disabled = !run || run.stopping;
     $('voicemailEnabled').disabled = $('voicemailMessage').disabled = Boolean(run);
+    $('sendInstruction').disabled = !run || run.stopping || report.phase !== 'talking' || run.dc.readyState !== 'open' || Boolean(run.instructionPending);
   };
   function render() { $('evidence').textContent = JSON.stringify(report, null, 2); controls(); }
   function phase(value, label) { report.phase = value; $('state').textContent = label; render(); }
@@ -35,9 +36,25 @@
     return current.journal;
   }
   function send(message) { if (run?.dc.readyState === 'open') run.dc.send(JSON.stringify(message)); }
+  async function sendOwnerInstruction() {
+    const current = run, text = $('ownerInstruction').value?.trim();
+    if (!current || $('sendInstruction').disabled || !text || text.length > 1000) return;
+    const id = 'item_' + crypto.randomUUID().replaceAll('-', ''); current.instructionPending = id; controls();
+    $('instructionStatus').textContent = 'Sending instruction · waiting for AI acknowledgement';
+    await log('owner.instruction_sent');
+    if (run !== current || current.stopping || current.logFailed || report.phase !== 'talking') { current.instructionPending = undefined; controls(); return; }
+    send({ type: 'conversation.item.create', item: { id, type: 'message', role: 'system', content: [{ type: 'input_text', text: 'Office owner instruction for your next reply: ' + text }] } });
+    $('ownerInstruction').value = '';
+    current.instructionTimer = setTimeout(() => {
+      if (run !== current || current.stopping || current.instructionPending !== id) return;
+      current.instructionPending = undefined; $('instructionStatus').textContent = 'Instruction acknowledgement was not received. Delivery is uncertain; it has not been retried.';
+      void log('owner.instruction_unconfirmed'); controls();
+    }, 8000);
+  }
   function mute() {
     if (!run) return;
     run.detector?.stop(); run.listenPending = false; clearTimeout(run.screenTimer);
+    clearTimeout(run.instructionTimer); run.instructionPending = undefined;
     if (run.voicemailSource) {
       run.voicemailSource.onended = null; run.voicemailSource.stop(); run.voicemailSource = undefined;
     }
@@ -213,6 +230,11 @@
       dc.addEventListener('message', async ({ data }) => {
         if (current.stopping) return;
         let message; try { message = JSON.parse(data); } catch { return; }
+        if (['conversation.item.created', 'conversation.item.added', 'conversation.item.done'].includes(message.type) && current.instructionPending && message.item?.id === current.instructionPending) {
+          clearTimeout(current.instructionTimer); current.instructionPending = undefined;
+          $('instructionStatus').textContent = 'AI accepted the instruction for its next reply · customer delivery is not yet verified';
+          void log('owner.instruction_accepted'); controls();
+        }
         const vad = message.session?.audio?.input?.turn_detection;
         if (message.type === 'session.updated' && current.listenPending && ['screening', 'voicemail-waiting'].includes(report.phase) && vad?.type === 'server_vad' && vad.create_response === false && vad.interrupt_response === false && message.session?.audio?.input?.transcription?.model === 'gpt-4o-mini-transcribe') {
           current.listenPending = false; current.input.enabled = true;
@@ -272,6 +294,7 @@
     pairTimer = setTimeout(() => { clearInterval(helloTimer); $('pairing').textContent = 'Pairing timed out. Reload the latest extension and reopen this control tab.'; }, 15000);
   }
   $('prepare').onclick = () => void start(); $('answer').onclick = () => void confirmAnswer();
+  $('sendInstruction').onclick = () => void sendOwnerInstruction();
   $('pause').onclick = () => { if (!run || $('pause').disabled) return; mute(); phase('paused', 'AI paused · phone call remains connected'); void log('ai.paused'); };
   $('stop').onclick = () => void finish();
   $('save').onclick = () => { const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = 'salesgod-supervised-call.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };

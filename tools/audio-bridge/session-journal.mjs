@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-export const journalEvents = ['session.started', 'openai.ready', 'dialer.media_ready', 'owner.answer_confirmed',
+export const journalEvents = ['session.started', 'openai.ready', 'dialer.media_ready', 'owner.answer_confirmed', 'owner.instruction_sent', 'owner.instruction_accepted', 'owner.instruction_unconfirmed',
   'conversation.started', 'customer.speech_started', 'customer.speech_stopped', 'ai.response_started',
   'ai.response_completed', 'ai.response_cancelled', 'ai.response_failed', 'ai.interrupted', 'ai.paused', 'session.stopped', 'session.error', 'bridge.disconnected', 'dialer.media_ended',
   'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.playback_started', 'voicemail.playback_completed', 'voicemail.incomplete', 'voicemail.timeout', 'voicemail.unavailable', 'voicemail.recognition_failed'];

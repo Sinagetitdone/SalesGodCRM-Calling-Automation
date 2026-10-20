@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-10-20 — Owner guidance during human conversations
+
+The owner requested a scheduling question during an already-running conversation, which had no instruction input. Newly opened local controls can now submit a bounded system-context note for the AI's next reply, restricted to live human conversation and correlated with API acknowledgement. The context update does not create another response or claim customer delivery; text is not persisted in the metadata journal. Existing sessions require reopening and cannot receive newly deployed UI code without reconnecting. The original scheduling request was not delivered and no meeting was booked.
+
 ## 2026-10-20 — Loopback port migration
 
 Windows reserved the former audio port inside a TCP exclusion range and denied binding despite no active listener. The local server, extension trusted origin and setup instructions now use loopback port 28431. Extension 0.3.2 must be reloaded for this coordinated origin change. Existing host/origin restrictions remain exact; no OS network protections are changed. All 74 automated checks passed and the server bound successfully on the new port.

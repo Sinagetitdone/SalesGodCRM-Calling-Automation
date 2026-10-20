@@ -15,7 +15,7 @@ const headers = { host: '127.0.0.1:28431', origin, 'content-type': 'application/
 
 function environment({ failJournal = false, voicemail = false, failSpeech = false } = {}) {
   const elements = new Map();
-  for (const id of ['configuration', 'pairing', 'state', 'media', 'error', 'prepare', 'answer', 'pause', 'stop', 'save', 'savedLog', 'evidence', 'journal', 'voicemailEnabled', 'voicemailMessage', 'voicemailState']) elements.set(id, { disabled: true, textContent: '' });
+  for (const id of ['configuration', 'pairing', 'state', 'media', 'error', 'prepare', 'answer', 'pause', 'stop', 'save', 'savedLog', 'evidence', 'journal', 'voicemailEnabled', 'voicemailMessage', 'voicemailState', 'ownerInstruction', 'sendInstruction', 'instructionStatus']) elements.set(id, { disabled: true, textContent: '' });
   elements.get('voicemailEnabled').checked = voicemail; elements.get('voicemailMessage').value = 'Hi, this is a synthetic voicemail test message.';
   const tracks = [], contexts = [], peers = [], requests = [], listeners = new Map(), links = [], timers = new Set();
   class Stream { constructor() { this.track = { kind: 'audio', enabled: true, stop() { this.stopped = true; } }; tracks.push(this.track); } getTracks() { return [this.track]; } getAudioTracks() { return this.getTracks(); } }
@@ -66,6 +66,27 @@ function environment({ failJournal = false, voicemail = false, failSpeech = fals
 }
 const awaitVoicemailSource = await readFile(new URL('public/voicemail.js', import.meta.url), 'utf8');
 const vadAck = { type: 'session.updated', session: { audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true } } } } };
+test('owner instructions require a live human conversation, wait for matching acknowledgement and retain no instruction text', async () => {
+  const env = environment();
+  try {
+    await env.start(); env.elements.get('ownerInstruction').value = 'Ask whether 4 PM San Diego time works, or ask their preferred time.';
+    env.elements.get('sendInstruction').onclick(); await tick();
+    assert.equal(env.peers[0].channel.sent.some(x => x.type === 'conversation.item.create'), false);
+    await env.media(); await env.confirm(); env.peers[0].channel.message(vadAck); await tick(); await tick();
+    env.elements.get('sendInstruction').onclick(); await tick(); await tick();
+    const note = env.peers[0].channel.sent.find(x => x.type === 'conversation.item.create');
+    assert.equal(note.item.role, 'system'); assert.match(note.item.content[0].text, /San Diego/);
+    assert.equal(env.elements.get('sendInstruction').disabled, true);
+    env.peers[0].channel.message({ type: 'conversation.item.added', item: { id: 'unrelated' } }); await tick();
+    assert.equal(env.elements.get('sendInstruction').disabled, true);
+    env.peers[0].channel.message({ type: 'conversation.item.added', item: { id: note.item.id } }); await tick();
+    assert.match(env.elements.get('instructionStatus').textContent, /AI accepted/);
+    assert.equal(env.elements.get('sendInstruction').disabled, false);
+    assert.doesNotMatch(env.elements.get('evidence').textContent, /San Diego/);
+    assert.equal(env.elements.get('ownerInstruction').value, '');
+    assert.equal(env.peers[0].channel.sent.filter(x => x.type === 'response.create').length, 1);
+  } finally { await env.cleanup(); }
+});
 const listenAck = { type: 'session.updated', session: { audio: { input: { transcription: { model: 'gpt-4o-mini-transcribe' }, turn_detection: { type: 'server_vad', create_response: false, interrupt_response: false } } } } };
 async function beep(env) {
   const values = Float32Array.from({ length: 2048 }, (_, i) => 0.2 * Math.sin(2 * Math.PI * 1000 * i / 48000));
