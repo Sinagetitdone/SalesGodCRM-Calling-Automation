@@ -13,7 +13,7 @@ This is supervised setup, not a working telephone caller. No calls are placed, n
 5. Reopen voice setup for **Test paired AI connection**. This requires a valid key. The local server exchanges SDP with OpenAI; the browser sends audio over WebRTC. One explicit AI introduction is requested, measured in both audio graphs, and allowed to finish before disconnecting. Automatic turn detection is disabled.
 6. Restore the CRM's original microphone setting and disable local routing when finished. Reports may be saved from the setup window.
 
-Standalone AI output testing is available at http://127.0.0.1:4318/voice-test. Use http://127.0.0.1:4318/audio-diagnostics to test the exact new audio files before reloading an installed extension; the URL avoids an old installed content script taking precedence over the lab's scripts.
+Standalone AI output testing is available at http://127.0.0.1:28431/voice-test. Use http://127.0.0.1:28431/audio-diagnostics to test the exact new audio files before reloading an installed extension; the URL avoids an old installed content script taking precedence over the lab's scripts.
 
 ## Connection boundaries
 

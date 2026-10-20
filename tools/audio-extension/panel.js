@@ -8,7 +8,7 @@
   root.innerHTML = `<style>
     :host{font:14px/1.5 Segoe UI,sans-serif;color:#183c34}section{background:#f7fcf8;border:1px solid #7d9e8e;border-radius:14px;box-shadow:0 8px 30px #0003;padding:18px}h2{font-size:17px;margin:0 0 6px}p{margin:8px 0}small{display:block;color:#536a60}button{font:inherit;border:0;border-radius:6px;background:#175b48;color:#fff;padding:8px 11px;cursor:pointer;margin:7px 5px 0 0}button:disabled{opacity:.45;cursor:not-allowed}button.stop{background:#74433a}pre{font:11px/1.5 Consolas,monospace;white-space:pre-wrap;max-height:100px;overflow:auto;background:#eaf2eb;padding:8px}details{margin-top:10px}summary{cursor:pointer}.min{float:right;background:transparent;color:#183c34;padding:0 4px;margin:0}.error{color:#89362b}#body[hidden]{display:none}
     </style><section><button class="min" id="min" aria-label="Minimize audio diagnostics">−</button><h2>SalesGod audio bridge</h2><small>Local diagnostic build · No OpenAI · No dialing</small><div id="body"><p id="state">Checking extension…</p><button id="arm">Enable local routing</button><button id="test" disabled>Test local audio</button><button id="rtc" disabled>Test WebRTC</button><button id="stop" class="stop">Disable</button><p id="result">No audio test run yet.</p><p id="rtcResult">WebRTC not tested.</p><small>In the dialer, refresh devices and select “SalesGod AI Bridge (local audio)” as the microphone. Keep the speaker on your headset.</small><p id="error" class="error"></p><details><summary>Connection evidence</summary><pre id="evidence"></pre><button id="download">Save report</button></details></div></section>`;
-  if (location.origin === 'http://127.0.0.1:4318') {
+  if (location.origin === 'http://127.0.0.1:28431') {
     root.querySelector('style')?.remove();
     const styles = document.createElement('link'); styles.rel = 'stylesheet'; styles.href = '/panel.css'; root.prepend(styles);
   }
@@ -25,11 +25,11 @@
   window.addEventListener('message', event => {
     if (event.source !== window || event.origin !== location.origin || event.data?.source !== SOURCE || event.data?.type !== 'result') return;
     report = event.data.status;
-    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.1'].includes(report.version)) return;
+    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2'].includes(report.version)) return;
     $('state').textContent = report.testing ? 'Testing synthetic audio locally…' : report.armed ? 'Local routing enabled · OpenAI disconnected' : 'Local routing disabled · OpenAI disconnected';
     $('arm').disabled = report.armed || report.testing;
-    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.1'].includes(report.version) || report.voiceState !== 'disconnected';
-    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.1'].includes(report.version);
+    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2'].includes(report.version) || report.voiceState !== 'disconnected';
+    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2'].includes(report.version);
     if (report.voiceState && report.voiceState !== 'disconnected') $('state').textContent = `Local routing enabled · Voice setup ${report.voiceState} · Check setup window for OpenAI status`;
     $('test').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
     $('rtc').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
@@ -48,14 +48,14 @@
   voiceButton.onclick = () => {
     const token = crypto.randomUUID();
     window.postMessage({ source: SOURCE, type: 'command', command: 'prepare-voice', token, requestId: crypto.randomUUID() }, location.origin);
-    const url = 'http://127.0.0.1:4318/voice-test#' + new URLSearchParams({ token, origin: location.origin });
+    const url = 'http://127.0.0.1:28431/voice-test#' + new URLSearchParams({ token, origin: location.origin });
     const popup = window.open(url, 'salesgod-voice-' + token);
     if (!popup) $('error').textContent = 'Allow the local voice setup window to open, then try again.';
   };
   callButton.onclick = () => {
     const token = crypto.randomUUID();
     window.postMessage({ source: SOURCE, type: 'command', command: 'prepare-voice', mode: 'live', token, requestId: crypto.randomUUID() }, location.origin);
-    const url = 'http://127.0.0.1:4318/supervised-call#' + new URLSearchParams({ token, origin: location.origin });
+    const url = 'http://127.0.0.1:28431/supervised-call#' + new URLSearchParams({ token, origin: location.origin });
     if (!window.open(url, 'salesgod-call-' + token)) $('error').textContent = 'Allow the local call-control tab to open, then try again.';
   };
   $('min').onclick = () => { $('body').hidden = !$('body').hidden; $('min').textContent = $('body').hidden ? '+' : '−'; };

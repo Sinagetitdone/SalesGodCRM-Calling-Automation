@@ -41,7 +41,7 @@ function environment({ sessionStatus = 200, stall = false } = {}) {
   const window = { addEventListener() {} };
   const timers = new Set();
   const sandbox = {
-    window, document: { getElementById: id => elements.get(id) }, location: { origin: 'http://127.0.0.1:4318', hash: '' },
+    window, document: { getElementById: id => elements.get(id) }, location: { origin: 'http://127.0.0.1:28431', hash: '' },
     URLSearchParams, URL, AudioContext: Context, RTCPeerConnection: Peer, MediaStream: Stream,
     Audio: class { async play() {} pause() {} }, Float32Array, AbortController, JSON, Date, Math, Number, Boolean,
     setTimeout: (fn, delay) => { const timer = setTimeout(fn, delay); timers.add(timer); return timer; }, clearTimeout,

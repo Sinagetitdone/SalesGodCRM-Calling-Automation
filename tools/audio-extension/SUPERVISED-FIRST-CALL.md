@@ -1,12 +1,14 @@
 # Version 0.3.1 — supervised first call
 
+Current installation: extension **0.3.2**, local bridge **http://127.0.0.1:28431**. Windows reserved the previous port; the coordinated origin migration passed all 74 checks. On 2026-10-20 an authorized real call reached a person. The owner confirmed the person heard AI clearly; session `ab22d744-b63d-4f3c-808c-37bf37a08156` recorded incoming speech, AI replies and interruptions. No voicemail was played after switching to the human-answer path. The operator ended the phone call, AI stopped automatically on media closure, and local routing was disabled. This establishes real two-way telephone audio on the tested Windows/Chrome setup. Carrier voicemail recording remains separately unconfirmed.
+
 Current update: [voicemail handling is implemented](VOICEMAIL.md) in the local controls and enabled by default. It prepares your editable message before dialing and listens silently for a greeting plus beep. The earlier first-call results below describe the historical mode without voicemail. For a person use the answer control; for voicemail leave screening active. Phone hangup remains manual. Real carrier voicemail recording still needs verification.
 
 This version routes a supervised manual dialer call to OpenAI Realtime. It starts disabled. It does not enter numbers, click Call, hang up the phone, execute contact lists, or deliver voicemail. The owner or browser operator controls the SalesGodCRM phone. Actual telephone media must still be verified on the first authorized test call.
 
 ## Operator sequence
 
-1. Start `npm run audio:bridge`. Keep the key only in the ignored repository-root `.env` file. The server binds to 127.0.0.1:4318 and checks request origin and host.
+1. Start `npm run audio:bridge`. Keep the key only in the ignored repository-root `.env` file. The server binds to 127.0.0.1:28431 and checks request origin and host.
 2. Reload extension 0.3.1 in Chrome and refresh SalesGodCRM only when no call is active. Enable local routing in the audio panel.
 3. With the dialer idle, choose **Prepare supervised call**, then **Prepare AI — stay silent** in its local control tab. OpenAI is connected with turn detection disabled, customer input muted, and generated-microphone output gated off. No greeting is requested yet.
 4. In CRM call Settings refresh devices and select **SalesGod AI Bridge (local audio)** as Microphone. Keep the speaker on your headset. While a supervised pair exists, physical microphone requests are rejected; there is no fallback to your microphone. If the CRM rejects the generated device, stop and report that incompatibility.

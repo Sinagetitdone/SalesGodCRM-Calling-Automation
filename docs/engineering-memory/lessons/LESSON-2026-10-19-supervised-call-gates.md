@@ -17,6 +17,8 @@ Treat response cancellation as cancellation rather than completion. Persist boun
 
 # Evidence
 
+Windows can reserve an otherwise unused TCP port. On 2026-10-20 the bridge failed to bind port 4318 with `EACCES`; the OS exclusion list included 4258–4357 and no listening process existed. Move the coordinated loopback origin to an available port (28431) instead of weakening OS protections. Update server host/origin validation, extension pairing and popup URLs, manifest matches, tests and current setup instructions together; verify actual binding and reload the extension before calling.
+
 The first CRM dispatch attempt was blocked by its generic microphone-access probe before any dialer peer appeared. In paired live mode, satisfy audio requests without a device ID with the generated microphone. Continue rejecting explicit physical device requests and video; outside live mode preserve native behavior. This avoids physical capture while allowing the CRM preflight to proceed. Version 0.3.1 includes this regression coverage; actual CRM verification requires reloading the installed extension.
 
 call-checks.mjs exercises gating order, delayed acknowledgements after pause/media loss, interruption, journaling failure, strict schemas, disk persistence and retention. Extension tests verify live peers are permitted only in live mode, physical fallback is blocked, and generated sender plus incoming track are required. The no-phone browser rehearsal confirmed a spoken synthetic request reached OpenAI and its answer returned to the simulated customer, with pause and hangup cleanup.

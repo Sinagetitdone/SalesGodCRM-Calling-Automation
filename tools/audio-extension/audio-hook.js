@@ -24,7 +24,7 @@
   let voiceToken, voiceExpiry = 0, voicePair, voiceState = 'disconnected', voiceKind = 'setup';
   const log = (event) => { events.push({ time: new Date().toISOString(), event }); if (events.length > 80) events.shift(); };
   function snapshot() {
-    return { version: '0.3.1', installed: true, armed, testing, virtualDevice: LABEL,
+    return { version: '0.3.2', installed: true, armed, testing, virtualDevice: LABEL,
       dialerRequests, dialerEnumerations, observedPeers,
       activeDialerConnections: [...peers].filter(pc => ['connected', 'connecting'].includes(pc.connectionState)).length,
       lastTest, lastPeerTest, lastVoiceTest, microphonePermission, voiceState, voiceKind, callMedia: voicePair?.media ?? null,
@@ -271,7 +271,7 @@
     }
   }
   window.addEventListener('message', event => {
-    if (event.origin !== 'http://127.0.0.1:4318' || event.source === window || !event.source ||
+    if (event.origin !== 'http://127.0.0.1:28431' || event.source === window || !event.source ||
         event.data?.source !== 'salesgod-voice-link-v1' || event.data?.type !== 'hello' ||
         !voiceToken || event.data.token !== voiceToken || Date.now() > voiceExpiry || !armed || testing || voicePair) return;
     if ([...peers].some(pc => !['closed', 'failed'].includes(pc.connectionState))) { log('Voice setup refused: dialer peer exists. Keep the dialer idle.'); publish(); return; }

@@ -9,9 +9,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 const source = await readFile(new URL('public/call.js', import.meta.url), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
-const origin = 'http://127.0.0.1:4318';
+const origin = 'http://127.0.0.1:28431';
 const sessionId = '11111111-1111-4111-8111-111111111111';
-const headers = { host: '127.0.0.1:4318', origin, 'content-type': 'application/json' };
+const headers = { host: '127.0.0.1:28431', origin, 'content-type': 'application/json' };
 
 function environment({ failJournal = false, voicemail = false, failSpeech = false } = {}) {
   const elements = new Map();

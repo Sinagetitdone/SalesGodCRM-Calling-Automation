@@ -28,7 +28,7 @@ The dialer may defer microphone acquisition until a call starts. This is an infe
 
 ### Localhost retest after the owner's Chrome change
 
-The owner reported disabling the WebRTC local-IP masking flag and relaunching Chrome. Without changing the audio/signaling logic, the standalone `http://127.0.0.1:4318/audio-diagnostics` test passed twice. On the final run at 2026-10-19T17:36:58Z, both peers sent and received 7 packets, received peaks were 0.1015 and 0.1017, and candidate exchange reported zero errors. No microphone permission prompt, phone call, external ICE server, physical microphone capture, or OpenAI request was used. The assistant disabled test routing afterward. A separate local stylesheet adjustment made the lab panel readable under its existing Content Security Policy; it did not change test behavior or relax that policy.
+The owner reported disabling the WebRTC local-IP masking flag and relaunching Chrome. Without changing the audio/signaling logic, the standalone `http://127.0.0.1:28431/audio-diagnostics` test passed twice. On the final run at 2026-10-19T17:36:58Z, both peers sent and received 7 packets, received peaks were 0.1015 and 0.1017, and candidate exchange reported zero errors. No microphone permission prompt, phone call, external ICE server, physical microphone capture, or OpenAI request was used. The assistant disabled test routing afterward. A separate local stylesheet adjustment made the lab panel readable under its existing Content Security Policy; it did not change test behavior or relax that policy.
 
 This resolves the prior localhost test failure in the owner's current Chrome configuration. It does not validate real telephone audio or OpenAI.
 

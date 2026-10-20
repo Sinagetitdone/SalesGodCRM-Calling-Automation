@@ -70,7 +70,7 @@ function environment() {
 test('manifest is limited to SalesGodCRM and the local test page, with no broad permissions', () => {
   assert.equal(manifest.permissions, undefined); assert.equal(manifest.host_permissions, undefined);
   assert.equal(manifest.background, undefined);
-  assert.deepEqual(manifest.content_scripts[0].matches, ['https://www.salesgodcrm.net/*', 'https://salesgodcrm.net/*', 'http://127.0.0.1:4318/extension-lab*']);
+  assert.deepEqual(manifest.content_scripts[0].matches, ['https://www.salesgodcrm.net/*', 'https://salesgodcrm.net/*', 'http://127.0.0.1:28431/extension-lab*']);
   assert.equal(manifest.content_scripts[0].world, 'MAIN'); assert.equal(manifest.content_scripts[0].run_at, 'document_start');
 });
 test('starts disabled, disconnected, with no dialing capability', async () => {
@@ -115,7 +115,7 @@ async function prepareVoice(env, mode = 'setup') {
   await env.command('prepare-voice', { data: { source: 'salesgod-local-audio-v1', type: 'command', command: 'prepare-voice', token, mode } });
   env.window[Symbol.for('salesgod.window.rtc.v1')] = { connect() { throw new Error('A peer must not start merely by pairing'); } };
   const popup = { closed: false, postMessage(data, origin, ports) { this.pairing = { data, origin, ports }; } };
-  const hello = { origin: 'http://127.0.0.1:4318', source: popup, data: { source: 'salesgod-voice-link-v1', type: 'hello', token } };
+  const hello = { origin: 'http://127.0.0.1:28431', source: popup, data: { source: 'salesgod-voice-link-v1', type: 'hello', token } };
   return { popup, hello };
 }
 test('voice pairing requires the prepared nonce and exact loopback origin; pairing alone starts no audio peer', async () => {
@@ -126,7 +126,7 @@ test('voice pairing requires the prepared nonce and exact loopback origin; pairi
     assert.equal(popup.pairing, undefined);
     await env.message(hello);
     assert.equal((await env.command('status')).voiceState, 'paired');
-    assert.equal(popup.pairing.origin, 'http://127.0.0.1:4318');
+    assert.equal(popup.pairing.origin, 'http://127.0.0.1:28431');
     assert.equal(env.originals.requests, 0); assert.equal((await env.command('status')).observedPeers, 0);
   } finally { await env.command('disarm'); popup.pairing?.ports[0].close(); }
 });

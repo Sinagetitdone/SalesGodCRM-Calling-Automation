@@ -8,7 +8,7 @@ Version 0.2.0 adds explicit pairing to a local Realtime setup window. See [VOICE
 
 ## Scope and access
 
-The extension runs only on `https://www.salesgodcrm.net/*`, `https://salesgodcrm.net/*`, and the local test page `http://127.0.0.1:4318/extension-lab*`. It has no background service worker, broad browser permissions, network endpoints, cookies API, or key storage. Main-world code is visible to the CRM page and is not a place to put secrets.
+The extension runs only on `https://www.salesgodcrm.net/*`, `https://salesgodcrm.net/*`, and the local test page `http://127.0.0.1:28431/extension-lab*`. It has no background service worker, broad browser permissions, network endpoints, cookies API, or key storage. Main-world code is visible to the CRM page and is not a place to put secrets.
 
 On SalesGodCRM it adds an audio diagnostic panel, exposes one generated microphone to page-level device enumeration, and observes newly created WebRTC audio peers. It never invokes the dialer's Call button or provider APIs. Routing starts disabled on every page load. It intercepts a microphone request only when the page explicitly requests the synthetic device ID; other microphone requests retain normal behavior.
 
@@ -35,7 +35,7 @@ Installing grants code access to the matched SalesGodCRM pages. Review the three
 
 ## Local lab and automated checks
 
-- `npm run audio:bridge`, then open `http://127.0.0.1:4318/extension-lab`.
+- `npm run audio:bridge`, then open `http://127.0.0.1:28431/extension-lab`.
 - The lab loads the exact audio hook as a regular page script for real browser audio testing before installation. This does **not** establish Chrome extension installation or CRM compatibility.
 - The lab has a separate optional local WebRTC probe, using two local peers without external ICE servers. Its result is recorded separately; failure must not be presented as an audio transport pass.
 - With Chrome's local-IP masking enabled, this machine's localhost probe could not establish a pair, while the CRM-origin test passed. After the owner disabled that flag and relaunched Chrome, localhost also passed twice. The assistant did not change browser privacy settings, firewall rules, or microphone permissions. See TEST-RESULTS.md for measurements and the historical comparison.

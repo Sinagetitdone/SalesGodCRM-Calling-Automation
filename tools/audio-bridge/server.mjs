@@ -5,7 +5,7 @@ import { SessionJournal, journalEvents, phases } from './session-journal.mjs';
 
 export function createBridge({ env = process.env, fetchImpl = fetch, journal: suppliedJournal } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 128 * 1024, ajv: { customOptions: { removeAdditional: false } } });
-  const host = '127.0.0.1:4318';
+  const host = '127.0.0.1:28431';
   const origin = `http://${host}`;
   let connecting = false;
   let journal = suppliedJournal;
@@ -126,6 +126,6 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const app = createBridge();
-  await app.listen({ host: '127.0.0.1', port: 4318 });
-  console.log('Audio setup panel: http://127.0.0.1:4318 — no dialing controls.');
+  await app.listen({ host: '127.0.0.1', port: 28431 });
+  console.log('Audio setup panel: http://127.0.0.1:28431 — no dialing controls.');
 }

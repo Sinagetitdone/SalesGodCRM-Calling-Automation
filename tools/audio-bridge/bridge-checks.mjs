@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBridge } from './server.mjs';
 
-const headers = { host: '127.0.0.1:4318', origin: 'http://127.0.0.1:4318', 'content-type': 'application/sdp' };
+const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431', 'content-type': 'application/sdp' };
 test('local status reports missing key without revealing credentials', async () => {
   const app = createBridge({ env: {} });
   const response = await app.inject({ url: '/status', headers });

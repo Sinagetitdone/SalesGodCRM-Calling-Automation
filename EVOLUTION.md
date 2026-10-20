@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-10-20 — Loopback port migration
+
+Windows reserved the former audio port inside a TCP exclusion range and denied binding despite no active listener. The local server, extension trusted origin and setup instructions now use loopback port 28431. Extension 0.3.2 must be reloaded for this coordinated origin change. Existing host/origin restrictions remain exact; no OS network protections are changed. All 74 automated checks passed and the server bound successfully on the new port.
+
 ## 2026-10-19 — Supervised first-call conversation mode
 
 Added explicit live-audio pairing separately from setup diagnostics. The bridge permits and monitors one new dialer audio peer, requires the generated microphone sender and incoming track, and stays muted until an owner-confirmed answer plus gate/VAD acknowledgements. OpenAI server VAD handles customer interruption. Pause clears output and disables input; peer loss, tab closure, journal failure and a five-minute limit stop AI without redial or automatic phone hangup. Physical microphone fallback is blocked while the supervised pair exists.
