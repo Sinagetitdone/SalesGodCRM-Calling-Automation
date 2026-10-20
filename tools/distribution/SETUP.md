@@ -1,80 +1,226 @@
-# SalesGod team setup
+# SalesGod Team: step-by-step setup and calling guide
 
-This package contains a Chrome extension and a local audio bridge. You need both. No VB-CABLE or Docker is needed. Windows launchers are tested on Windows; Mac launchers have not yet been tested on a Mac. The recent interruption-speed improvement still needs real-call verification. Start with simulation, not a customer list.
+Use this guide in order. Steps 1–5 are for your first installation. For everyday use, go to Step 6. Keep this guide open while you work.
 
-## First-time setup (about 10 minutes)
+You will use two parts: the Chrome extension adds controls to SalesGodCRM, and the local bridge runs in a command window on your computer. Both must be running. You do not need Docker, VB-CABLE, or a separate Node.js installation.
 
-1. Install **Google Chrome** if you do not already have it. **You do not need to install Node.js separately.** The Windows/Mac launchers reuse an available Node.js 24 with npm, or automatically download the pinned **Node.js v24.21.0** runtime from the official `nodejs.org` release site. They check its SHA-256 checksum before extraction. Windows x64/ARM64 and Intel/Apple Silicon Mac downloads are supported.
-2. Extract the entire ZIP into a permanent folder you can write to, such as `Documents/SalesGod-Team`. Do not run inside the ZIP, move only the launchers, or use a shared/synced folder: your key and call records will be stored here.
-3. Double-click **Configure OpenAI Windows.cmd** on Windows, or **Configure OpenAI Mac.command** on Mac. If Node is needed, wait for its automatic download (roughly 30–55 MB) and verification. It stays inside this folder's private `.runtime` directory; the launcher does not install a system service, change your permanent PATH or require administrator rights. Then a text editor opens the local `.env` file. Paste your company-approved API key immediately after `OPENAI_API_KEY=` on the same line. Leave the model line as it is. Save and close the editor. Never send the filled file to someone else. This step does not check or send the key to OpenAI.
-4. Double-click **Start Windows.cmd** or **Start Mac.command**. The first launch downloads the required libraries from npm; keep this window open. It starts only on this computer at http://127.0.0.1:28431/. Starting it does not dial or send speech to OpenAI. You may use simulation without a key.
-5. In the same Chrome profile where you use SalesGodCRM, open `chrome://extensions`. Turn on **Developer mode**, choose **Load unpacked**, and select `tools/audio-extension` inside the extracted folder (the folder containing `manifest.json`). Follow your organization's extension policy.
-6. Log into your own SalesGodCRM account. Confirm there is no active call, then refresh its dashboard. Look for the **SalesGod audio bridge** panel. Installation and refresh never start a call.
+## Step 1 — Prepare your computer and extract the ZIP
 
-## Check the installation without calling
+1. Have Google Chrome installed, your own SalesGodCRM login ready, and a company-approved OpenAI API key available. A ChatGPT login alone does not supply API access.
+2. If your organization uses a VPN or proxy, connect it now. Hiddify is not required. Use your organization's approved connection.
+3. Download the original SalesGod Team ZIP supplied by your colleague.
+4. On Windows, right-click the ZIP, choose **Extract All**, choose a permanent local folder such as Documents, and click **Extract**. On Mac, double-click the ZIP and move the extracted folder to Documents.
+5. Open the extracted **SalesGod-Team** folder. You should see **SETUP.html**, **Start Windows.cmd**, **Start Mac.command**, and a **tools** folder. Run the files here, outside the ZIP.
+6. Double-click **SETUP.html** to open this guide in your browser. Keep all extracted files together. Use a private local folder rather than a shared or synced team folder: your key and conversation logs will be stored here.
 
-1. In the idle CRM panel, choose **Open calling list**. Keep this new window and CRM open. It should say **CRM controls paired**. Opening the local page directly does not pair CRM controls.
-2. Leave **Simulation only — no calls and no OpenAI requests** checked. Choose **Use simulated contacts**, **Import and preview**, then **Start selected list**. Confirm simulated results appear. No phone call or OpenAI request is made in simulation.
-3. For a separate audio check, use **Enable local routing** and **Test local audio** in the idle CRM panel; **Test WebRTC** checks the local connection too. These use synthetic audio, not a customer call. Choose **Disable** afterward. Do not change Chrome privacy flags or firewall settings to force a test to pass; ask your administrator if it fails.
+## Step 2A — Save your API key on Windows
 
-## Start the bridge each day — Windows
+1. In the extracted folder, double-click **Configure OpenAI Windows.cmd**.
+2. A command window may appear. If it says **Preparing a private Node.js 24 runtime from nodejs.org**, wait. The launcher downloads and checks the required software automatically. You do not need to type any commands into this window.
+3. Wait for Notepad to open the local `.env` file. A message may say **Opening your LOCAL .env file**. This is expected.
+4. Find the line `OPENAI_API_KEY=`. Paste your API key immediately after the equals sign, on the same line. Do not add quotation marks or spaces. Do not change the model line.
+5. Press **Ctrl+S** to save, then close Notepad. The configuration command window may close automatically; that is normal. Configuring the key does not start the bridge or validate API access.
+6. Continue to Step 3A.
+
+Never paste the API key into a command prompt, Chrome extension, chat, GitHub, or a screenshot. Use only your local `.env` file.
+
+## Step 2B — Save your API key on Mac
+
+1. In the extracted folder, double-click **Configure OpenAI Mac.command**.
+2. Terminal may open and display **Preparing a private Node.js 24 runtime from nodejs.org**. Wait for automatic setup; no separate Node.js installation is needed.
+3. TextEdit opens the local `.env` file. Find `OPENAI_API_KEY=` and paste the key immediately after the equals sign on the same line, without quotation marks or spaces. Leave the model line unchanged.
+4. Press **Command+S** and close the TextEdit document. The Terminal command can then finish. Configuring the key does not start the bridge.
+5. If double-clicking the file does not work, use the Mac manual commands in Step 8. If macOS or your organization blocks the software, ask IT to review it. Do not disable security protections.
+6. Continue to Step 3B.
+
+## Step 3A — Start the bridge on Windows
+
+1. Double-click **Start Windows.cmd** in the extracted folder.
+2. Leave the command window open. You may see automatic Node setup, **Installing required libraries from npm**, download progress, or a list of installed packages. First launch needs internet access and can take longer. Wait; no commands or API key need to be typed here.
+3. Look for **Bridge API requests use the configured HTTP/HTTPS proxy; localhost stays local.** or **Bridge API requests use the direct connection.** Either can be correct for your network.
+4. Wait for the ready message shown below. The extra words after the address are normal.
+
+```text
+Local audio bridge: http://127.0.0.1:28431 — calling lists require explicit Start.
+```
+
+5. Keep this window open for the entire calling session. A window waiting at this message is working; it is not frozen. You can minimize it.
+6. Continue to Step 4. Starting the bridge never places a call.
+
+## Step 3B — Start the bridge on Mac
+
+1. Double-click **Start Mac.command** in the extracted folder. If needed, use the manual Terminal commands in Step 8.
+2. Leave Terminal open while software downloads or libraries install. You may see **Preparing a private Node.js 24 runtime from nodejs.org** or **Installing required libraries from npm**. Wait for setup to finish.
+3. Wait until Terminal shows **Local audio bridge: http://127.0.0.1:28431**. It may also show the direct/proxy connection message described in Step 3A.
+4. Keep Terminal open for the entire calling session. You can minimize it. Starting the bridge never places a call.
+5. Continue to Step 4.
+
+The launchers do not require an administrator password. Mac launcher syntax has been checked, but actual Mac startup and telephone audio still need testing on a Mac.
+
+## Step 4 — Install the Chrome extension
+
+1. Open the Chrome profile you use for SalesGodCRM. A different Chrome profile has separate extensions and logins.
+2. Type `chrome://extensions` in Chrome's address bar and press Enter.
+3. Turn on **Developer mode** in the top-right corner.
+4. Click **Load unpacked**.
+5. Browse into your extracted **SalesGod-Team** folder, then **tools**, then **audio-extension**. Select this folder, which contains `manifest.json`. Do not select the ZIP or the whole SalesGod-Team folder.
+6. Confirm Chrome shows **SalesGod Local Audio Bridge** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
+7. Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.
+8. Look for the **SalesGod audio bridge** panel. Continue to Step 5.
+
+## Step 5 — Check setup without calling anyone
+
+1. Confirm the bridge command window is still open and shows the ready message.
+2. Open `http://127.0.0.1:28431/voice-test` in Chrome.
+3. Click **Test AI voice without a microphone**. This uses a short OpenAI session and may incur API usage. It does not open your physical microphone or place a phone call.
+4. Wait for **AI audio test passed · disconnected**. If the test fails, go to Step 10. Do not start a live list until the voice check works.
+5. Return to the idle CRM. In its extension panel, click **Open calling list**. Keep both pages open. Wait for **CRM controls paired**. Opening the local calling-list address directly does not pair the CRM.
+6. Keep **Simulation only — no calls and no OpenAI requests** checked.
+7. Click **Use simulated contacts**, then **Import and preview**. Confirm the saved list says **SIMULATION — no calls**.
+8. Click **Start selected list**. This practice run makes no phone calls or OpenAI requests. Wait for **Finished processing every contact** and review the simulated results.
+9. For an additional local audio check, use **Enable local routing** and **Test local audio** in the idle CRM extension panel. **Test WebRTC** checks the local connection too. These tests use synthetic audio. Choose **Disable** afterward if you are finished testing.
+
+## Step 6 — Start your normal workday
+
+1. Connect your approved VPN or proxy if your network requires one.
+2. Open the extracted SalesGod-Team folder and double-click **Start Windows.cmd** or **Start Mac.command**. If its bridge window is already running, use that window instead of opening a second copy.
+3. Wait for **Local audio bridge: http://127.0.0.1:28431**. Leave the command window open.
+4. Open your SalesGodCRM Chrome profile and log in. Check that no call is active. Refresh the idle dashboard if the extension panel is missing.
+5. In the extension panel, click **Open calling list**. Wait for **CRM controls paired** and keep both pages open.
+6. Continue to Step 7. If you changed the key, VPN, or proxy settings, restart the bridge while no call or list is active and repeat the no-call voice test first.
+
+## Step 7 — Import your list and start calling
+
+1. Prepare a CSV file with these exact column names in the first row:
+
+```csv
+first_name,last_name,phone
+```
+
+2. Put one person's first name, last name, and phone number on each following row. Include the country code, such as `+1` for US numbers. Ask your team lead if unsure about a number. If using Excel, save as CSV first; an `.xlsx` workbook cannot be imported directly. Check that the country codes survived the export.
+3. In the calling-list page, enter a descriptive **List name**. Use **Choose CSV file**, or paste the CSV text into **Or paste CSV**.
+4. Expand **Call settings**. Enter **Your CRM caller number**, including country code. This is the outgoing number assigned to your CRM account, not a customer's number.
+5. Set **Calling timezone**, **Start hour**, and **End hour**. For San Diego, use `America/Los_Angeles`. Hours use a 24-hour clock: 9 is 9 AM and 17 is 5 PM. One timezone applies to the whole list.
+6. Review the **Approved conversation brief**. State the approved purpose, what the AI may say, and what information it should collect. The current live AI identifies itself as calling from **Jay Marketing Lab on behalf of Cena**. Other office identities need a configuration/code change before use.
+7. Review the **Voicemail message** and voicemail controls. The default voicemail refers to **Sina**. Confirm that this wording is appropriate for your list.
+8. Choose the mode before importing. For practice, leave **Simulation only — no calls and no OpenAI requests** checked and use simulated contacts. For an authorized real calling list, uncheck it.
+9. Click **Import and preview**. Review names, numbers, settings, and the mode shown for the selected list: **SIMULATION — no calls** or **LIVE CALLING**.
+10. If you need to change the mode, caller, brief, voicemail, or calling hours after import, change the form and import a new draft. Changing the form does not update the previously saved list. Select the correct new draft before continuing.
+11. Before live calling, confirm the CRM microphone is **SalesGod AI Bridge (local audio)**. Keep the CRM speaker on your headset. If the microphone is missing, review the idle CRM's Settings/Refresh devices and repeat the local audio checks. Do not dial to work around a failed setup test.
+12. If you want a desktop completion notification, click **Enable completion notification** and allow Chrome notifications if your company permits them. The page itself shows completion even without notifications.
+13. Click **Start selected list** only when you are ready. On a **LIVE CALLING** list, this starts real calls, one eligible contact at a time. The system prepares AI audio, handles a person or recognized voicemail, saves results, and proceeds through the list.
+14. Leave the bridge window, CRM page, and calling-list page open. Do not refresh them while a call is active. Calling-window and suppression checks remain active. If the page says it is waiting for the calling window, keep it open and review the approved hours.
+15. Wait for **Finished processing every contact. Review the results below.** This means processing is finished; it does not mean every person answered. If the list pauses with an uncertain result, review the CRM before taking another action. Uncertain attempts are not automatically redialed.
+
+## Step 8 — Manual commands if double-click does not work
+
+Run only the commands for your operating system. Do not type the `C:\...>` or `%` prompt shown by your computer. Do not put your API key in a command.
+
+### Windows: Command Prompt
 
 1. Open the extracted **SalesGod-Team** folder in File Explorer.
-2. Double-click **Start Windows.cmd**. If the bridge is already running, keep using the existing window rather than starting another copy.
-3. Wait until the window shows **Local audio bridge: http://127.0.0.1:28431**. First launch may take longer while libraries download. Keep this window open throughout your calling session.
-4. If you prefer starting it manually, click File Explorer's address bar while inside **SalesGod-Team**, type `cmd`, and press Enter. In the command window, run `call "Start Windows.cmd"`. This runs the same automatic Node check/download and first-time library installation.
-5. Starting the bridge does not place calls. Continue with **Import a list and begin calling** below.
+2. Click the address bar at the top, type `cmd`, and press Enter. Command Prompt opens in the correct folder. You do not need to type a `cd` command or your username.
+3. To configure the key, type the following command and press Enter. Complete Step 2A when Notepad opens.
 
-## Start the bridge each day — Mac
+```bat
+call "Configure OpenAI Windows.cmd"
+```
 
-1. Open the extracted **SalesGod-Team** folder in Finder.
-2. Double-click **Start Mac.command**. If the bridge is already running, use the existing Terminal window. If the file cannot execute, follow the Mac troubleshooting instructions below.
-3. Wait until Terminal shows **Local audio bridge: http://127.0.0.1:28431**. First launch downloads libraries. Keep Terminal open throughout your calling session.
-4. To start manually, open Terminal, type `cd ` (including the space), drag the **SalesGod-Team folder** from Finder into Terminal, then press Return. Run `bash "Start Mac.command"`. This includes the automatic Node check/download, so it works even when Node is not installed on your Mac.
-5. Starting the bridge does not place calls. Continue with the common instructions below. Mac launchers have syntax-check coverage only; actual Mac startup and phone audio still need verification.
+4. To start the bridge, type this command and press Enter:
 
-## Import a list and begin calling — Windows and Mac
+```bat
+call "Start Windows.cmd"
+```
 
-1. With the bridge running, open Chrome and log into your own **SalesGodCRM** account in the profile where the extension is installed. Confirm no phone call is active. If the extension panel is missing, refresh the idle dashboard.
-2. In the **SalesGod audio bridge** panel, click **Open calling list**. Wait for **CRM controls paired**. Keep this new page and the CRM page open. Do not open the local address manually as a replacement for pairing.
-3. Enter a descriptive **List name**. Upload your CSV using **Choose CSV file**, or paste its contents into **Or paste CSV**. The first line must be `first_name,last_name,phone`. Include first name, last name and phone on each following row, using country codes such as `+1` for US numbers. Save spreadsheet files as CSV first; do not upload an Excel workbook.
-4. Open **Call settings**. Enter the CRM caller number assigned to your account, including country code. Set the approved **Calling timezone**, **Start hour** and **End hour**; hours use the 24-hour clock in that timezone. Enter the **Approved conversation brief** describing why the AI is calling, what it may say, and the information it should collect. Do not copy another colleague's caller number or invent business details.
-5. Review the **Voicemail message** and whether voicemail is enabled. The app currently identifies the live AI as **Jay Marketing Lab, on behalf of Cena**, and the default voicemail refers to **Sina**. Confirm these identities are appropriate. Other office identities require a code/configuration change first.
-6. Choose the mode **before importing**. For practice, keep **Simulation only — no calls and no OpenAI requests** checked and use **Use simulated contacts**. For an authorized real list, uncheck **Simulation only**. Do not use a live list merely to test installation.
-7. Click **Import and preview**. Check every name and number. Confirm the selected list says **SIMULATION — no calls** for practice or **LIVE CALLING** for real calls. The draft saves its mode, brief, voicemail, caller and time settings at import. Changing the form afterward does not change that saved draft: import a fresh draft if you need different settings. Do not start the old draft by mistake.
-8. Before a real call, verify CRM uses **SalesGod AI Bridge (local audio)** as its microphone and keep the speaker on your headset. If the device is missing, check the idle CRM's Settings/Refresh devices and local audio diagnostics. Do not place a call to force a failed setup check to pass.
-9. When ready, click **Start selected list**. On a **LIVE CALLING** draft, this begins dialing eligible contacts sequentially. The system prepares the voice connection, handles a person or recognized voicemail, saves results, and moves to the next eligible contact. Suppression and calling-window checks remain active. Outside the approved hours, the list cannot proceed; review the status instead of repeatedly pressing Start.
-10. Keep the bridge window, Chrome CRM page and paired calling-list page open until finished. The system shows **Finished processing every contact** when the list is done; review individual outcomes, because finished processing does not mean every person answered. Uncertain attempts pause for review and are not automatically redialed.
+5. Wait for the bridge ready message. These commands include automatic Node setup. Leave Command Prompt open while working.
 
-## Pause, stop, and read the results
+### Mac: Terminal
 
-1. Choose **Pause after current contact** to let the current call finish before pausing the list.
-2. Choose **Stop current call and pause** to request that the system end its current owned call and pause. Verify the CRM phone has ended; if call identity is uncertain, check it manually. Do not close the bridge as a substitute for this control.
-3. To read a conversation, choose the relevant list under **Saved lists**, then click **View transcript** beside a contact. Expand **List event log** for the sequence of events. Choose **Export transcripts and event log** to download the records.
-4. When processing is finished and CRM shows no ongoing call, press **Ctrl+C** in the bridge's command/Terminal window to stop the bridge. This works on Windows and Mac. Next time, start the platform launcher again before using **Open calling list**.
+1. Open **Terminal** using Spotlight: press **Command+Space**, type `Terminal`, and press Return.
+2. Type `cd `, including the space after `cd`. Drag the extracted **SalesGod-Team folder** from Finder into Terminal. Press Return. Terminal is now inside the correct folder; this also handles spaces in its path.
+3. To configure the key, type this command and press Return. Complete Step 2B when TextEdit opens.
 
-Single-call audio and automatic human takeover have been observed on Windows. Multiple-contact live reliability and Mac telephone audio are not yet validated. Unknown call outcomes pause for review rather than automatic redial. The five-minute AI session limit applies.
+```sh
+bash "Configure OpenAI Mac.command"
+```
 
-## Everyday use, logs and updates
+4. To start the bridge, type this command and press Return:
 
-- Start your platform's launcher, then open CRM and **Open calling list**. Do not start a second copy of the bridge. Restart the bridge after editing the key, only when no call is active.
-- View conversation text using **Saved lists → View transcript**. Expand **List event log** for events, or choose **Export transcripts and event log**. Each computer has separate records; there is no shared team dashboard. Inactive records expire after seven days of bridge activity; suppressions persist. No audio recordings are saved.
-- During live calls, speech goes to OpenAI and API usage may be billed. Keys stay in the local `.env`; contact/transcript/event data stays in local `data` databases accessible to your OS user. Protect this folder using your computer's normal access controls.
-- Wait until no phone call/list is active, then stop the bridge with **Ctrl+C** in its window. Closing it during a call can interrupt AI; check the actual CRM phone if that happens.
-- For updates, finish all calls first and stop the bridge. Replace application files from a fresh package, preserving your local `.env` and `data` folder. Reload the extension in `chrome://extensions`, then refresh idle CRM and reopen calling-list controls. Do not redistribute your installed folder: share the original clean ZIP instead.
+```sh
+bash "Start Mac.command"
+```
 
-## Troubleshooting
+5. Wait for the bridge ready message. These commands include automatic Node setup. Leave Terminal open while working.
 
-- **You use a proxy:** keep your approved proxy app running before starting the bridge. Version 0.4.3 reads an enabled Windows user HTTP/HTTPS proxy at startup, including per-protocol HTTPS settings. Explicit `HTTPS_PROXY`/`HTTP_PROXY` settings in your local `.env` take precedence and also work on Mac. Node's environment-proxy support is enabled for bridge requests, while localhost signaling bypasses the proxy. The launcher prints whether it is using a proxy, without printing its address or credentials. Restart the idle bridge after changing proxy settings. Mac system-proxy/PAC/SOCKS discovery is not implemented. This configures your existing connection; it does not guarantee OpenAI region or project eligibility.
+## Step 9 — Pause, read logs, and finish safely
 
-- **Mac cannot execute a .command file:** open Terminal, type `chmod +x ` (including the space), drag one `.command` file into Terminal, press Return, and repeat for the other. The ZIP marks them executable, but some extractors may discard that attribute. If macOS or your organization blocks the download, ask IT to review it rather than disabling security protections. For ordinary manual startup from Terminal in the extracted folder, use `bash "Configure OpenAI Mac.command"` or `bash "Start Mac.command"`; these include Node setup.
-- **Node download/setup fails:** confirm internet access to `https://nodejs.org`, that the extracted folder is writable, and that no other setup window is running. Retry the launcher after the other setup finishes. A checksum failure stops setup before the archive is extracted or run; ask IT to review the download/cache. The launchers do not weaken certificate checks, change execution policy, modify your permanent PATH or install into system folders. A managed computer may block downloaded software; ask IT rather than bypassing its protections. If automatic downloads are prohibited, IT can install Node.js 24 with npm from https://nodejs.org/en/download; the launchers will reuse it.
-- **Port 28431 already in use/unavailable:** use the existing bridge window if it is already running. Otherwise ask IT. The launcher does not kill processes or change firewall rules.
-- **Install fails:** confirm internet access to npm and that the folder is writable, then reopen Start. Required library versions are locked; installation scripts are disabled.
-- **OpenAI rejects the key:** run Configure OpenAI, save the new key, and restart the idle bridge. An API key needs appropriate project/model access and billing. Never paste a key into chat or the extension.
-- **ChatGPT works, but the extension cannot connect:** ChatGPT and the OpenAI API are separate product connections. This extension uses the API key in your local bridge, not your chat session or ChatGPT subscription. Check the voice test's specific error before changing settings. A confirmed `unsupported_country_region_territory` / 403 error means API access is denied for the detected region. Reinstalling Node/Chrome or replacing the key does not resolve that denial. If you are in a location on https://developers.openai.com/api/docs/supported-countries, ask OpenAI Support or your IT team to review incorrect region detection. API use is unavailable in unsupported locations. The app does not automatically route around these restrictions.
-- **Sharing a failed voice-test report:** click **Save test report** in the voice-test page. Version 0.4.2 records a known error category, failure stage, HTTP/upstream status when available, stop reason and end time. Unknown provider codes/messages, keys and connection descriptions are not copied into the report. Older reports may show zero packets without explaining the cause; read the visible error too. A setup failure prevents live preparation and does not start a phone call.
-- **Pairing/audio fails:** confirm the bridge is running and there is no ongoing CRM call, refresh idle CRM, and reopen controls through its extension panel. Use port **28431**, not the older 4318. Do not reload or refresh during a call.
-- **Open calling list shows "site cannot be reached" / "connection refused":** the local bridge may have stopped. Start your Windows/Mac launcher and wait for the local bridge address. Close the failed calling-list window, then click **Open calling list** again in CRM to establish a fresh pairing. Starting the bridge or reopening controls does not start a call.
+1. To finish the current call and then pause, click **Pause after current contact**.
+2. To stop the system's current call and pause, click **Stop current call and pause**. Check that the CRM phone actually ended. If the system cannot identify its owned call, inspect the CRM manually.
+3. To read a conversation, select its list under **Saved lists**, then click **View transcript** beside the contact. Expand **List event log** to see what happened.
+4. Click **Export transcripts and event log** to save a copy. Keep the export private. Records are stored separately on each computer; there is no shared team dashboard and no audio recording.
+5. Inactive contact details, transcripts, and events expire after seven days of bridge activity. Export records you need before then. Suppression records persist.
+6. When no list or phone call is active, click the bridge's command/Terminal window and press **Ctrl+C**. On Mac, use **Control+C**, not Command+C. If Windows asks **Terminate batch job (Y/N)?**, type `Y` and press Enter.
+7. Once the command returns to a prompt or the launcher exits, close its window. Next time, repeat Step 6. Closing the bridge during a call interrupts the AI and may leave the CRM phone connected; inspect the phone if that happens.
 
-Reference: Chrome's unpacked installation workflow is documented at https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked.
+## Step 10 — Understand prompts and fix common problems
+
+### The command window is open but nothing else happens
+
+If you see the bridge address, it is ready. The launcher does not automatically open Chrome. Leave the window open and continue to Step 4 or Step 6. No typing is needed at the ready message.
+
+### “Preparing a private Node.js 24 runtime” or “Installing required libraries from npm”
+
+This is normal on first use. Keep internet connected and wait for the ready message. Node is downloaded from the official nodejs.org site and checked before use. Do not open multiple setup windows while it is working.
+
+### “Node setup failed”, checksum failure, or library installation failure
+
+Read the error above the final prompt. Check internet access and that the extracted folder is writable. If asked **Press any key to continue . . .** on Windows or **Press Return to close.** on Mac, that means setup stopped; pressing a key only closes the window. It does not fix the error. Retry the launcher after resolving the cause. Ask IT about checksum errors, blocked downloads, or an interrupted setup lock. Do not delete caches or disable security controls blindly. If your organization prohibits automatic downloads, IT can install Node.js 24 with npm instead.
+
+### “Port 28431 is already in use or unavailable”
+
+Look for an existing bridge window. If it is already running, use it and close only the duplicate failed launcher. If there is no working bridge, ask IT to identify what owns the port. Do not stop an unknown process.
+
+### “Open calling list” opens a page that cannot load
+
+Start the bridge and wait for its ready message. The current address is `http://127.0.0.1:28431/`, not the older port 4318. Close the failed calling-list window and click **Open calling list** again from CRM. Keep the bridge running.
+
+### The page does not say “CRM controls paired”
+
+Open the calling list using the CRM extension panel, not a bookmark or a manually typed local address. Confirm the extension is enabled in this Chrome profile. If no call is active, refresh CRM and reopen the controls. Never refresh an active call.
+
+### The voice test fails, or ChatGPT works but the extension does not
+
+Read the specific error on the voice-test page. ChatGPT and this bridge use separate connections. A missing/invalid key requires saving the local key and restarting the idle bridge. Quota, billing, model access, and project permissions must be reviewed by your API administrator. Do not paste a key into an error report. Use **Save test report** to export safe connection diagnostics; older reports may have less detail.
+
+### You use a VPN or proxy
+
+Hiddify is optional. A VPN that routes all computer traffic generally needs no extra bridge settings. On Windows, the bridge reads an enabled Windows user HTTP/HTTPS proxy at startup. Keep that proxy app running and look for the proxy message in the bridge window. A Chrome-only VPN may not route the bridge at all.
+
+On Mac, or for an explicit proxy configuration, ask IT to set `HTTPS_PROXY` in the local `.env` file using your approved HTTP/HTTPS proxy address. Explicit environment proxy settings take precedence. Do not guess the address or copy another person's proxy credentials. Mac system-proxy discovery, PAC scripts, and SOCKS-only configuration are not supported by the launcher. Restart the idle bridge after any proxy change and repeat Step 5. Local signaling stays on your computer.
+
+A confirmed `unsupported_country_region_territory` error means OpenAI denied API access for the detected region. Reinstalling the extension or replacing the key does not remove that restriction. If you are in a supported location, ask OpenAI Support or IT to review detection: https://developers.openai.com/api/docs/supported-countries. A VPN does not guarantee service availability.
+
+### Mac will not open a .command file
+
+Try the `bash` commands in Step 8. If macOS or company policy blocks the download, ask IT to review it. Do not disable Gatekeeper, certificate checks, or other security protections.
+
+### Chrome shows no audio device, or a local audio/WebRTC test fails
+
+Confirm the bridge is running and no CRM call is active. Check extension status, enable local routing, review CRM audio devices, and repeat the idle local audio checks. Ask your administrator if it still fails; do not change Chrome privacy flags or firewall rules to force it through. The standalone OpenAI test does not verify telephone media.
+
+### You need help from your team lead
+
+Send the exact error text, whether you are on Windows or Mac, your package version, and the step that failed. A screenshot of the error or the safe voice-test report can help. Exclude API keys, proxy credentials, contact details, and conversation transcripts from screenshots.
+
+## Step 11 — Install a future update
+
+1. Finish or safely stop all calls and lists, then stop the bridge with **Ctrl+C**.
+2. Keep a private backup of your current local `.env` and `data` folder. Never send that backup to colleagues.
+3. Replace application files with the new package while preserving your `.env` and `data` folder in the installed folder. Ask your team lead if unsure which files to replace.
+4. In `chrome://extensions`, click **Reload** for SalesGod Local Audio Bridge. If the extension now lives in a different folder, load the new `tools/audio-extension` folder instead and remove the old duplicate.
+5. Start the updated bridge, refresh only idle CRM, reopen the calling list from its panel, and repeat Step 5 before live calling.
+6. Share only the original clean ZIP. Do not zip your installed folder: it contains your key, downloaded runtime, and call records.
+
+## What this version has been checked for
+
+Windows startup, proxy-based OpenAI audio, simulation, and individual telephone tests have been observed. Multiple-contact live reliability and actual Mac telephone audio still need validation. The AI session has a five-minute limit, including preparation. Use a supervised approved test before relying on a new installation for a live list.

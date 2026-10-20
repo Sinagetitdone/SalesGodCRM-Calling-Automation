@@ -1,5 +1,10 @@
 # Evolution
 
+## 2026-10-20 — Colleague setup walkthrough
+
+Package 0.4.4 turns the setup guide into a numbered Windows/Mac walkthrough with exact launcher commands and expected prompt handling. A small local renderer generates the browser guide during packaging, so HTML and Markdown remain aligned. This is a documentation/distribution change; no call behavior changes and no calls were placed.
+
+
 ## 2026-10-20 — Preserve the owner's configured proxy for bridge traffic
 
 Network diagnosis found Windows user proxy enabled through Hiddify while the bridge startup used direct Node fetch. The startup wrapper now reads Windows HTTP/HTTPS settings, preserves explicit environment overrides, enables Node's built-in environment proxy support, and bypasses localhost. This reads existing settings only; no system proxy, firewall, VPN or certificate settings are modified. The same wrapper ships in package 0.4.3 and is used by npm and team launchers. Mac uses explicit environment configuration; PAC/SOCKS discovery is not supported.

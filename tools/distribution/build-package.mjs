@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { deflateRawSync } from 'node:zlib';
+import { buildSetupGuide } from './build-setup-guide.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const bridgeFiles = ['server.mjs', 'start.mjs', 'openai-errors.mjs', 'session-journal.mjs', 'campaign-store.mjs', 'campaign-routes.mjs'];
@@ -57,6 +58,7 @@ export function zip(entries) {
   return Buffer.concat([...local, directory, end]);
 }
 export async function buildPackage(output = resolve(root, 'releases')) {
+  await buildSetupGuide();
   const entries = await packageEntries(), archive = zip(entries);
   const metadata = JSON.parse(await readFile(resolve(root, 'tools/distribution/runtime-package.json'), 'utf8'));
   const filename = 'SalesGod-Team-' + metadata.version + '.zip';

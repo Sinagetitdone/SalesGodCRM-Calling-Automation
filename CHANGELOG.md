@@ -4,6 +4,12 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-20 — Step-by-step colleague guide (team package 0.4.4)
+
+- Rewrote the guide as ordered first-time setup, daily startup, practice, live import, results, shutdown and update steps. Separate Windows/Mac commands explain downloads, ready output, error-close prompts and Ctrl+C / Windows batch termination.
+- Added a clickable contents menu and print-friendly HTML generated automatically from the Markdown source during packaging. Runtime behavior and extension version are unchanged.
+
+
 ### 2026-10-20 — Use the configured proxy (team package 0.4.3)
 
 - Bridge startup now reads the enabled Windows user HTTP/HTTPS proxy, respects explicit environment proxy settings, and enables Node environment-proxy support. Local signaling always bypasses that proxy. Addresses and credentials are never logged; no Windows network settings are changed. Both npm startup and team launchers use the same entry point.
