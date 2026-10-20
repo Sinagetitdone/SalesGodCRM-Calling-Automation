@@ -118,6 +118,9 @@ test('supervised mode stays silent until verified media, owner answer confirmati
     await env.confirm(); assert.equal(pc.input.enabled, false); assert.ok(pc.channel.sent.some(item => item.type === 'session.update'));
     pc.channel.message(vadAck); await tick(); await tick();
     assert.equal(pc.input.enabled, true); assert.equal(pc.channel.sent.filter(item => item.type === 'response.create').length, 1);
+    const introduction = pc.channel.sent.find(item => item.type === 'response.create').response.instructions;
+    assert.match(introduction, /Jay Marketing Lab on behalf of Cena/);
+    assert.doesNotMatch(introduction, /Can you hear me clearly/);
     assert.match(env.elements.get('state').textContent, /conversation active/);
     assert.equal(env.requests.find(item => item.url === '/session').options.headers['X-Audio-Mode'], 'supervised-call');
   } finally { await env.cleanup(); }
@@ -186,7 +189,8 @@ test('supervised API session starts with VAD disabled and first-call instruction
   try {
     const response = await app.inject({ method: 'POST', url: '/session', headers: { ...headers, 'content-type': 'application/sdp', 'x-audio-mode': 'supervised-call' }, payload: 'v=0\r\n' });
     assert.equal(response.statusCode, 200); const session = JSON.parse(requests[0].options.body.get('session'));
-    assert.equal(session.audio.input.turn_detection, null); assert.match(session.instructions, /AI assistant calling for Sina/);
+    assert.equal(session.audio.input.turn_detection, null); assert.match(session.instructions, /AI assistant calling from Jay Marketing Lab on behalf of Cena/);
+    assert.match(session.instructions, /do not invent a reason for the call/i);
     assert.match(session.instructions, /Do not conduct sales/);
     for (let i = 0; i < 2; i++) assert.equal((await app.inject({ method: 'POST', url: '/simulation-speech', headers, payload: {} })).statusCode, 200);
     assert.equal(requests.length, 2); const speech = JSON.parse(requests[1].options.body); assert.match(speech.input, /word orange/);

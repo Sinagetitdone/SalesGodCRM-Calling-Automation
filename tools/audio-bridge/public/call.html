@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SalesGod · Supervised call</title><link rel="stylesheet" href="/style.css"><script defer src="/extension-lab/window-rtc.js"></script><script defer src="/voicemail.js"></script><script defer src="/call.js"></script></head>
 <body><main><header><span class="eyebrow">SALESGOD / FIRST CALL</span><span class="badge">Owner starts the phone call</span><h1>Supervised AI conversation.</h1><p>Prepare the audio here, then use the SalesGodCRM dialer. This page cannot enter numbers, dial, or hang up the phone.</p></header>
 <section><h2>Audio connection</h2><p id="configuration">Checking local configuration…</p><p id="pairing">Open this page using “Prepare supervised call” in the extension panel.</p><p id="state" role="status">Not prepared</p><p id="media">No dialer audio verified</p><p id="error" role="alert"></p>
+<p>Live caller: AI assistant from <b>Jay Marketing Lab</b>, on behalf of <b>Cena</b>. Conversations continue naturally after a person answers. The existing five-minute AI session limit still applies.</p>
 <label><input id="voicemailEnabled" type="checkbox" checked> Leave a voicemail after a recognized greeting and beep</label>
 <p><label for="voicemailMessage">Voicemail message</label><textarea id="voicemailMessage" rows="4" maxlength="1000">Hi, this is Sina's AI assistant calling for a brief audio test. Sorry we missed you. No action is needed. Thank you.</textarea></p>
 <p id="voicemailState" role="status">Review your message before preparing AI. The message is sent to OpenAI for voice generation and held in memory for this session.</p>
@@ -10,4 +11,4 @@
 <p class="note">With voicemail enabled, incoming audio is transcribed by OpenAI while the AI stays silent. An English voicemail greeting plus a detected beep triggers your prepared message once. Unknown speech, missing beeps, or a full mailbox require review. For a person, choose “Customer answered — start AI”. No sales pitch is configured.</p>
 <p id="phoneNotice">Ending or pausing AI does not hang up SalesGodCRM. End the phone call in the dialer when finished.</p></section>
 <section><h2>Session log</h2><p>Connection events and turn counts are saved locally for seven days. No phone numbers, names, transcripts, recordings, keys, or network addresses are stored.</p><pre id="evidence">No session started.</pre><button id="save">Save report</button><button id="savedLog" disabled>Show saved event log</button><pre id="journal" hidden></pre></section>
-<footer>AI-generated voice · Supervised test mode · No automatic dialing</footer></main></body></html>
+<footer>AI-generated voice · Supervised office conversation · No automatic dialing</footer></main></body></html>

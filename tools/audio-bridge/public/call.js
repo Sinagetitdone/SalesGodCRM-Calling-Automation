@@ -230,7 +230,7 @@
           current.vadPending = false; clearTimeout(current.vadTimer); await log('conversation.started');
           if (current.stopping || current.logFailed || report.phase !== 'starting' || current.media.state !== 'ready' || !current.media.bridgeMicrophone) return;
           current.input.enabled = true; output.gain.value = 1; phase('talking', 'AI conversation active · customer may interrupt');
-          send({ type: 'response.create', response: { instructions: 'Introduce yourself as an AI assistant calling for Sina for a brief audio test, then ask: Can you hear me clearly?' } });
+          send({ type: 'response.create', response: { instructions: 'Introduce yourself clearly as an AI assistant calling from Jay Marketing Lab on behalf of Cena, then ask whether now is a good time to talk. Follow the office conversation instructions; do not give an audio-test introduction.' } });
         }
         if (message.type === 'input_audio_buffer.speech_started') {
           report.customerTurns++; void log('customer.speech_started');
