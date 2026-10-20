@@ -4,6 +4,12 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-20 — Shareable team package
+
+- Added a reproducible allowlisted ZIP with Windows/Mac start and key-configuration launchers, blank environment template, production dependency lock, checksums, and HTML/Markdown setup guide.
+- Launchers check Node.js 24 and loopback port, install required libraries on first launch, preserve existing local keys, and keep calling explicitly started. No owner's keys, logs, databases, screenshots or installed libraries are included.
+- Passed 109 automated tests plus type checking, clean Windows package extraction/dependency installation, no-key route smoke checks, occupied-port handling and Mac shell syntax checks. Actual macOS startup/audio remain unverified. No calls or OpenAI requests were made for packaging.
+
 ### 2026-10-20 — Faster interruption recovery
 
 - Removed the extra one-second human-takeover polling delay and preserved pending human classification across repeated speech. Newer transcripts still supersede older decisions.

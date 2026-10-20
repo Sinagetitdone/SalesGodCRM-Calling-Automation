@@ -5,6 +5,8 @@
   "description": "Permission-based calling automation around SalesGodCRM",
   "type": "module",
   "scripts": {
+    "package:team": "node tools/distribution/build-package.mjs",
+    "package:check": "node --test tools/distribution/checks.mjs",
     "audio:bridge": "node --env-file-if-exists=.env tools/audio-bridge/server.mjs",
     "audio:check": "node --test tools/audio-bridge/bridge-checks.mjs tools/audio-bridge/voice-checks.mjs tools/audio-bridge/call-checks.mjs tools/audio-bridge/voicemail-checks.mjs tools/audio-bridge/campaign-checks.mjs",
     "audio:extension:check": "node --test tools/audio-extension/tests/checks.mjs tools/audio-extension/tests/signaling-checks.mjs tools/audio-extension/tests/window-signaling-checks.mjs tools/audio-extension/tests/campaign-driver-checks.mjs",
@@ -12,7 +14,7 @@
     "build": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run build && npm test && npm run audio:check && npm run audio:extension:check && npm run api:check",
+    "check": "npm run build && npm test && npm run audio:check && npm run audio:extension:check && npm run api:check && npm run package:check",
     "dev": "tsx src/server.ts",
     "smoke": "tsx src/local-smoke.ts",
     "smoke:failure": "tsx src/local-failure-smoke.ts",

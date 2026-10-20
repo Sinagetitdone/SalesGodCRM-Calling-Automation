@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-20 — Local team distribution package
+
+The owner requested a package colleagues can use on Windows and Mac. Added an explicit allowlist ZIP builder, production-only dependency manifest/lock, blank key template, per-file/archive checksums, platform launchers and a nontechnical setup guide. Each installation keeps its own key and transcript/event databases locally. The launchers require Node.js 24, install libraries on first launch, preserve local configuration, refuse an occupied loopback port without killing anything, and never dispatch calls. This does not create hosted multi-user authorization, shared records, a Chrome Web Store listing, signed installer or bundled Node runtime.
+
+All 109 automated tests plus type checking passed. A clean extracted copy installed production libraries, served 15 runtime routes with fake/no upstream access and default simulation, and correctly reported the existing bridge's port on the Windows launcher path. An independent ZIP reader extracted the archive; Bash checked Mac script syntax and automated checks verify executable attributes/LF line endings. No Mac hardware/runtime or telephone test was performed. No call or paid OpenAI request was made during packaging. The current owner bridge was left running.
+
 ## 2026-10-20 — Automatic human takeover observed; reduce interruption delay
 
 One newly authorized single call recognized greeting/beep and began prepared voicemail. New speech stopped playback; correlated classification and an interactive question then triggered human takeover without an owner-answer button. The saved conversation contains live AI replies and the recipient's audibility confirmation. The AI included the approved contact-Cena closing; the telephone ended and CRM showed no ongoing calls. This establishes one observed automatic takeover, not unattended or multi-contact reliability. Repeated interruptions and imperfect transcription remained visible.

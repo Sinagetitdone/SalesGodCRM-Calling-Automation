@@ -2,6 +2,8 @@
 
 ## Stop state
 
+A shareable local installation package is now available via `npm run package:team`; see `tools/distribution/README.md` and its `SETUP.md`. It contains Windows/Mac launchers, no keys/private records, and requires Node.js 24 installed separately. The package has clean Windows smoke coverage and Mac shell syntax coverage; actual Mac startup/audio is untested. Current checks passed 109 tests plus type checking. The first distribution build is ignored under `releases/`; rebuild it from source for future sharing rather than zipping an installed folder.
+
 The owner subsequently authorized one more call. It automatically switched from voicemail to a human conversation, saved replies and audibility confirmation, and ended with no ongoing CRM call. The owner then requested faster interruption recovery. The latency patch removes extra takeover polling, preserves pending classifier results across repeated speech, and changes VAD silence from 600 to 350 ms. Synthetic checks pass; this patch has not been phone-tested. No additional call is authorized by the fix request. Earlier test descriptions below remain historical evidence. List import, page reload and bridge restart never start calls.
 
 Repository: https://github.com/Sinagetitdone/SalesGodCRM-Calling-Automation

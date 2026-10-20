@@ -3,6 +3,12 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-009",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-CLEAN-DISTRIBUTION.md",
+      "tags": ["security", "testing", "integration"]
+    },
+    {
       "id": "LL-2026-008",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-VOICEMAIL-TAKEOVER.md",
