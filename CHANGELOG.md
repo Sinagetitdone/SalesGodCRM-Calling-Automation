@@ -4,6 +4,12 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-20 — Automatic private Node setup (team package 0.4.1)
+
+- Start/Configure launchers now reuse Node.js 24 with npm or automatically download pinned, checksum-verified official runtime archives for Windows x64/ARM64 and Intel/Apple Silicon Mac. Runtime files stay in the installation's `.runtime` folder; no administrator rights, permanent PATH edits, execution-policy changes or system installer are used.
+- Added corrupted-download rejection and runtime-pin coverage, and verified a real Windows no-Node download/extract/Node/npm path in a long folder with spaces. Mac and Windows ARM64 runtime execution remain untested; no phone call or OpenAI request is part of this setup.
+- Passed 111 automated tests plus type checking, Mac shell syntax checks and the full extracted Windows launcher with system Node hidden. The existing owner bridge was left running; no calls were placed.
+
 ### 2026-10-20 — Shareable team package
 
 - Expanded the included HTML/Markdown guide with daily Windows/Mac launcher and manual startup, numbered CSV/settings/import/live Start steps, pause/stop, logs/export, shutdown and connection-refused recovery. Clarified that draft settings, including simulation mode, are saved at import and require a fresh draft to change.

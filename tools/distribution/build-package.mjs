@@ -18,6 +18,7 @@ export async function packageEntries(sourceRoot = root) {
     ...extensionFiles.map(name => ['tools/audio-extension/' + name, 'tools/audio-extension/' + name]),
     ...launchers.map(name => [name, 'tools/distribution/' + name]),
     ['tools/distribution/launcher.mjs', 'tools/distribution/launcher.mjs'],
+    ...['ensure-node-windows.cmd', 'ensure-node-mac.sh', 'NODE-VERSION.txt', 'NODE-SHASUMS256.txt'].map(name => ['tools/distribution/' + name, 'tools/distribution/' + name]),
     ['package.json', 'tools/distribution/runtime-package.json'],
     ['package-lock.json', 'tools/distribution/runtime-package-lock.json'],
     ['SETUP.html', 'tools/distribution/SETUP.html'],
@@ -26,7 +27,7 @@ export async function packageEntries(sourceRoot = root) {
   const entries = await Promise.all(mapping.map(async ([name, source]) => {
     let data = await readFile(resolve(sourceRoot, source));
     // Windows Git checkouts can use CRLF. A Mac shebang must have LF endings.
-    if (name.endsWith('.command')) data = Buffer.from(data.toString().replace(/\r\n/g, '\n'));
+    if (name.endsWith('.command') || name.endsWith('.sh')) data = Buffer.from(data.toString().replace(/\r\n/g, '\n'));
     if (name.endsWith('.cmd')) data = Buffer.from(data.toString().replace(/\r?\n/g, '\r\n'));
     return { name, data, mode: name.endsWith('.command') ? 0o100755 : 0o100644 };
   }));

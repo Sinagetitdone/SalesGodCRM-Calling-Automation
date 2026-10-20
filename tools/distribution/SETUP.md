@@ -4,9 +4,9 @@ This package contains a Chrome extension and a local audio bridge. You need both
 
 ## First-time setup (about 10 minutes)
 
-1. Install Google Chrome and **Node.js 24**, including npm, from https://nodejs.org/en/download. Use the installer for your computer. Restart Terminal or Command Prompt after installation. A managed computer may require your IT team to install these.
+1. Install **Google Chrome** if you do not already have it. **You do not need to install Node.js separately.** The Windows/Mac launchers reuse an available Node.js 24 with npm, or automatically download the pinned **Node.js v24.21.0** runtime from the official `nodejs.org` release site. They check its SHA-256 checksum before extraction. Windows x64/ARM64 and Intel/Apple Silicon Mac downloads are supported.
 2. Extract the entire ZIP into a permanent folder you can write to, such as `Documents/SalesGod-Team`. Do not run inside the ZIP, move only the launchers, or use a shared/synced folder: your key and call records will be stored here.
-3. Double-click **Configure OpenAI Windows.cmd** on Windows, or **Configure OpenAI Mac.command** on Mac. A text editor opens the local `.env` file. Paste your company-approved API key immediately after `OPENAI_API_KEY=` on the same line. Leave the model line as it is. Save and close the editor. Never send the filled file to someone else. This step does not check or send the key to OpenAI.
+3. Double-click **Configure OpenAI Windows.cmd** on Windows, or **Configure OpenAI Mac.command** on Mac. If Node is needed, wait for its automatic download (roughly 30–55 MB) and verification. It stays inside this folder's private `.runtime` directory; the launcher does not install a system service, change your permanent PATH or require administrator rights. Then a text editor opens the local `.env` file. Paste your company-approved API key immediately after `OPENAI_API_KEY=` on the same line. Leave the model line as it is. Save and close the editor. Never send the filled file to someone else. This step does not check or send the key to OpenAI.
 4. Double-click **Start Windows.cmd** or **Start Mac.command**. The first launch downloads the required libraries from npm; keep this window open. It starts only on this computer at http://127.0.0.1:28431/. Starting it does not dial or send speech to OpenAI. You may use simulation without a key.
 5. In the same Chrome profile where you use SalesGodCRM, open `chrome://extensions`. Turn on **Developer mode**, choose **Load unpacked**, and select `tools/audio-extension` inside the extracted folder (the folder containing `manifest.json`). Follow your organization's extension policy.
 6. Log into your own SalesGodCRM account. Confirm there is no active call, then refresh its dashboard. Look for the **SalesGod audio bridge** panel. Installation and refresh never start a call.
@@ -22,7 +22,7 @@ This package contains a Chrome extension and a local audio bridge. You need both
 1. Open the extracted **SalesGod-Team** folder in File Explorer.
 2. Double-click **Start Windows.cmd**. If the bridge is already running, keep using the existing window rather than starting another copy.
 3. Wait until the window shows **Local audio bridge: http://127.0.0.1:28431**. First launch may take longer while libraries download. Keep this window open throughout your calling session.
-4. If you prefer starting it manually, click File Explorer's address bar while inside **SalesGod-Team**, type `cmd`, and press Enter. In the command window, run `node tools/distribution/launcher.mjs start`. This is the same startup process, including first-time library installation.
+4. If you prefer starting it manually, click File Explorer's address bar while inside **SalesGod-Team**, type `cmd`, and press Enter. In the command window, run `call "Start Windows.cmd"`. This runs the same automatic Node check/download and first-time library installation.
 5. Starting the bridge does not place calls. Continue with **Import a list and begin calling** below.
 
 ## Start the bridge each day — Mac
@@ -30,7 +30,7 @@ This package contains a Chrome extension and a local audio bridge. You need both
 1. Open the extracted **SalesGod-Team** folder in Finder.
 2. Double-click **Start Mac.command**. If the bridge is already running, use the existing Terminal window. If the file cannot execute, follow the Mac troubleshooting instructions below.
 3. Wait until Terminal shows **Local audio bridge: http://127.0.0.1:28431**. First launch downloads libraries. Keep Terminal open throughout your calling session.
-4. To start manually, open Terminal, type `cd ` (including the space), drag the **SalesGod-Team folder** from Finder into Terminal, then press Return. Run `node tools/distribution/launcher.mjs start`.
+4. To start manually, open Terminal, type `cd ` (including the space), drag the **SalesGod-Team folder** from Finder into Terminal, then press Return. Run `bash "Start Mac.command"`. This includes the automatic Node check/download, so it works even when Node is not installed on your Mac.
 5. Starting the bridge does not place calls. Continue with the common instructions below. Mac launchers have syntax-check coverage only; actual Mac startup and phone audio still need verification.
 
 ## Import a list and begin calling — Windows and Mac
@@ -65,8 +65,8 @@ Single-call audio and automatic human takeover have been observed on Windows. Mu
 
 ## Troubleshooting
 
-- **Mac cannot execute a .command file:** open Terminal, type `chmod +x ` (including the space), drag one `.command` file into Terminal, press Return, and repeat for the other. The ZIP marks them executable, but some extractors may discard that attribute. If macOS or your organization blocks the download, ask IT to review it rather than disabling security protections. You can also open Terminal in the extracted folder and run `node tools/distribution/launcher.mjs configure` or `node tools/distribution/launcher.mjs start`.
-- **Node missing or wrong version:** install Node.js 24 with npm, then reopen the launcher. The package deliberately checks the tested major version.
+- **Mac cannot execute a .command file:** open Terminal, type `chmod +x ` (including the space), drag one `.command` file into Terminal, press Return, and repeat for the other. The ZIP marks them executable, but some extractors may discard that attribute. If macOS or your organization blocks the download, ask IT to review it rather than disabling security protections. For ordinary manual startup from Terminal in the extracted folder, use `bash "Configure OpenAI Mac.command"` or `bash "Start Mac.command"`; these include Node setup.
+- **Node download/setup fails:** confirm internet access to `https://nodejs.org`, that the extracted folder is writable, and that no other setup window is running. Retry the launcher after the other setup finishes. A checksum failure stops setup before the archive is extracted or run; ask IT to review the download/cache. The launchers do not weaken certificate checks, change execution policy, modify your permanent PATH or install into system folders. A managed computer may block downloaded software; ask IT rather than bypassing its protections. If automatic downloads are prohibited, IT can install Node.js 24 with npm from https://nodejs.org/en/download; the launchers will reuse it.
 - **Port 28431 already in use/unavailable:** use the existing bridge window if it is already running. Otherwise ask IT. The launcher does not kill processes or change firewall rules.
 - **Install fails:** confirm internet access to npm and that the folder is writable, then reopen Start. Required library versions are locked; installation scripts are disabled.
 - **OpenAI rejects the key:** run Configure OpenAI, save the new key, and restart the idle bridge. An API key needs appropriate project/model access and billing. Never paste a key into chat or the extension.

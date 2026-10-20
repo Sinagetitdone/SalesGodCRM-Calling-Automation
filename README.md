@@ -1,6 +1,6 @@
 # SalesGodCRM Calling Automation
 
-For colleagues: build the clean installation ZIP using `npm run package:team`. It includes Windows/Mac launchers and a [simple setup guide](tools/distribution/SETUP.md). See [package maintenance and validation](tools/distribution/README.md). Node.js 24 is installed separately; Mac runtime compatibility has not yet been tested.
+For colleagues: build the clean installation ZIP using `npm run package:team`. It includes Windows/Mac launchers and a [simple setup guide](tools/distribution/SETUP.md). See [package maintenance and validation](tools/distribution/README.md). Launchers automatically download a checksum-verified private Node.js 24 runtime when needed; Mac runtime compatibility has not yet been tested.
 
 Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a custom Chrome audio bridge, and OpenAI voice. See [resume notes](docs/RESUME-HERE.md) for the exact stopping point and next verification.
 

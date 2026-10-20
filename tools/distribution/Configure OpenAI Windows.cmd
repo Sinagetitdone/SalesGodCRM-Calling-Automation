@@ -1,9 +1,8 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-where node >nul 2>nul
+call "tools\distribution\ensure-node-windows.cmd"
 if errorlevel 1 (
-  echo Install Node.js 24 from https://nodejs.org/en/download and reopen this file.
   pause
   exit /b 1
 )

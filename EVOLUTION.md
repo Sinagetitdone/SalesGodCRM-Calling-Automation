@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-20 — Automatic per-installation Node bootstrap
+
+The owner requested that colleagues not have to download/install Node separately. Team package 0.4.1 now checks for suitable Node.js 24/npm and otherwise downloads official v24.21.0 Windows x64/ARM64 or Mac Intel/Apple Silicon archives. Version and SHA-256 pins are checked into the distribution sources after verification against nodejs.org. Checksums are verified before extraction; cached archives are rechecked. Downloads, extraction and runtime PATH stay local to the installation/launcher process. No execution-policy/certificate/security setting changes, global installs, admin actions or phone calls are introduced.
+
+A Windows child process with system Node hidden successfully downloaded and verified the x64 archive and ran the private Node/npm. Legacy .NET ZIP extraction hit Windows path limits in the nested smoke folder; the bootstrap now uses built-in Windows tar and a bounded cache staging/move instead. Offline coverage rejects a deliberately corrupt cache before extraction. Mac scripts pass syntax checks, but Mac and Windows ARM64 execution are not claimed verified. The setup guide now presents automatic runtime setup and manual launcher commands that also work without an existing Node command.
+
 ## 2026-10-20 — Local team distribution package
 
 The owner requested a package colleagues can use on Windows and Mac. Added an explicit allowlist ZIP builder, production-only dependency manifest/lock, blank key template, per-file/archive checksums, platform launchers and a nontechnical setup guide. Each installation keeps its own key and transcript/event databases locally. The launchers require Node.js 24, install libraries on first launch, preserve local configuration, refuse an occupied loopback port without killing anything, and never dispatch calls. This does not create hosted multi-user authorization, shared records, a Chrome Web Store listing, signed installer or bundled Node runtime.
