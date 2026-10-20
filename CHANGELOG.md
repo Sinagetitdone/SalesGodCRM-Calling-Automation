@@ -4,6 +4,13 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-20 — Use the configured proxy (team package 0.4.3)
+
+- Bridge startup now reads the enabled Windows user HTTP/HTTPS proxy, respects explicit environment proxy settings, and enables Node environment-proxy support. Local signaling always bypasses that proxy. Addresses and credentials are never logged; no Windows network settings are changed. Both npm startup and team launchers use the same entry point.
+- Direct traffic returned a regional 403. Through the existing Hiddify proxy, the models-list endpoint instead rejected a restricted key's missing model-read scope; that result does not establish Realtime access. A deliberately invalid Realtime offer reached request validation with HTTP 400 invalid_offer through the proxy, with no phone call or voice session.
+- Verified a complete no-call browser voice test through the updated bridge: completed AI audio response, 238 received packets and automatic disconnect. No physical microphone or dialer was used. All 120 checks plus type checking passed.
+- Added deterministic coverage for proxy precedence, per-protocol HTTPS settings, localhost bypass and unsupported proxy formats. Mac system-proxy discovery remains unimplemented; explicit environment proxies are supported.
+
 ### 2026-10-20 — Actionable API errors (team package 0.4.2)
 
 - Distinguish confirmed regional denial, generic permission denial, invalid keys, IP allowlist errors, quota/rate limits and model-access failures using fixed safe messages. Session and voicemail preparation failures remain no-call failures; unknown 403s are not labelled regional restrictions.

@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-20 — Preserve the owner's configured proxy for bridge traffic
+
+Network diagnosis found Windows user proxy enabled through Hiddify while the bridge startup used direct Node fetch. The startup wrapper now reads Windows HTTP/HTTPS settings, preserves explicit environment overrides, enables Node's built-in environment proxy support, and bypasses localhost. This reads existing settings only; no system proxy, firewall, VPN or certificate settings are modified. The same wrapper ships in package 0.4.3 and is used by npm and team launchers. Mac uses explicit environment configuration; PAC/SOCKS discovery is not supported.
+
+Direct API requests returned unsupported_country_region_territory. Proxied models-list requests returned missing model-read permissions for a restricted key; that endpoint is not a reliable voice-readiness probe. A proxied Realtime request with deliberately invalid SDP returned invalid_offer (400), establishing arrival at request validation without a call or active voice session. This probe alone did not prove media transport. After the idle bridge restarted using this wrapper, the standalone silent-input browser test passed: SDP accepted, channel opened, response completed, audio peak 0.36579, 238 received audio packets, and automatic disconnect. No physical microphone or phone call was used. All 120 automated checks plus type checking passed. Telephone media and Mac runtime were not retested. No phone calls are authorized by troubleshooting.
+
 ## 2026-10-20 — Preserve safe API failure causes
 
 The owner reported that the extension could not connect even though this chat worked. A no-phone diagnostic and an independent read-only API check returned 403 with unsupported_country_region_territory. The old voice-test report recorded zero packets and session.stopped but omitted the error cause, while UI described 403 generically as model/access trouble. ChatGPT access and API connection eligibility are separate; no extension code change can establish service-side regional eligibility.

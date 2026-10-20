@@ -1,10 +1,10 @@
 {
   "name": "salesgod-local-audio-bridge",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "type": "module",
   "description": "Local SalesGodCRM audio bridge and Chrome extension",
   "engines": { "node": ">=24 <25" },
-  "scripts": { "start": "node --env-file-if-exists=.env tools/audio-bridge/server.mjs" },
+  "scripts": { "start": "node --env-file-if-exists=.env tools/audio-bridge/start.mjs" },
   "dependencies": { "fastify": "5.12.5" }
 }

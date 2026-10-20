@@ -51,7 +51,7 @@ export async function launch(action = 'start') {
   console.log('Keep this window open while using the extension. Stop only when no call is active (Ctrl+C).');
   console.log('Open in Chrome: http://127.0.0.1:28431/');
   console.log('To set your key, use Configure OpenAI. Starting the bridge does not place calls.\n');
-  const server = spawnSync(process.execPath, ['--env-file-if-exists=.env', 'tools/audio-bridge/server.mjs'], { stdio: 'inherit' });
+  const server = spawnSync(process.execPath, ['--env-file-if-exists=.env', 'tools/audio-bridge/start.mjs'], { stdio: 'inherit' });
   if (server.error) throw new Error('The bridge could not start. Check the setup guide.');
   if (server.status && server.status !== 130) process.exitCode = server.status;
 }
