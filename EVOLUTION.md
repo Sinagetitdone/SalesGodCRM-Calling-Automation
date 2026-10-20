@@ -1,5 +1,10 @@
 # Evolution
 
+## 2026-10-20 — Successful v0.4.6 supervised voicemail playback
+
+One newly authorized single-contact phone test recognized the recorded greeting, detected an acoustic beep, played all 8.15 seconds of the prepared voicemail, waited for late pickup and ended the owned call. The list reported voicemail playback completed and finished; CRM returned to idle. The owner confirmed voicemail pickup but has not verified stored mailbox contents. The silent fallback was not exercised in this call. No implementation change or further dialing was needed for this verification.
+
+
 ## 2026-10-20 — Guard mailbox-unavailable classifications
 
 The owner authorized one live retry after 0.4.5. It recognized voicemail, then classified a following utterance as unavailable and ended before any playback event. The owner reported a normal recording invitation. The exact ASR text is not retained, so do not claim a known transcript-level cause. Require explicit same-utterance mailbox failure evidence for unavailable; an unsupported label with invitation evidence continues as voicemail, otherwise remains unknown. Updated classifier instructions and deterministic regression cover the reported invitation. No further call is authorized by this repair. Package 0.4.6 contains the fix.

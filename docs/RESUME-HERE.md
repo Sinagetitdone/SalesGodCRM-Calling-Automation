@@ -2,6 +2,9 @@
 
 ## Stop state
 
+The owner then authorized one v0.4.6 retest. That single-contact run recognized voicemail, detected the actual beep, played the full 8.15-second prepared message, logged playback_completed, waited eight seconds for late pickup, stopped AI, ended the owned phone call, and finished the list. The owner confirmed it went to voicemail; mailbox storage/full recipient-side audibility has not been independently confirmed. This was the acoustic-beep path, not the silence fallback. No further call is authorized by that completed test. The finished list remains available in the local controls.
+
+
 Latest authorized call: one retry to the owner-specified test number ended before voicemail playback. Events show voicemail classification then unavailable classification; the owner heard “Please leave your message at the tone.” No playback-start event exists. Package 0.4.6 now requires explicit same-utterance mailbox failure evidence before accepting unavailable; normal recording invitations continue as voicemail. Audio checks pass 72 tests, including forced misclassification of the owner-reported greeting. The fix has not been redial-tested. The one-call authorization was consumed; do not redial without a new user request. Reopen idle controls from CRM to load updated browser scripts.
 
 
