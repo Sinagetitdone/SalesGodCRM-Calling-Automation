@@ -6,6 +6,7 @@ All notable project changes will be documented here.
 
 ### 2026-10-20 — Shareable team package
 
+- Expanded the included HTML/Markdown guide with daily Windows/Mac launcher and manual startup, numbered CSV/settings/import/live Start steps, pause/stop, logs/export, shutdown and connection-refused recovery. Clarified that draft settings, including simulation mode, are saved at import and require a fresh draft to change.
 - Added a reproducible allowlisted ZIP with Windows/Mac start and key-configuration launchers, blank environment template, production dependency lock, checksums, and HTML/Markdown setup guide.
 - Launchers check Node.js 24 and loopback port, install required libraries on first launch, preserve existing local keys, and keep calling explicitly started. No owner's keys, logs, databases, screenshots or installed libraries are included.
 - Passed 109 automated tests plus type checking, clean Windows package extraction/dependency installation, no-key route smoke checks, occupied-port handling and Mac shell syntax checks. Actual macOS startup/audio remain unverified. No calls or OpenAI requests were made for packaging.
