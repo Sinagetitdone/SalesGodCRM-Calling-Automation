@@ -4,6 +4,8 @@ Initial implementation used synthetic contacts only. On 2026-10-20 an explicitly
 
 ### Human pickup during voicemail
 
+The latest diagnostic call completed the voicemail path, including transcription/classification logging and the eight-second quiet window. The owner confirmed nobody picked up. It therefore provides no real human-answer verification; zero live AI replies on that run is consistent with remaining in voicemail mode.
+
 A follow-up authorized call remained in silent screening, recorded four incoming speech segments and zero AI turns, and paused for review after the phone ended. The owner reported "hello, can you hear me". No voicemail playback/human transition was demonstrated. Additional metadata now distinguishes transcript receipt from classifier requests/results/timeouts without logging unconfirmed speech text. A narrow, non-mailbox interactive question can request the human path without model-classifier latency; bare hello cannot. Classification also accepts correlated final response.done output, and confirmed human evidence persists across repeated speech. Synthetic tests pass; real verification is still pending.
 
 Automatic mode retains response-disabled VAD and transcription during message playback and an eight-second quiet window afterward. New speech immediately stops prepared audio and cancels voicemail hangup; confirmed human speech starts the existing gated live conversation on the same connection. Recognition continues even after a greeting was marked voicemail. Delayed pre-message greeting events and obsolete classifier results cannot trigger a false takeover. The initial human utterance is saved when human classification is confirmed.

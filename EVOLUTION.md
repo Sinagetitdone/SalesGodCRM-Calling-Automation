@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-10-20 — Diagnostic voicemail-only test
+
+One further explicitly authorized call loaded the new detection logs. Incoming speech was transcribed, a classification returned voicemail, the greeting and beep were recognized, the approved message played, and the call ended after the eight-second quiet window. There were zero live AI response turns and no speech starting during message playback or the final listening window. The owner confirmed nobody picked up, so this exercised voicemail only and does not validate human-answer behavior. No retry was made; logs remain local and no call was left active.
+
 ## 2026-10-20 — Human answer remained silent in the takeover test
 
 A separately authorized single-call test loaded the takeover fix, but never entered voicemail playback or human conversation. The journal recorded four incoming speech segments and zero AI turns before the provider call ended. The owner reported the person said hello and asked whether they could be heard. The list correctly paused as needs_review; the requested voicemail-to-human transition was not validated. Existing metadata cannot establish whether ASR latency, classification, or result handling caused that silent screening period. No retry was made.
