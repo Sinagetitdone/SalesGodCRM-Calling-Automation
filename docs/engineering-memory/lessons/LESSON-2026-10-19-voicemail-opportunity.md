@@ -21,3 +21,8 @@ Pure signal tests cover mailbox frequencies, silence, ring tones, broadband inpu
 ## 2026-10-20 — Recognized greeting without a detected beep
 
 Metadata from the latest attempt established voicemail classification followed by the 60-second timeout, with no beep or playback events. Do not claim the acoustic cause is known without a recording. Give ringing and late greetings bounded time; support short legitimate tones; recover a missing beep only after model-confirmed voicemail and fresh continuous silence. New speech must reset fallback approval, pending/unknown human classification must block it, and full mailbox announcements must remain terminal. Log the silence fallback separately from acoustic beep detection. Tests must cover delayed ringing, missing/short beeps, playback drain and ambiguous/human interruption. Successful audio playback does not independently establish mailbox storage.
+
+
+## Guard semantic mailbox-unavailable decisions
+
+A person being unavailable is different from a mailbox unable to record. A real retry ended on an unavailable classifier label while the owner heard a normal recording invitation. Require explicit same-utterance full/recording-failure evidence before accepting that terminal label. If the same utterance invites recording without failure evidence, continue voicemail; otherwise keep uncertainty rather than immediate hangup. Do not persist raw greeting text for debugging. Test a forced incorrect classifier label against the owner-reported phrase.

@@ -4,6 +4,13 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-20 — Preserve normal voicemail invitations (team package 0.4.6)
+
+- One authorized real test reached a voicemail greeting, then an unavailable classifier result ended the call before playback. The owner heard “Please leave your message at the tone.” No message playback was logged. This attempt did not verify the missed-beep recovery.
+- Unavailable classifier results now require explicit mailbox failure evidence from the same utterance before pausing/hanging up. A recognized recording invitation without failure evidence continues as voicemail; other unsupported unavailable labels become unknown. The classifier prompt distinguishes a person being unavailable from a mailbox unable to record. No raw greeting text is added to persistent logs.
+- A deterministic regression uses the owner-reported greeting and a forced incorrect unavailable label, confirming playback proceeds. Audio checks pass 72 tests. No second call was placed.
+
+
 ### 2026-10-20 — Recover missed voicemail beeps (team package 0.4.5)
 
 - The latest real attempt recognized voicemail but hit the fixed 60-second screening timeout without a beep event or playback. Detection now allows 120 seconds for ringing and a bounded extension of at least 45 seconds after a late recognized greeting. Short 60–100 ms mailbox tones are accepted while clicks/long tones remain rejected.

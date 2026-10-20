@@ -1,6 +1,8 @@
 /* Local signal processing and bounded voicemail decisions. No audio/transcript retention. */
 (() => {
   'use strict';
+  const mailboxUnavailable = text => /\b(mailbox (?:is )?full|cannot accept|not accepting|unable to (?:record|accept)|cannot be recorded)\b/i.test(String(text).slice(0, 4000));
+  const greetingInvitation = text => /\b(leave (?:me |us |your |a )?(?:voice ?)?message|after (?:the )?(?:tone|beep)|at (?:the )?(?:tone|beep)|reached (?:the )?voice ?mail|voice ?mail (?:box|service)|not available.*(?:message|tone|beep))\b/i.test(String(text).slice(0, 4000));
   function tone(samples, sampleRate) {
     let energy = 0; for (const value of samples) energy += value * value;
     if (Math.sqrt(energy / samples.length) < 0.012) return false;
@@ -30,11 +32,11 @@
     resetConfirmation() { this.confirmed = false; this.quietSince = undefined; }
     transcript(text) {
       if (!this.active || typeof text !== 'string') return;
-      if (/\b(mailbox (?:is )?full|cannot accept|not accepting|unable to (?:record|accept)|cannot be recorded)\b/i.test(text.slice(0, 4000))) {
+      if (mailboxUnavailable(text)) {
         this.active = false; this.onUnavailable(); return;
       }
       // Restricted English greeting cues. Unknown speech is never guessed to be voicemail.
-      if (/\b(leave (?:me |us |your |a )?(?:voice ?)?message|after (?:the )?(?:tone|beep)|at (?:the )?(?:tone|beep)|reached (?:the )?voice ?mail|voice ?mail (?:box|service)|not available.*(?:message|tone|beep))\b/i.test(text.slice(0, 4000))) {
+      if (greetingInvitation(text)) {
         if (this.greeting === undefined) { this.greeting = this.now(); this.onGreeting(); }
         this.check();
       }
@@ -67,5 +69,5 @@
     }
     stop() { this.active = false; }
   }
-  window.SalesGodVoicemail = { Detector, tone };
+  window.SalesGodVoicemail = { Detector, tone, mailboxUnavailable, greetingInvitation };
 })();

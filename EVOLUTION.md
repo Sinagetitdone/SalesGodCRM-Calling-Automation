@@ -1,5 +1,10 @@
 # Evolution
 
+## 2026-10-20 — Guard mailbox-unavailable classifications
+
+The owner authorized one live retry after 0.4.5. It recognized voicemail, then classified a following utterance as unavailable and ended before any playback event. The owner reported a normal recording invitation. The exact ASR text is not retained, so do not claim a known transcript-level cause. Require explicit same-utterance mailbox failure evidence for unavailable; an unsupported label with invitation evidence continues as voicemail, otherwise remains unknown. Updated classifier instructions and deterministic regression cover the reported invitation. No further call is authorized by this repair. Package 0.4.6 contains the fix.
+
+
 ## 2026-10-20 — Voicemail recovery after a missed beep
 
 The latest local attempt spent about 65 seconds from dispatch to review: media began, a recorded greeting was classified as voicemail, then the fixed screening timer fired with no beep/playback event. The exact acoustic reason the tone was missed is not available in metadata. Replace the one-minute detector deadline with bounded ringing/greeting windows and permit a model-confirmed voicemail plus fresh 2.5-second silence to recover a missed tone. Silence alone never authorizes playback; new speech invalidates the fallback approval and a separate event identifies this trigger. Keep playback/drain and human-takeover behavior unchanged. Seven new synthetic regressions and all existing checks pass (127 plus type checking). No phone call was placed; package 0.4.5 ships the fix.

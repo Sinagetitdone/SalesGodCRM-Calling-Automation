@@ -2,6 +2,9 @@
 
 ## Stop state
 
+Latest authorized call: one retry to the owner-specified test number ended before voicemail playback. Events show voicemail classification then unavailable classification; the owner heard “Please leave your message at the tone.” No playback-start event exists. Package 0.4.6 now requires explicit same-utterance mailbox failure evidence before accepting unavailable; normal recording invitations continue as voicemail. Audio checks pass 72 tests, including forced misclassification of the owner-reported greeting. The fix has not been redial-tested. The one-call authorization was consumed; do not redial without a new user request. Reopen idle controls from CRM to load updated browser scripts.
+
+
 Latest fix: package 0.4.5 addresses the last real attempt's recognized-voicemail/no-beep timeout. Detector permits 120 seconds ringing and at least 45 seconds after a late greeting; confirmed voicemail plus 2.5 seconds fresh quiet can recover a missed beep. New speech resets fallback confirmation, and full mailboxes/pending human decisions block it. Logs distinguish voicemail.silence_fallback from voicemail.beep_detected. All 127 checks plus type checking passed; no new call or mailbox delivery has been verified. Close old idle calling-list controls and reopen from CRM after restarting the idle bridge to load the change; no extension reload is needed for this client/server-only patch.
 
 

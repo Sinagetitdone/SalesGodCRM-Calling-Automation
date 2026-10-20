@@ -188,14 +188,14 @@ async function beep(env) {
   env.setTime(100); env.detectors[0].samples(values, 48000); env.setTime(400); env.detectors[0].samples(values, 48000);
   env.setTime(550); env.detectors[0].samples(new Float32Array(2048), 48000); await tick(); await tick();
 }
-async function automaticMailbox() {
+async function automaticMailbox(greeting = 'Please leave a message after the beep.') {
   const env = environment({ voicemail: true }), turns = [];
   env.api.configure({ automatic: true, saveTurn: async turn => turns.push(turn) });
   await env.start(); await env.media(); const dc = env.peers[0].channel;
   dc.message(listenAck); await tick();
   dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'recorded-greeting' });
   dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'recorded-greeting' });
-  dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'recorded-greeting', transcript: 'Please leave a message after the beep.' }); await tick();
+  dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'recorded-greeting', transcript: greeting }); await tick();
   return Object.assign(env, { dc, turns, async play() {
     await beep(env); await env.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); await tick();
     return env.contexts[0].sources[0];
@@ -224,6 +224,20 @@ test('confirmed voicemail with a missed beep plays once after silence and record
     source.onended(); await env.fireTimers(1000);
     assert.equal(env.api.status().voicemailOutcome, 'playback_completed');
     assert.equal(env.api.status().phase, 'voicemail-complete');
+  } finally { await env.cleanup(); }
+});
+
+test('an unavailable classifier label cannot hang up a normal leave-message invitation', async () => {
+  const env = await automaticMailbox('Please leave your message at the tone.');
+  try {
+    env.classify('unavailable'); await tick();
+    assert.equal(env.api.status().phase, 'voicemail-waiting');
+    assert.notEqual(env.api.status().voicemailOutcome, 'mailbox_unavailable');
+    env.setTime(100); env.detectors[0].samples(new Float32Array(2048), 48000);
+    env.setTime(2800); env.detectors[0].samples(new Float32Array(2048), 48000); await tick(); await tick();
+    await env.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); await tick();
+    assert.equal(env.contexts[0].sources[0].started, true);
+    assert.equal(env.api.status().voicemailOutcome, 'playing');
   } finally { await env.cleanup(); }
 });
 
