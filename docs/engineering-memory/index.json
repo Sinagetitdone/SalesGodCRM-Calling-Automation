@@ -3,6 +3,12 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-010",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-API-ERROR-DIAGNOSTICS.md",
+      "tags": ["security", "testing", "integration", "audio"]
+    },
+    {
       "id": "LL-2026-009",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-CLEAN-DISTRIBUTION.md",

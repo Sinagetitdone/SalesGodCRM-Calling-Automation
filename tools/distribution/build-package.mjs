@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { deflateRawSync } from 'node:zlib';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const bridgeFiles = ['server.mjs', 'session-journal.mjs', 'campaign-store.mjs', 'campaign-routes.mjs'];
+const bridgeFiles = ['server.mjs', 'openai-errors.mjs', 'session-journal.mjs', 'campaign-store.mjs', 'campaign-routes.mjs'];
 const publicFiles = ['setup.html', 'style.css', 'panel.css', 'voice.html', 'voice.js', 'call.html', 'call.js', 'voicemail.js', 'simulator.html', 'simulator.js', 'campaign.js', 'campaign-worker.js', 'campaign-form.html'];
 const extensionFiles = ['manifest.json', 'local-rtc.js', 'window-rtc.js', 'audio-hook.js', 'campaign-driver.js', 'panel.js', 'tests/lab.html', 'tests/lab.js'];
 const launchers = ['Start Windows.cmd', 'Configure OpenAI Windows.cmd', 'Start Mac.command', 'Configure OpenAI Mac.command'];

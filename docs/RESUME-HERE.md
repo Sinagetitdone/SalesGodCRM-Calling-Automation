@@ -2,6 +2,8 @@
 
 ## Stop state
 
+Latest diagnostic update: local code now maps safe API error categories and exports failure stage/status in voice reports (package 0.4.2; 117 checks plus type checking passed). This chat working does not prove API eligibility. The last independently verified API result was 403 unsupported_country_region_territory; do not describe an error-message/report fix as restoring OpenAI connectivity. No telephone call is authorized by a request to fix connection diagnostics.
+
 A shareable local installation package is now available via `npm run package:team`; see `tools/distribution/README.md` and its `SETUP.md`. Version 0.4.1 contains Windows/Mac launchers, no keys/private records, and automatically downloads a pinned/checksum-verified private Node.js 24 runtime when needed. The package has clean Windows smoke coverage and Mac shell syntax coverage; actual Mac startup/audio is untested. Builds are ignored under `releases/`; rebuild from source for future sharing rather than zipping an installed folder (including its new `.runtime` cache).
 
 The owner subsequently authorized one more call. It automatically switched from voicemail to a human conversation, saved replies and audibility confirmation, and ended with no ongoing CRM call. The owner then requested faster interruption recovery. The latency patch removes extra takeover polling, preserves pending classifier results across repeated speech, and changes VAD silence from 600 to 350 ms. Synthetic checks pass; this patch has not been phone-tested. No additional call is authorized by the fix request. Earlier test descriptions below remain historical evidence. List import, page reload and bridge restart never start calls.

@@ -9,6 +9,13 @@
   let port, run, configured = false, helloTimer, pairTimer, callConfig = {};
   let report = { mode: 'supervised-call', phase: 'preparing', dialingEnabled: false, physicalMicrophoneUsed: false, events: [] };
   const answerPhases = ['screening', 'voicemail-waiting', 'voicemail-playing', 'voicemail-complete'];
+  const failureCodes = ['unsupported_country_region_territory', 'ip_not_authorized', 'invalid_api_key', 'insufficient_quota', 'rate_limit_exceeded', 'model_not_found', 'access_denied', 'upstream_error'];
+  function connectionFailure(result, response, stage) {
+    report.failure = { stage, httpStatus: response.status,
+      ...(Number.isInteger(result.upstreamStatus) && result.upstreamStatus >= 100 && result.upstreamStatus <= 599 ? { upstreamStatus: result.upstreamStatus } : {}),
+      errorCode: failureCodes.includes(result.errorCode) ? result.errorCode : 'connection_failed' };
+    return new Error(result.error || (stage === 'voicemail_preparation' ? 'Voicemail voice preparation failed. Do not start a call.' : 'OpenAI setup failed.'));
+  }
   const controls = () => {
     $('prepare').disabled = !configured || !port || Boolean(run);
     $('answer').disabled = !run || !run.openaiReady || run.media.state !== 'ready' || !['ready', 'paused', ...answerPhases].includes(report.phase);
@@ -274,7 +281,7 @@
         if (!voicemailMessage || voicemailMessage.length < 10 || voicemailMessage.length > 1000) throw new Error('Enter a voicemail message between 10 and 1000 characters.');
         $('voicemailState').textContent = 'Preparing your voicemail voice before dialing…';
         const speech = await fetch('/voicemail-speech', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: voicemailMessage }), signal: current.abort.signal });
-        if (!speech.ok) throw new Error('Voicemail voice preparation failed. Do not start a call.');
+        if (!speech.ok) { const result = await speech.json().catch(() => ({})); throw connectionFailure(result, speech, 'voicemail_preparation'); }
         const buffer = await context.decodeAudioData(await speech.arrayBuffer());
         if (current.stopping) return;
         if (!Number.isFinite(buffer.duration) || buffer.duration < 0.5 || buffer.duration > 60) throw new Error('Voicemail audio must be between half a second and 60 seconds.');
@@ -419,7 +426,7 @@
       });
       await pc.setLocalDescription(await pc.createOffer()); if (current.stopping) return;
       const response = await fetch('/session', { method: 'POST', headers: { 'Content-Type': 'application/sdp', 'X-Audio-Mode': current.config.automatic ? 'campaign-call' : 'supervised-call', ...(current.config.automatic ? { 'X-Campaign-Id': current.config.campaignId, 'X-Contact-Id': current.config.contactId, 'X-Worker-Id': current.config.workerId } : {}) }, body: pc.localDescription.sdp, signal: current.abort.signal });
-      if (!response.ok) { const result = await response.json(); throw new Error(result.error || 'OpenAI setup failed.'); }
+      if (!response.ok) { const result = await response.json(); throw connectionFailure(result, response, 'openai_session'); }
       if (!current.stopping) await pc.setRemoteDescription({ type: 'answer', sdp: await response.text() });
     } catch (error) {
       if (!current.stopping) { $('error').textContent = error.message; void log('session.error'); await finish('failed'); }

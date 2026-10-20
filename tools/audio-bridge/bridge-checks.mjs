@@ -51,6 +51,46 @@ test('upstream errors do not expose upstream bodies or credentials', async () =>
   await app.close();
 });
 
+test('recognized regional denial is actionable in session and voicemail setup without leaking upstream details', async () => {
+  let requests = 0;
+  const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-private-key' }, fetchImpl: async () => {
+    requests++; return Response.json({ error: { code: 'unsupported_country_region_territory', message: 'synthetic-private-key private upstream request details' } }, { status: 403 });
+  } });
+  try {
+    for (const request of [
+      { url: '/session', headers, payload: 'v=0\r\n' },
+      { url: '/voicemail-speech', headers: { ...headers, 'content-type': 'application/json' }, payload: { message: 'This is a synthetic voice test message.' } }
+    ]) {
+      const response = await app.inject({ method: 'POST', ...request });
+      assert.equal(response.statusCode, 502); assert.equal(response.json().upstreamStatus, 403);
+      assert.equal(response.json().errorCode, 'unsupported_country_region_territory');
+      assert.match(response.json().error, /detected country or region/); assert.match(response.json().error, /ChatGPT/);
+      assert.doesNotMatch(response.body, /synthetic-private-key|private upstream request/);
+    }
+    assert.equal(requests, 2); // One attempt per request, no blind retry.
+  } finally { await app.close(); }
+});
+
+test('unknown access denial does not claim a regional cause and rejects arbitrary error text/code', async () => {
+  const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-private-key' }, fetchImpl: async () => Response.json({ error: { code: 'synthetic-private-key', message: 'private upstream details' } }, { status: 403 }) });
+  try {
+    const response = await app.inject({ method: 'POST', url: '/session', headers, payload: 'v=0\r\n' });
+    assert.equal(response.json().errorCode, 'access_denied'); assert.doesNotMatch(response.body, /synthetic-private-key|private upstream details|blocked for this connection/);
+  } finally { await app.close(); }
+});
+
+test('API quota, rate, key, IP and model failures remain distinguishable without forwarding provider messages', async () => {
+  let failure;
+  const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-private-key' }, fetchImpl: async () => Response.json({ error: { code: failure[1], message: 'synthetic-private-details' } }, { status: failure[0] }) });
+  try {
+    for (failure of [[401, 'invalid_api_key', 'invalid_api_key'], [401, 'ip_not_authorized', 'ip_not_authorized'], [429, 'insufficient_quota', 'insufficient_quota'], [429, 'credit_balance_exhausted', 'insufficient_quota'], [429, 'rate_limit_exceeded', 'rate_limit_exceeded'], [404, 'model_not_found', 'model_not_found'], [500, 'unrecognized', 'upstream_error']]) {
+      const response = await app.inject({ method: 'POST', url: '/session', headers, payload: 'v=0\r\n' });
+      assert.equal(response.json().errorCode, failure[2]); assert.equal(response.json().upstreamStatus, failure[0]);
+      assert.doesNotMatch(response.body, /synthetic-private/);
+    }
+  } finally { await app.close(); }
+});
+
 test('voice setup and signaling assets are served locally with no key embedded', async () => {
   const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-secret-must-not-be-sent' } });
   try {

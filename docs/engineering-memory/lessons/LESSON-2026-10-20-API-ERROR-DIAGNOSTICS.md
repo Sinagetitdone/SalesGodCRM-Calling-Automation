@@ -1,0 +1,5 @@
+# LL-2026-010: Preserve failure categories without leaking upstream details
+
+A voice test with zero RTP packets can fail before SDP acceptance, not just because of audio devices or WebRTC transport. A report containing only connection/stopped events cannot distinguish a missing key, API restriction, quota, model denial or local network failure. Product access to a chat interface does not establish API eligibility.
+
+Read upstream error codes on the server, map only known categories to fixed public explanations, and discard arbitrary messages/codes. Retain failure stage, numeric local/upstream status, allowlisted category, fixed stop reason and end timestamp in exported diagnostics. A generic 403 must not be asserted to mean regional restriction without the matching upstream code. Apply these diagnostics before call dispatch, including voicemail synthesis, and test that failure neither opens live media nor redials. An actionable error is not a successful connection; keep provider-side restrictions explicit in handoff notes.

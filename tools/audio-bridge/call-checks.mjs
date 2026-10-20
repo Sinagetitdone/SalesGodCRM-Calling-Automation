@@ -13,7 +13,7 @@ const origin = 'http://127.0.0.1:28431';
 const sessionId = '11111111-1111-4111-8111-111111111111';
 const headers = { host: '127.0.0.1:28431', origin, 'content-type': 'application/json' };
 
-function environment({ failJournal = false, voicemail = false, failSpeech = false } = {}) {
+function environment({ failJournal = false, voicemail = false, failSpeech = false, speechError = { error: 'Voicemail voice preparation failed. Do not start a call.' } } = {}) {
   const elements = new Map();
   for (const id of ['configuration', 'pairing', 'state', 'media', 'error', 'prepare', 'answer', 'pause', 'stop', 'save', 'savedLog', 'evidence', 'journal', 'voicemailEnabled', 'voicemailMessage', 'voicemailState', 'ownerInstruction', 'sendInstruction', 'instructionStatus']) elements.set(id, { disabled: true, textContent: '' });
   elements.get('voicemailEnabled').checked = voicemail; elements.get('voicemailMessage').value = 'Hi, this is a synthetic voicemail test message.';
@@ -47,7 +47,7 @@ function environment({ failJournal = false, voicemail = false, failSpeech = fals
       requests.push({ url, options });
       if (url === '/status') return { json: async () => ({ keyConfigured: true, model: 'synthetic' }) };
       if (url === '/session') return { ok: true, text: async () => 'v=0\r\nanswer' };
-      if (url === '/voicemail-speech') return { ok: !failSpeech, arrayBuffer: async () => new ArrayBuffer(1) };
+      if (url === '/voicemail-speech') return { ok: !failSpeech, status: failSpeech ? 502 : 200, json: async () => speechError, arrayBuffer: async () => new ArrayBuffer(1) };
       return { ok: !failJournal, json: async () => ({ saved: !failJournal }) };
     },
   };
@@ -68,6 +68,17 @@ function environment({ failJournal = false, voicemail = false, failSpeech = fals
 }
 const awaitVoicemailSource = await readFile(new URL('public/voicemail.js', import.meta.url), 'utf8');
 const vadAck = { type: 'session.updated', session: { audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true } } } } };
+test('regional denial during voicemail preparation is retained and prevents any live media preparation', async () => {
+  const env = environment({ voicemail: true, failSpeech: true, speechError: { error: 'API access blocked for detected country or region.', errorCode: 'unsupported_country_region_territory', upstreamStatus: 403 } });
+  try {
+    env.api.configure({ automatic: true }); await env.start();
+    const report = env.api.status();
+    assert.equal(report.phase, 'failed'); assert.equal(report.failure.stage, 'voicemail_preparation');
+    assert.equal(report.failure.errorCode, 'unsupported_country_region_territory'); assert.equal(report.failure.upstreamStatus, 403);
+    assert.equal(env.requests.some(r => r.url === '/session'), false); assert.equal(env.links.length, 0);
+    assert.match(env.elements.get('error').textContent, /blocked for detected country/);
+  } finally { await env.cleanup(); }
+});
 test('owner instructions require a live human conversation, wait for matching acknowledgement and retain no instruction text', async () => {
   const env = environment();
   try {

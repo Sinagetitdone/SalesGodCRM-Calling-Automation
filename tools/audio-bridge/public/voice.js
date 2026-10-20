@@ -9,6 +9,7 @@
   const pairRequested = Boolean(token && /^[a-f0-9-]{36}$/.test(token) && allowedOrigins.includes(openerOrigin) && window.opener);
   let active, pairPort, helloTimer, pairTimer, configured = false;
   let report = { dialingEnabled: false, physicalMicrophoneUsed: false, events: [] };
+  const failureCodes = ['unsupported_country_region_territory', 'ip_not_authorized', 'invalid_api_key', 'insufficient_quota', 'rate_limit_exceeded', 'model_not_found', 'access_denied', 'upstream_error'];
   function event(type) { report.events.push({ time: new Date().toISOString(), type }); if (report.events.length > 60) report.events.shift(); render(); }
   function render() { $('evidence').textContent = JSON.stringify(report, null, 2); }
   function controls() {
@@ -43,6 +44,7 @@
     run.customer.stream.getTracks().forEach(track => track.stop()); run.ai.stream.getTracks().forEach(track => track.stop());
     await run.context.close().catch(() => {});
     if (active === run) active = undefined;
+    report.stopReason = reason; report.endedAt = new Date().toISOString();
     $('state').textContent = reason; event('session.stopped'); controls();
     if (pairRequested) $('pairing').textContent = 'Pairing ended. Reopen voice setup from the extension to run another paired test.';
   }
@@ -146,13 +148,16 @@
       const response = await fetch('/session', { method: 'POST', headers: { 'Content-Type': 'application/sdp', 'X-Audio-Test': '1' }, body: pc.localDescription.sdp, signal: run.controller.signal });
       if (!response.ok) {
         const error = await response.json();
+        report.failure = { stage: 'openai_session', httpStatus: response.status,
+          ...(Number.isInteger(error.upstreamStatus) && error.upstreamStatus >= 100 && error.upstreamStatus <= 599 ? { upstreamStatus: error.upstreamStatus } : {}),
+          errorCode: failureCodes.includes(error.errorCode) ? error.errorCode : 'connection_failed' };
         throw new Error(error.error || 'OpenAI connection failed.');
       }
       if (run.stopping) return;
       await pc.setRemoteDescription({ type: 'answer', sdp: await response.text() });
       event('openai.sdp.accepted');
     } catch (error) {
-      if (!run.stopping) { $('error').textContent = error.message; report.failed = true; await stop('Connection failed'); }
+      if (!run.stopping) { $('error').textContent = error.message; report.failed = true; report.failure ??= { stage: 'audio_connection', errorCode: 'connection_failed' }; await stop('Connection failed'); }
     }
   }
   window.addEventListener('message', event => {

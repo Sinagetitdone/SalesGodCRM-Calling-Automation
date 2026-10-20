@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('public/voice.js', import.meta.url), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
-function environment({ sessionStatus = 200, stall = false } = {}) {
+function environment({ sessionStatus = 200, stall = false, sessionError = { error: 'OpenAI rejected the API key.' } } = {}) {
   const elements = new Map();
   for (const id of ['configuration', 'pairing', 'state', 'error', 'synthetic', 'routing', 'paired', 'stop', 'save', 'evidence']) elements.set(id, { textContent: '', disabled: false, hidden: false });
   const tracks = [], peers = [], contexts = [], requests = [], nodes = [];
@@ -50,7 +50,7 @@ function environment({ sessionStatus = 200, stall = false } = {}) {
       requests.push({ url, options });
       if (url === '/status') return { json: async () => ({ keyConfigured: true, model: 'synthetic-model' }) };
       if (stall) return new Promise((_, reject) => options.signal.addEventListener('abort', () => reject(new Error('Aborted'))));
-      return { ok: sessionStatus === 200, text: async () => 'v=0\r\nsynthetic-answer', json: async () => ({ error: 'OpenAI rejected the API key.' }) };
+      return { ok: sessionStatus === 200, status: sessionStatus, text: async () => 'v=0\r\nsynthetic-answer', json: async () => sessionError };
     },
   };
   vm.runInNewContext(source, sandbox);
@@ -64,6 +64,29 @@ test('an authentication failure is visible and closes all generated media resour
     assert.equal(env.contexts[0].closed, true); assert.ok(env.tracks.every(track => track.stopped));
     assert.equal(env.elements.get('stop').disabled, true);
     assert.equal(env.requests[1].url, '/session'); assert.equal(env.requests[1].options.headers.Authorization, undefined);
+  } finally { env.cleanup(); }
+});
+
+test('exported voice report retains safe upstream status/category and a stop reason', async () => {
+  const env = environment({ sessionStatus: 502, sessionError: { error: 'API access blocked for detected region.', errorCode: 'unsupported_country_region_territory', upstreamStatus: 403 } });
+  try {
+    await tick(); env.elements.get('synthetic').onclick(); await tick(); await tick();
+    const report = JSON.parse(env.elements.get('evidence').textContent);
+    assert.equal(report.failure.upstreamStatus, 403); assert.equal(report.failure.httpStatus, 502);
+    assert.equal(report.failure.errorCode, 'unsupported_country_region_territory'); assert.equal(report.failure.stage, 'openai_session');
+    assert.equal(report.stopReason, 'Connection failed'); assert.ok(report.endedAt); assert.equal(report.failed, true);
+    assert.equal(env.peers[0].connectionState, 'closed'); assert.ok(env.tracks.every(t => t.stopped));
+    assert.equal(env.requests.filter(r => r.url === '/session').length, 1);
+  } finally { env.cleanup(); }
+});
+
+test('voice report never copies unknown server codes or arbitrary messages into failure metadata', async () => {
+  const env = environment({ sessionStatus: 502, sessionError: { error: 'synthetic-private-details', errorCode: 'synthetic-private-key', upstreamStatus: 'synthetic-private-data' } });
+  try {
+    await tick(); env.elements.get('synthetic').onclick(); await tick(); await tick();
+    const report = JSON.parse(env.elements.get('evidence').textContent);
+    assert.equal(report.failure.errorCode, 'connection_failed'); assert.equal(report.failure.upstreamStatus, undefined);
+    assert.doesNotMatch(JSON.stringify(report), /synthetic-private/);
   } finally { env.cleanup(); }
 });
 test('a successful response requires actual received audio and drained playback before passing', async () => {

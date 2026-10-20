@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-20 — Preserve safe API failure causes
+
+The owner reported that the extension could not connect even though this chat worked. A no-phone diagnostic and an independent read-only API check returned 403 with unsupported_country_region_territory. The old voice-test report recorded zero packets and session.stopped but omitted the error cause, while UI described 403 generically as model/access trouble. ChatGPT access and API connection eligibility are separate; no extension code change can establish service-side regional eligibility.
+
+Added safe server mappings for known error codes without forwarding upstream messages or arbitrary codes. The same mapping covers Realtime setup and voicemail synthesis so voice preparation fails before dispatch with a useful explanation. Test/live reports retain an allowlisted category, stage and numeric HTTP/upstream status; voice exports also retain fixed stop reason and end timestamp. Unknown 403 errors keep a generic access-denied explanation rather than claiming unsupported region. Six new regressions cover regional errors in both endpoints, unknown-code secrecy, other known categories, report export and failure-before-media behavior. Full validation passed 117 tests plus type checking; no telephone call was placed. Updated installation package is 0.4.2. This is diagnostic improvement, not a claim of restored API access.
+
 ## 2026-10-20 — Automatic per-installation Node bootstrap
 
 The owner requested that colleagues not have to download/install Node separately. Team package 0.4.1 now checks for suitable Node.js 24/npm and otherwise downloads official v24.21.0 Windows x64/ARM64 or Mac Intel/Apple Silicon archives. Version and SHA-256 pins are checked into the distribution sources after verification against nodejs.org. Checksums are verified before extraction; cached archives are rechecked. Downloads, extraction and runtime PATH stay local to the installation/launcher process. No execution-policy/certificate/security setting changes, global installs, admin actions or phone calls are introduced.

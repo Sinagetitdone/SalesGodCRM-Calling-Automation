@@ -4,6 +4,12 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-20 — Actionable API errors (team package 0.4.2)
+
+- Distinguish confirmed regional denial, generic permission denial, invalid keys, IP allowlist errors, quota/rate limits and model-access failures using fixed safe messages. Session and voicemail preparation failures remain no-call failures; unknown 403s are not labelled regional restrictions.
+- Voice-test exports now retain failure stage/category, HTTP/upstream status, stop reason and end time without copying provider messages, unknown codes, credentials or connection descriptions. Added ChatGPT-versus-API guidance to the test page and setup guide.
+- All 117 tests plus type checking passed with synthetic provider responses. This improves diagnostics; it does not remove an OpenAI service-side access restriction.
+
 ### 2026-10-20 — Automatic private Node setup (team package 0.4.1)
 
 - Start/Configure launchers now reuse Node.js 24 with npm or automatically download pinned, checksum-verified official runtime archives for Windows x64/ARM64 and Intel/Apple Silicon Mac. Runtime files stay in the installation's `.runtime` folder; no administrator rights, permanent PATH edits, execution-policy changes or system installer are used.

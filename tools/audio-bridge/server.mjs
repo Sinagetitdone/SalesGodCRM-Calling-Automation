@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { SessionJournal, journalEvents, phases } from './session-journal.mjs';
 import { campaignRoutes } from './campaign-routes.mjs';
+import { openAIFailure } from './openai-errors.mjs';
 
 export function createBridge({ env = process.env, fetchImpl = fetch, journal: suppliedJournal, campaignStore } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 512 * 1024, ajv: { customOptions: { removeAdditional: false } } });
@@ -83,7 +84,7 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
         headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: 'marin', response_format: 'wav', input: request.body.message,
           instructions: 'Read the supplied voicemail message exactly, clearly and naturally. Do not add any words.' }), signal: AbortSignal.timeout(30000) });
-      if (!response.ok) throw new Error('Speech unavailable');
+      if (!response.ok) return reply.code(502).send(await openAIFailure(response));
       const audio = Buffer.from(await response.arrayBuffer());
       if (audio.length > 12 * 1024 * 1024) throw new Error('Speech too large');
       return reply.type('audio/wav').send(audio);
@@ -145,10 +146,7 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
         body: form, signal: AbortSignal.timeout(30000),
       });
       if (!response.ok) {
-        const hint = response.status === 401 ? 'OpenAI rejected the API key. Update OPENAI_API_KEY in the local .env file and restart the bridge.'
-          : response.status === 429 ? 'OpenAI rate limit or billing quota reached. Check billing and retry later.'
-          : `OpenAI connection failed (${response.status}). Check API access and model availability.`;
-        return reply.code(502).send({ error: hint, upstreamStatus: response.status });
+        return reply.code(502).send(await openAIFailure(response));
       }
       return reply.type('application/sdp').send(await response.text());
     } catch {
