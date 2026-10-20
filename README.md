@@ -1,18 +1,17 @@
 # SalesGodCRM Calling Automation
 
-Local calling-workflow prototype and a driver-free Chrome audio diagnostic extension for the owner's logged-in SalesGodCRM manual dialer.
+Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a custom Chrome audio bridge, and OpenAI voice. See [resume notes](docs/RESUME-HERE.md) for the exact stopping point and next verification.
 
 ## Current behavior
 
-- The Fastify API uses a **fake provider** and SQLite storage. It cannot place real calls.
-- Call orchestration checks suppression and calling-window flags and reserves idempotency keys atomically. A call ID already assigned to another request returns HTTP 409.
-- The owner's imported lists are pre-authorized: no per-contact consent field is required. The optional old field is retained as metadata; missing metadata is not fabricated consent evidence.
-- The Chrome extension exposes a generated page-level microphone and tests local audio graphs and synthetic two-way WebRTC. Version 0.2.0 adds explicit pairing to a loopback voice setup window. It starts disabled and has no dialing code or key storage.
-- The local voice page can test paired audio without OpenAI, or request one short AI introduction through the server's Realtime connection. Setup stops when a dialer peer appears. It is not a live conversation or campaign runner.
-- Extension 0.3.2 supports supervised-call audio routing. The local controls now prepare an editable voicemail message, listen silently for an English voicemail greeting and beep, play the message once, and log playback or uncertain outcomes. Human conversations retain the explicit answer control. Real two-way telephone audio was confirmed by the owner on Windows/Chrome on 2026-10-20. The bridge never dials or hangs up the phone automatically.
-- Live OpenAI output and a two-way simulated customer conversation passed. Actual CRM telephone media remains unverified until the first authorized test call.
+- Extension **0.4.0** exposes a generated microphone, routes dialer audio, and provides a separate guarded browser adapter for explicitly started calling lists. It starts disabled and contains no API key. VB-CABLE is not required.
+- `/campaigns` imports `first_name,last_name,phone` CSV into draft lists, previews contacts, processes them sequentially, saves conversation transcripts and event logs, and displays completion. Simulation is the default and invokes neither OpenAI nor the dialer. Import/reload/restart never starts calls.
+- Live lists enforce backend suppression, calling windows, campaign-level Start authorization, one active attempt, single-use dispatch, and recovery without blind redial. The owner pre-authorizes imported contacts; no per-contact consent field is required.
+- Voicemail uses the approved message after greeting/beep detection. Automatic mode keeps listening during playback and an eight-second quiet window afterward. New speech interrupts playback and blocks hangup while checking for a person. Unconfirmed interruptions require review.
+- Prior supervised telephone audio was confirmed by the owner. **Automatic human-answer behavior is not yet verified:** one real human answer remained silent, and the latest diagnostic call only reached voicemail; the owner confirmed nobody picked up. Fixes and synthetic regressions are documented, but are not a substitute for a successful real human-answer test.
+- Local transcript/event export is available; no audio recordings are saved. Sensitive runtime databases are ignored by Git and inactive campaign data is pruned after seven days of service activity. Opt-out suppression persists separately.
 
-This is a development prototype. The API has no authentication/tenant model and trusts caller-supplied policy flags. Do not expose it publicly or use it for live calling.
+This is a local development prototype, not a hosted multi-user service. The audio bridge binds to loopback and checks exact Host/Origin; it trusts the operating-system user. Keep it private and limit live use to explicitly authorized controlled tests until the remaining integration checks pass. The original TypeScript service and Docker configuration remain a separate fake-provider runtime; they do not run the browser/audio bridge.
 
 ## Development
 
@@ -39,6 +38,8 @@ Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](
 - [Observed no-call test results](tools/audio-extension/TEST-RESULTS.md)
 - [Local setup server](tools/audio-bridge/README.md)
 - [Architecture direction](docs/architecture/ADR-0002-BROWSER-DIALER-VOICE.md)
+- [Local calling-list architecture](docs/architecture/ADR-0003-LOCAL-CALLING-LISTS.md)
+- [Resume here: current evidence and next steps](docs/RESUME-HERE.md)
 
 ## Credentials
 
