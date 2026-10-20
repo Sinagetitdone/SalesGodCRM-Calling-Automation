@@ -1,0 +1,23 @@
+<section aria-labelledby="listHeading"><h2 id="listHeading">Calling list</h2>
+<p>Import a CSV with <b>first_name,last_name,phone</b> columns. Numbers are processed one at a time. Importing a list never starts calls.</p>
+<label for="listName">List name</label><input id="listName" maxlength="120" value="My calling list">
+<label for="contactFile">Choose CSV file</label><input id="contactFile" type="file" accept=".csv,text/csv">
+<label for="contactCsv">Or paste CSV</label><textarea id="contactCsv" rows="5" placeholder="first_name,last_name,phone"></textarea>
+<button id="demoContacts">Use simulated contacts</button>
+<p><label><input type="checkbox" id="simulation" checked> Simulation only — no calls and no OpenAI requests</label></p>
+<details><summary>Call settings</summary>
+<label for="callerNumber">Your CRM caller number (with country code)</label><input id="callerNumber" placeholder="+1…">
+<label for="listTimeZone">Calling timezone</label><input id="listTimeZone" value="America/Los_Angeles">
+<label for="startHour">Start hour (0–23)</label><input id="startHour" type="number" min="0" max="23" value="9">
+<label for="endHour">End hour (1–24)</label><input id="endHour" type="number" min="1" max="24" value="17">
+<label for="callBrief">Approved conversation brief</label><textarea id="callBrief" rows="4" maxlength="2000">Introduce yourself as an AI assistant from Jay Marketing Lab on behalf of Cena. Ask whether now is a good time to talk. Answer only from this brief; collect questions for Cena when details are unknown. At a natural ending, say they can contact Cena if they would like to talk more. Do not claim an appointment is booked.</textarea>
+<p>The voicemail text below is saved with this list. One calling timezone applies to the entire list.</p></details>
+<button id="importList">Import and preview</button><p id="listError" role="alert"></p>
+<label for="savedLists">Saved lists</label><select id="savedLists"><option value="">Choose a list</option></select><button id="refreshLists">Refresh</button>
+<p id="listMode">No list selected.</p><p id="driverState">Open from the CRM extension for live calling. Simulation works here directly.</p>
+<button id="startList" disabled>Start selected list</button><button id="pauseList" disabled>Pause after current contact</button><button id="stopList" disabled class="stop">Stop current call and pause</button>
+<button id="allowNotification">Enable completion notification</button><button id="exportList" disabled>Export transcripts and event log</button>
+<p id="listState" role="status" aria-live="polite">Nothing is running.</p>
+<div class="list-scroll"><table><thead><tr><th>Name</th><th>Phone</th><th>Result</th><th>Conversation</th></tr></thead><tbody id="contactRows"></tbody></table></div>
+<pre id="selectedTranscript" hidden></pre><details><summary>List event log</summary><pre id="listEvents">No events yet.</pre></details>
+<p>Transcripts, contact details and events stay in this computer’s local database for seven days. No audio recordings are saved. Speech is sent to OpenAI during live calls. An uncertain attempt pauses the list and is never automatically dialed again.</p></section>

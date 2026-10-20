@@ -1,16 +1,18 @@
 # SalesGod Local Audio Bridge — diagnostic extension
 
+Latest: version **0.4.0** adds [calling lists](CALLING-LISTS.md): CSV preview, sequential worker, transcripts, outcomes and completion notification. Simulation is the default. The new automatic phone lifecycle has synthetic tests only; do not call anyone under the owner's current instruction. Extension reload is required before using its new CRM controls. Earlier 0.3.x [supervised controls](SUPERVISED-FIRST-CALL.md) and diagnostics remain available; prior supervised tests established audible AI and a received voicemail according to the owner.
+
 Latest no-call test result: [TEST-RESULTS.md](TEST-RESULTS.md).
 
-Version 0.1.1 is a local audio proof of concept. It cannot place calls, call OpenAI, handle voicemail, or record conversations. No API key is needed for this version.
+Version 0.2.0 adds explicit pairing to a local Realtime setup window. See [VOICE-SETUP.md](VOICE-SETUP.md) for the current flow, limits, and authentication blocker. It cannot place calls, handle voicemail, or record conversations. The local diagnostic tests still need no API key. The following sections describe the original diagnostic behavior, retained in this version.
 
 ## Scope and access
 
-The extension runs only on `https://www.salesgodcrm.net/*`, `https://salesgodcrm.net/*`, and the local test page `http://127.0.0.1:4318/extension-lab*`. It has no background service worker, broad browser permissions, network endpoints, cookies API, or key storage. Main-world code is visible to the CRM page and is not a place to put secrets.
+The extension runs only on `https://www.salesgodcrm.net/*`, `https://salesgodcrm.net/*`, and the local test page `http://127.0.0.1:28431/extension-lab*`. It has no background service worker, broad browser permissions, network endpoints, cookies API, or key storage. Main-world code is visible to the CRM page and is not a place to put secrets.
 
-On SalesGodCRM it adds an audio diagnostic panel, exposes one generated microphone to page-level device enumeration, and observes newly created WebRTC audio peers. It never invokes the dialer's Call button or provider APIs. Routing starts disabled on every page load. It intercepts a microphone request only when the page explicitly requests the synthetic device ID; other microphone requests retain normal behavior.
+On SalesGodCRM it adds an audio panel, exposes a generated microphone, and observes new WebRTC peers. Version 0.4.0 also includes a separate DOM dialer adapter used only by an explicitly started live list from the paired local window. Diagnostics and simulation never invoke Call. Routing starts disabled on page load. Normal microphone requests pass through outside live pairing; during live pairing physical fallback is blocked.
 
-When enabled, the generated microphone is silent. Incoming WebRTC audio tracks are routed into a local Web Audio stream, without saving or sending them anywhere. Real OpenAI input/output routing will be a separate version after secure API configuration is available.
+The generated microphone stays silent until a paired, gated audio session supplies output. Setup-only tests stop on new dialer peers; supervised/live-list mode verifies the next peer's generated microphone and remote audio before opening its output gate.
 
 ## Install for a supervised test
 
@@ -19,7 +21,7 @@ When enabled, the generated microphone is silent. Incoming WebRTC audio tracks a
 3. Refresh the SalesGodCRM dashboard so the audio hook loads before the dialer initializes. Do not refresh during a call.
 4. Confirm the panel says **Local routing disabled · OpenAI disconnected**.
 
-Installing grants code access to the matched SalesGodCRM pages. Review the three runtime files (manifest.json, audio-hook.js, panel.js) before enabling it.
+Installing grants access to matched CRM pages. Review manifest.json and its listed runtime scripts, including campaign-driver.js, before enabling it.
 
 ## No-call test sequence
 
@@ -33,7 +35,7 @@ Installing grants code access to the matched SalesGodCRM pages. Review the three
 
 ## Local lab and automated checks
 
-- `npm run audio:bridge`, then open `http://127.0.0.1:4318/extension-lab`.
+- `npm run audio:bridge`, then open `http://127.0.0.1:28431/extension-lab`.
 - The lab loads the exact audio hook as a regular page script for real browser audio testing before installation. This does **not** establish Chrome extension installation or CRM compatibility.
 - The lab has a separate optional local WebRTC probe, using two local peers without external ICE servers. Its result is recorded separately; failure must not be presented as an audio transport pass.
 - With Chrome's local-IP masking enabled, this machine's localhost probe could not establish a pair, while the CRM-origin test passed. After the owner disabled that flag and relaunched Chrome, localhost also passed twice. The assistant did not change browser privacy settings, firewall rules, or microphone permissions. See TEST-RESULTS.md for measurements and the historical comparison.
@@ -47,7 +49,7 @@ Installing grants code access to the matched SalesGodCRM pages. Review the three
 - A no-call test cannot establish actual telephone media, voicemail detection, or OpenAI latency.
 - Do not leave the synthetic microphone selected while the bridge is disabled: it will reject acquisition rather than fall back to a physical microphone.
 - **Disable** aborts pending WebRTC signaling promptly and stops generated tracks; the test closes its peers and releases its silent renderers. A successful synthetic test still does not verify the CRM's actual telephone session or OpenAI.
-- Local MAIN-world commands are not a security boundary against the CRM itself. They deliberately expose only diagnostics; no credentials, external calls, or OpenAI session creation are available.
+- Local MAIN-world commands are not a security boundary against the CRM itself. They expose diagnostics and short-lived audio pairing without credentials. A separate isolated-world adapter exposes list controls only to the nonce-paired local list window. OpenAI session creation stays on the local server. This is a local OS-user trust model, not hosted multi-user authorization.
 
 ## References
 

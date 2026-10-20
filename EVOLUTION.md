@@ -1,5 +1,59 @@
 # Evolution
 
+## 2026-10-20 — Local team distribution package
+
+The owner requested a package colleagues can use on Windows and Mac. Added an explicit allowlist ZIP builder, production-only dependency manifest/lock, blank key template, per-file/archive checksums, platform launchers and a nontechnical setup guide. Each installation keeps its own key and transcript/event databases locally. The launchers require Node.js 24, install libraries on first launch, preserve local configuration, refuse an occupied loopback port without killing anything, and never dispatch calls. This does not create hosted multi-user authorization, shared records, a Chrome Web Store listing, signed installer or bundled Node runtime.
+
+All 109 automated tests plus type checking passed. A clean extracted copy installed production libraries, served 15 runtime routes with fake/no upstream access and default simulation, and correctly reported the existing bridge's port on the Windows launcher path. An independent ZIP reader extracted the archive; Bash checked Mac script syntax and automated checks verify executable attributes/LF line endings. No Mac hardware/runtime or telephone test was performed. No call or paid OpenAI request was made during packaging. The current owner bridge was left running.
+
+## 2026-10-20 — Automatic human takeover observed; reduce interruption delay
+
+One newly authorized single call recognized greeting/beep and began prepared voicemail. New speech stopped playback; correlated classification and an interactive question then triggered human takeover without an owner-answer button. The saved conversation contains live AI replies and the recipient's audibility confirmation. The AI included the approved contact-Cena closing; the telephone ended and CRM showed no ongoing calls. This establishes one observed automatic takeover, not unattended or multi-contact reliability. Repeated interruptions and imperfect transcription remained visible.
+
+The owner reported a long pause on interruption. Inspection found that a fresh speech onset erased an in-flight classifier decision, and confirmed human startup used a one-second polling timer in addition to VAD silence. Pending decisions now survive repeated speech until a newer transcript supersedes them. Confirmed human startup runs immediately when speech-stop and evidence are both available, retaining verified media/gate/VAD checks. Screening and live server VAD silence is reduced from 600 to 350 ms. Two new synthetic regressions exercise pending-result preservation and supersession, and existing regressions verify timer-free startup. No new call or paid API request was made to test this latency change; real end-to-end latency remains to be measured. The full check reached an unrelated transient fetch bad-port failure in the fake-provider HTTP check; that check passed on rerun.
+
+## 2026-10-20 — Diagnostic voicemail-only test
+
+One further explicitly authorized call loaded the new detection logs. Incoming speech was transcribed, a classification returned voicemail, the greeting and beep were recognized, the approved message played, and the call ended after the eight-second quiet window. There were zero live AI response turns and no speech starting during message playback or the final listening window. The owner confirmed nobody picked up, so this exercised voicemail only and does not validate human-answer behavior. No retry was made; logs remain local and no call was left active.
+
+## 2026-10-20 — Human answer remained silent in the takeover test
+
+A separately authorized single-call test loaded the takeover fix, but never entered voicemail playback or human conversation. The journal recorded four incoming speech segments and zero AI turns before the provider call ended. The owner reported the person said hello and asked whether they could be heard. The list correctly paused as needs_review; the requested voicemail-to-human transition was not validated. Existing metadata cannot establish whether ASR latency, classification, or result handling caused that silent screening period. No retry was made.
+
+Added metadata-only events for transcript receipt, classifier requests/results/timeouts, direct recognition of a narrowly bounded interactive question such as "can you hear me", and reading correlated classifier output from response.done as well as the incremental text event. Confirmed human evidence now survives another speech segment while waiting for a quiet speaking opportunity, instead of being cleared on each VAD onset. Three new synthetic regressions cover that exact question, rejection of bare hello/mailbox cues, and final-only classifier responses followed by repeated speech. These improvements do not retrospectively prove the failed call's root cause or establish real takeover success.
+
+## 2026-10-20 — Correct missed human pickup during voicemail
+
+The owner corrected the first automatic test result: a person picked up and spoke during voicemail, but the system hung up. The earlier success assessment covered playback/dispatch mechanics and was too broad. Inspection found input/VAD disabled during playback, human classification limited to initial screening, and a one-second post-playback shutdown. Automatic mode now preserves listening, accepts human classification after voicemail cues, interrupts prepared audio on new speech, and blocks hangup for pending pickup. Uninterrupted completion waits through eight quiet seconds; unresolved speech requires review after thirty seconds and never replays the message. Correlated classifier revisions reject stale results; confirmed human turns are persisted and late pending pickup cannot be reported as a successful voicemail. Regression tests cover before-beep, mid-message, post-message, delayed transcription, stale events, disconnect and uncertain speech without calls. The known historical local test row was flagged needs_review with an owner_reported_missed_human_pickup event; its original playback/hangup evidence remains intact. Real verification of the fix remains pending.
+
+## 2026-10-20 — First automatic voicemail call
+
+After explicit renewed authorization for one call to the owner's latest test number, extension 0.4.0 was reloaded and the idle CRM phone reconnected. A one-contact live list automatically prepared OpenAI audio, dispatched once, detected voicemail greeting and beep, played the approved message once, ended its owned phone call, saved the event log, and displayed list completion. CRM confirmed no ongoing calls and routing disabled. No retry or second call was made. Carrier recording remains unconfirmed and automatic human-answer handling remains untested on real media. A small list UI correction now replaces the manual audio engine's stale hangup instruction with the verified list-finished state.
+
+## 2026-10-20 — Local calling lists, transcripts and completion
+
+The owner requested sequential CSV contacts, conversation transcripts plus event logs, voicemail outcomes and completion notification, then explicitly instructed **do not call anyone**. Extension 0.4.0 and the loopback bridge now implement an opt-in list worker with default simulation, draft preview, backend Start authorization, suppression/windows, single-use durable dispatch, transcript persistence and export. Interrupted/uncertain attempts pause without redial; paused active attempts are recovered too. The automatic audio controller adds silent answer classification and a scoped natural-end/opt-out tool, retaining existing media and voicemail gates. A two-contact no-call browser simulation verified import, sequential results, saved transcript and completion notice. The new real automatic dispatch/answer/hangup lifecycle remains unverified, and the installed extension has not been reloaded for this change. See ADR-0003 and CALLING-LISTS.md. No calls were placed.
+
+## 2026-10-20 — Owner guidance during human conversations
+
+The owner requested a scheduling question during an already-running conversation, which had no instruction input. Newly opened local controls can now submit a bounded system-context note for the AI's next reply, restricted to live human conversation and correlated with API acknowledgement. The context update does not create another response or claim customer delivery; text is not persisted in the metadata journal. Existing sessions require reopening and cannot receive newly deployed UI code without reconnecting. The original scheduling request was not delivered and no meeting was booked.
+
+## 2026-10-20 — Loopback port migration
+
+Windows reserved the former audio port inside a TCP exclusion range and denied binding despite no active listener. The local server, extension trusted origin and setup instructions now use loopback port 28431. Extension 0.3.2 must be reloaded for this coordinated origin change. Existing host/origin restrictions remain exact; no OS network protections are changed. All 74 automated checks passed and the server bound successfully on the new port.
+
+## 2026-10-19 — Supervised first-call conversation mode
+
+Added explicit live-audio pairing separately from setup diagnostics. The bridge permits and monitors one new dialer audio peer, requires the generated microphone sender and incoming track, and stays muted until an owner-confirmed answer plus gate/VAD acknowledgements. OpenAI server VAD handles customer interruption. Pause clears output and disables input; peer loss, tab closure, journal failure and a five-minute limit stop AI without redial or automatic phone hangup. Physical microphone fallback is blocked while the supervised pair exists.
+
+Added a local SQLite event journal with ordered idempotent writes and seven-day metadata retention, and a synthetic customer/dialer rehearsal. Live OpenAI heard the synthetic customer's request and generated the requested word through the return audio route; interruption, pause and hangup cleanup passed. Actual SalesGodCRM telephone media remains the next supervised-call verification. No real call was placed by the assistant.
+
+## 2026-10-19 — Supervised Realtime setup and local audio pairing
+
+Version 0.2.0 pairs the extension's generated-microphone and incoming-audio graphs to a loopback voice window using a short-lived token and MessagePort. The private WebRTC peer uses the original constructor to avoid capturing its own output. Synthetic routing can be tested without OpenAI; both audio signal peaks and RTP directions are required. Realtime setup keeps the standard API key server-side, requests one explicit AI introduction, waits for audio playback to drain, and disconnects automatically. Turn detection is disabled and a new dialer peer cancels setup. No phone calls or live conversation mode are enabled.
+
+Local browser pairing and synthetic two-way routing passed. The supplied key was configured in the ignored local .env file at the owner's request, but OpenAI rejected it with HTTP 401 invalid_api_key; successful live AI audio remains unverified. A mistakenly committed value was removed from the current .env.example on main, without rewriting history. No key value is retained in documentation, test fixtures, or reports.
+
 ## 2026-10-19 — Pre-push verification and storage fixes
 
 Added real SQLite concurrency/collision coverage and an isolated HTTP API check using the fake provider. Reservations no longer yield inside DatabaseSync transactions; a call ID owned by another request is rejected without overwriting records and is mapped to HTTP 409. CI now runs all core, HTTP, audio-server, and extension tests with npm ci. Setup instructions reflect the driver-free diagnostic direction, obsolete cable UI code is removed, and local credentials, databases, vendor binaries, screenshots, and manual trace files stay out of Git.
@@ -40,3 +94,7 @@ The first architecture spike is to establish the provider-approved integration c
 ## 2026-10-01 — Strict JML audit
 
 The repository was re-audited against the supplied JML standards. CI is green, but production release remains blocked by unresolved provider contract, authorization, persistence, runtime, audit, and security-validation gates. The repository now records those gaps explicitly and corrects stale onboarding/status documentation.
+
+## 2026-10-19 — Supervised voicemail delivery path
+
+The first phone test reached voicemail, exposing the missing greeting/beep handling. The local audio controls now prepare editable owner text through OpenAI TTS before dialing, screen incoming English transcription without generating responses, and require both a recognized greeting and completed beep before one playback through the generated dialer microphone. Outcomes distinguish playback completion, interruption, unavailable mailbox and review/timeouts. Synthetic end-to-end browser testing confirmed audio returned to the simulated mailbox without a phone call. Actual carrier recording and automatic phone hangup remain separate, unverified capabilities; operators still end the CRM call.

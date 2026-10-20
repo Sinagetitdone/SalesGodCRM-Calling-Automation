@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SalesGod · OpenAI voice setup</title><link rel="stylesheet" href="/style.css"><script defer src="/extension-lab/window-rtc.js"></script><script defer src="/voice.js"></script></head>
+<body><main><header><span class="eyebrow">SALESGOD / OPENAI VOICE SETUP</span><span class="badge">No dialing controls</span><h1>Check the AI audio connection.</h1><p>This setup test creates a short OpenAI session. It cannot enter numbers or start phone calls.</p></header>
+<section><h2>Connection</h2><p id="configuration">Checking local configuration…</p><p id="pairing">Standalone test · no CRM audio attached</p><p id="state" role="status">Disconnected</p><p id="error" role="alert"></p>
+<button id="synthetic" disabled>Test AI voice without a microphone</button><button id="routing" hidden disabled>Test paired routing without OpenAI</button><button id="paired" hidden disabled>Test paired AI connection</button><button id="stop" disabled>Disconnect</button>
+<p>The test requests one short AI introduction, measures received audio, and disconnects automatically. Your physical microphone is never opened. API usage may be billed.</p>
+<p>Paired mode prepares CRM audio routing only while its dialer is idle. It does not verify telephone media. Keep the destination number empty.</p></section>
+<section><h2>Test evidence</h2><pre id="evidence">No test run yet.</pre><button id="save">Save test report</button><p>Reports contain connection states, packet counts and signal measurements. No API key, SDP, IP addresses, recordings, or conversation text is included.</p></section>
+<footer><a href="/">Setup instructions</a> · AI-generated voice · No VB-CABLE · No phone calls</footer></main></body></html>

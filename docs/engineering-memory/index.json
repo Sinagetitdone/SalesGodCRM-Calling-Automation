@@ -3,6 +3,36 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-009",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-CLEAN-DISTRIBUTION.md",
+      "tags": ["security", "testing", "integration"]
+    },
+    {
+      "id": "LL-2026-008",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-VOICEMAIL-TAKEOVER.md",
+      "tags": ["audio", "calling", "testing", "state-transitions"]
+    },
+    {
+      "id": "LL-2026-007",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-CAMPAIGN-RECOVERY.md",
+      "tags": ["calling", "persistence", "testing", "recovery"]
+    },
+    {
+      "id": "LL-2026-006",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-voicemail-opportunity.md",
+      "tags": ["integration", "testing", "calling", "audio"]
+    },
+    {
+      "id": "LL-2026-005",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-supervised-call-gates.md",
+      "tags": ["integration", "testing", "calling", "security"]
+    },
+    {
       "id": "LL-2026-001",
       "type": "lesson",
       "path": "docs/engineering-memory/LESSONS_LEARNED.md",
@@ -13,6 +43,12 @@
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-browser-audio-proof.md",
       "tags": ["integration", "testing", "calling"]
+    },
+    {
+      "id": "LL-2026-004",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-19-realtime-setup-boundaries.md",
+      "tags": ["integration", "testing", "security", "calling"]
     },
     {
       "id": "LL-2026-003",

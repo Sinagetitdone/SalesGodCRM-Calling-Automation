@@ -1,5 +1,6 @@
 node_modules/
 dist/
+releases/
 coverage/
 .env
 .env.*
@@ -11,4 +12,5 @@ data/*.db-*
 tools/audio-bridge/vendor/
 tools/audio-bridge/proof.png
 tools/audio-extension/tests/*.png
+tools/audio-extension/tests/*.local.json
 tools/audio-extension/tests/webrtc-success.txt
