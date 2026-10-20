@@ -97,7 +97,7 @@ test('automatic human classification stays silent until acknowledged media gates
     await env.start(); await env.media(); const dc = env.peers[0].channel;
     const request = env.requests.find(r => r.url === '/session'); assert.equal(request.options.headers['X-Audio-Mode'], 'campaign-call');
     dc.message(listenAck); await tick();
-    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'hello', transcript: 'Hello, who is calling?' }); await tick();
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'hello', transcript: 'Hello, how can I help?' }); await tick();
     const classification = dc.sent.find(r => r.response?.metadata?.purpose === 'answer_classification'); assert.ok(classification); assert.equal(classification.response.conversation, 'none');
     dc.message({ type: 'response.created', response: { id: 'class1', metadata: classification.response.metadata } });
     dc.message({ type: 'response.output_text.done', response_id: 'class1', text: 'human' });
@@ -115,8 +115,42 @@ test('automatic human classification stays silent until acknowledged media gates
     assert.equal(env.api.status().phase, 'talking');
     dc.message({ type: 'output_audio_buffer.stopped' }); await new Promise(r => setTimeout(r, 2050)); await tick();
     assert.equal(env.api.status().phase, 'stopped'); assert.equal(env.api.status().conversationOutcome, 'completed');
-    assert.deepEqual(saved.map(t => t.speaker), ['customer', 'assistant']); assert.equal(saved[0].text, 'Hello, who is calling?');
+    assert.deepEqual(saved.map(t => t.speaker), ['customer', 'assistant']); assert.equal(saved[0].text, 'Hello, how can I help?');
     assert.doesNotMatch(env.elements.get('evidence').textContent, /Hello, who is calling/);
+  } finally { await env.cleanup(); }
+});
+test('hello can you hear me starts the gated human path without waiting for a classifier result', async () => {
+  const env = environment({ voicemail: true });
+  try {
+    env.api.configure({ automatic: true }); await env.start(); await env.media(); const dc = env.peers[0].channel; dc.message(listenAck); await tick();
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'person', transcript: 'Hello, can you hear me?' }); await env.fireTimers(1000);
+    assert.equal(env.api.status().phase, 'starting');
+    assert.equal(dc.sent.filter(m => m.response?.metadata?.purpose === 'answer_classification').length, 0);
+    await env.links[0].options.onMessage({ type: 'gate-state', open: true }); dc.message(vadAck); await tick(); await tick();
+    assert.equal(env.api.status().phase, 'talking'); assert.ok(env.api.status().events.some(e => e.event === 'answer.explicit_human_detected'));
+  } finally { await env.cleanup(); }
+});
+test('bare hello and recorded mailbox instructions do not use the explicit-question shortcut', async () => {
+  const env = environment({ voicemail: true });
+  try {
+    env.api.configure({ automatic: true }); await env.start(); await env.media(); const dc = env.peers[0].channel; dc.message(listenAck); await tick();
+    for (const transcript of ['Hello.', 'Can you hear me? Leave a message after the beep.']) dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: transcript, transcript });
+    await env.fireTimers(1000); assert.equal(env.api.status().humanAnswered, undefined);
+    assert.equal(env.api.status().events.some(e => e.event === 'answer.explicit_human_detected'), false);
+  } finally { await env.cleanup(); }
+});
+test('classification can be read from response.done alone and confirmed human evidence survives another speech segment', async () => {
+  const env = environment({ voicemail: true });
+  try {
+    env.api.configure({ automatic: true }); await env.start(); await env.media(); const dc = env.peers[0].channel; dc.message(listenAck); await tick();
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'person', transcript: 'Hello, how can I help?' });
+    const request = dc.sent.filter(m => m.response?.metadata?.purpose === 'answer_classification').at(-1);
+    dc.message({ type: 'response.done', response: { id: 'classification', status: 'completed', metadata: request.response.metadata, output: [{ type: 'message', content: [{ type: 'output_text', text: 'human' }] }] } });
+    dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'repeat' }); await env.fireTimers(1000);
+    assert.equal(env.api.status().phase, 'screening');
+    dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'repeat' }); await env.fireTimers(1000);
+    assert.equal(env.api.status().phase, 'starting'); assert.equal(env.api.status().aiTurns, 0);
+    assert.ok(env.api.status().events.some(e => e.event === 'answer.classified_human'));
   } finally { await env.cleanup(); }
 });
 test('failed transcript persistence stops automatic conversation with a failure result', async () => {
@@ -387,7 +421,7 @@ test('voicemail synthesis validates input, preserves owner text, exposes no upst
     fail = true;
     const failed = await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message } });
     assert.equal(failed.statusCode, 502); assert.doesNotMatch(failed.body, /private upstream|synthetic-private-key/);
-    for (const [sequence, event] of ['session.started', 'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.playback_started', 'voicemail.playback_completed', 'voicemail.human_takeover', 'voicemail.takeover_unconfirmed'].entries()) {
+    for (const [sequence, event] of ['session.started', 'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.playback_started', 'voicemail.playback_completed', 'voicemail.human_takeover', 'voicemail.takeover_unconfirmed', 'answer.transcript_received', 'answer.explicit_human_detected', 'answer.classification_requested', 'answer.classification_timeout', 'answer.classified_human', 'answer.classified_voicemail', 'answer.classified_unavailable', 'answer.classified_unknown'].entries()) {
       assert.equal((await app.inject({ method: 'POST', url: '/live-log', headers, payload: { sessionId, sequence, event, phase: 'voicemail-playing' } })).statusCode, 200);
     }
   } finally { await app.close(); journal.close(); }

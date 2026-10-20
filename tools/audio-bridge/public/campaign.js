@@ -64,6 +64,7 @@
   worker = new window.SalesGodCampaignWorker({ api, driver, audio: window.SalesGodCall, onState: state => {
     const name = state.contact ? `${state.contact.firstName} ${state.contact.lastName}` : '';
     $('listState').textContent = state.state === 'finished' ? 'Finished processing every contact. Review the results below.' : state.state === 'waiting' ? 'Waiting for the calling window. Keep this window open.' : `${state.state.replaceAll('_', ' ')} ${name}`;
+    if (['paused', 'needs_review'].includes(state.state)) document.title = 'Calling list paused · SalesGod';
     if (state.state === 'finished') {
       document.title = 'Calling list finished · SalesGod';
       $('state').textContent = 'List finished · no active list call remains';
