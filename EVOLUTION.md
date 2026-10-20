@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-10-20 — First automatic voicemail call
+
+After explicit renewed authorization for one call to the owner's latest test number, extension 0.4.0 was reloaded and the idle CRM phone reconnected. A one-contact live list automatically prepared OpenAI audio, dispatched once, detected voicemail greeting and beep, played the approved message once, ended its owned phone call, saved the event log, and displayed list completion. CRM confirmed no ongoing calls and routing disabled. No retry or second call was made. Carrier recording remains unconfirmed and automatic human-answer handling remains untested on real media. A small list UI correction now replaces the manual audio engine's stale hangup instruction with the verified list-finished state.
+
 ## 2026-10-20 — Local calling lists, transcripts and completion
 
 The owner requested sequential CSV contacts, conversation transcripts plus event logs, voicemail outcomes and completion notification, then explicitly instructed **do not call anyone**. Extension 0.4.0 and the loopback bridge now implement an opt-in list worker with default simulation, draft preview, backend Start authorization, suppression/windows, single-use durable dispatch, transcript persistence and export. Interrupted/uncertain attempts pause without redial; paused active attempts are recovered too. The automatic audio controller adds silent answer classification and a scoped natural-end/opt-out tool, retaining existing media and voicemail gates. A two-contact no-call browser simulation verified import, sequential results, saved transcript and completion notice. The new real automatic dispatch/answer/hangup lifecycle remains unverified, and the installed extension has not been reloaded for this change. See ADR-0003 and CALLING-LISTS.md. No calls were placed.

@@ -48,7 +48,7 @@ A generic webhook client is retained as an alternative integration primitive. Do
 
 ## Remaining work before real campaigns
 
-- Prior supervised calls established audible AI and a received voicemail according to the owner. The new **automatic list mode** needs a controlled real integration test after renewed calling authorization; the current instruction is **do not call anyone**.
+- One explicitly authorized automatic voicemail test passed: dispatch, greeting/beep detection, approved message playback, automatic hangup, saved events and completion. CRM confirmed no ongoing calls. Carrier recording is unconfirmed. Automatic human-answer handling and multiple-contact live processing still need separate authorized verification.
 - CSV lists, local suppression/window checks, explicit Start authorization, crash recovery, transcripts and completion UI are now implemented in the audio bridge and tested synthetically. Hosted multi-user authentication and provider reconciliation remain future work.
 - Supply an approved business brief before real lists. Playback cannot prove carrier recording. Review unknown attempts in the CRM before explicit resume; they are never redialed automatically.
 

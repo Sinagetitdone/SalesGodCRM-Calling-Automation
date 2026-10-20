@@ -66,6 +66,8 @@
     $('listState').textContent = state.state === 'finished' ? 'Finished processing every contact. Review the results below.' : state.state === 'waiting' ? 'Waiting for the calling window. Keep this window open.' : `${state.state.replaceAll('_', ' ')} ${name}`;
     if (state.state === 'finished') {
       document.title = 'Calling list finished · SalesGod';
+      $('state').textContent = 'List finished · no active list call remains';
+      $('media').textContent = 'List audio disconnected';
       if (window.Notification?.permission === 'granted') new Notification('Calling list finished', { body: 'All contacts processed. Review conversations and voicemail results in the list window.' });
     }
     void refresh().catch(error);

@@ -1,6 +1,6 @@
 # Calling lists — version 0.4.0
 
-The owner's current instruction is **do not call anyone**. Implementation and browser verification used synthetic contacts only. Opening, importing or reloading never starts a list automatically. The new automatic dial/answer/hangup cycle has not been verified on a real phone call.
+Initial implementation used synthetic contacts only under the owner's no-call instruction. On 2026-10-20 the owner explicitly authorized one real test to their latest provided number. Automatic dispatch, verified dialer audio, voicemail greeting/beep detection, single prepared-message playback, automatic hangup, saved events and list completion all succeeded. CRM then reported **No ongoing calls** and routing disabled. Carrier recording remains unconfirmed; automatic human classification/conversation ending still needs a separate real human-answer test. Opening, importing or reloading never starts calls automatically.
 
 ## Try without calling
 
@@ -18,7 +18,7 @@ These numbers are fictional examples. Include country codes internationally; ten
 
 ## Live operation — pending authorized integration verification
 
-Live operation requires renewed authorization to call and a controlled test. The owner must reload unpacked extension **0.4.0** and refresh the idle CRM; this change does not update the installed extension automatically. Connect its phone, refresh audio devices, and choose **Open calling list** in the extension panel. The local window pairs with that exact opener through nonce-checked private message ports. Directly opened pages support simulation but cannot start live lists.
+Live operation requires authorization for the contacts being called. The owner reloaded unpacked extension **0.4.0** for the single test; refreshing the idle CRM reconnected its previously closed phone. For new installations, reload and refresh while idle, connect the phone, refresh audio devices, and choose **Open calling list**. The local window pairs with that exact opener through nonce-checked private message ports. Directly opened pages support simulation but cannot start live lists.
 
 For a live draft, uncheck Simulation, provide a caller number available in the CRM, review the voicemail and approved brief, and select the calling timezone/window. The default is 09:00–17:00 America/Los_Angeles. One timezone applies to the whole list; location is not inferred from numbers. Then explicitly Start. Keep both windows and the computer awake. Closing/sleeping, background throttling, network loss and logout may interrupt this foreground workflow. It is not a hosted scheduler.
 

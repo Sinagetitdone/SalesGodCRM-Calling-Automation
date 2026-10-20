@@ -2,9 +2,9 @@
 
 Date: 2026-10-20
 
-Status: Implemented and tested synthetically; real automatic integration pending authorization and controlled verification.
+Status: Implemented; synthetic checks and one explicitly authorized real automatic voicemail call passed. Automatic human-answer handling remains unverified on a real call.
 
-The owner requests sequential first-name/last-name/phone lists, transcripts and event logs without recordings, and completion notification. The current owner instruction forbids calls.
+The owner requests sequential first-name/last-name/phone lists, transcripts and event logs without recordings, and completion notification. Initial development prohibited calls; the owner later authorized one controlled real test. It reached voicemail, played the approved message after greeting and beep, hung up automatically, saved events and completed the list. CRM confirmed no ongoing calls. Carrier recording is unconfirmed; human-answer behavior and multi-contact live processing were not exercised.
 
 Use the existing loopback Fastify server and SQLite. A separate campaign store owns draft settings, explicit Start authorization, normalized contacts, suppression/windows, single active attempts, transcripts and material transitions. This local deployment trusts its operating-system user and exact loopback origin; it does not provide hosted multi-user authentication. The standard key remains server-side. No per-contact consent field is introduced.
 
