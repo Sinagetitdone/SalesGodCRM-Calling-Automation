@@ -61,6 +61,7 @@
   }
   function classifyAnswer(current, text) {
     if (!current.config.automatic || current.humanPending || !answerPhases.includes(report.phase) || typeof text !== 'string' || !text.trim()) return;
+    current.detector?.resetConfirmation();
     clearTimeout(current.classifyTimer); current.classificationCheck = String(++current.answerRevision);
     const check = current.classificationCheck;
     void log('answer.classification_requested');
@@ -77,8 +78,8 @@
     void log('answer.classified_' + classification);
     if (answerPhases.includes(report.phase) && classification === 'human') {
       current.humanPending = true; stopVoicemailAudio(current); scheduleHumanStart(current);
-    } else if (report.phase === 'screening' && classification === 'voicemail') current.detector?.transcript('Leave a message after the beep');
-    else if (report.phase === 'screening' && classification === 'unavailable') { report.voicemailOutcome = 'mailbox_unavailable'; mute(); phase('paused', 'Phone announcement requires review'); }
+    } else if (['screening', 'voicemail-waiting'].includes(report.phase) && classification === 'voicemail') current.detector?.confirmVoicemail();
+    else if (['screening', 'voicemail-waiting'].includes(report.phase) && classification === 'unavailable') { current.detector?.stop(); report.voicemailOutcome = 'mailbox_unavailable'; mute(); phase('paused', 'Phone announcement requires review'); }
   }
   function explicitHumanQuestion(current, text) {
     if (typeof text !== 'string' || text.length > 180 || !/\b(?:can|could) you hear me\b|\bwho(?: is|s) (?:this|calling)\b|\bare you (?:there|listening)\b/i.test(text.replaceAll("'", ''))) return false;
@@ -181,21 +182,24 @@
       transcription: { model: 'gpt-4o-mini-transcribe', language: 'en' },
       turn_detection: { type: 'server_vad', create_response: false, interrupt_response: false, silence_duration_ms: 350, prefix_padding_ms: 300 }
     } } } });
+    // Detector owns the ringing/greeting deadlines; a shared fixed timer used
+    // to cut off a late greeting before the recording window could be detected.
     current.screenTimer = setTimeout(() => {
       if (run === current && ['screening', 'voicemail-waiting'].includes(report.phase)) {
         report.voicemailOutcome = 'needs_review'; void log('voicemail.timeout'); mute(); phase('paused', 'No confirmed greeting and beep · review the call or end it');
       }
-    }, 60000);
+    }, 170000);
   }
-  async function beginVoicemail() {
+  async function beginVoicemail(trigger = 'beep') {
     const current = run;
     if (!current || current.stopping || current.voicemailAttempted || current.humanPending || !['screening', 'voicemail-waiting'].includes(report.phase) || current.media.state !== 'ready') return;
     current.voicemailAttempted = true; current.pendingHumanTurns = []; current.classificationCheck = undefined;
-    phase('voicemail-playing', 'Voicemail beep detected · opening message audio');
+    report.voicemailTrigger = trigger;
+    phase('voicemail-playing', trigger === 'confirmed_silence' ? 'Voicemail confirmed and greeting quiet · opening message audio' : 'Voicemail beep detected · opening message audio');
     current.input.enabled = Boolean(current.config.automatic); current.output.gain.value = 0; current.listenPending = false; clearTimeout(current.screenTimer);
     // Automatic calls keep the existing response-disabled VAD/transcription running.
     if (!current.config.automatic) send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: null } } } });
-    await log('voicemail.beep_detected');
+    await log(trigger === 'confirmed_silence' ? 'voicemail.silence_fallback' : 'voicemail.beep_detected');
     if (run !== current || current.stopping || current.logFailed || report.phase !== 'voicemail-playing') return;
     current.voicemailStarting = true; current.link.send({ type: 'live-gate', open: true });
     current.vadTimer = setTimeout(() => { void finish('failed', 'Voicemail audio gate was not acknowledged · end the phone call'); }, 6000);
@@ -352,7 +356,11 @@
           current.listenPending = false; current.input.enabled = true;
           current.detector = new window.SalesGodVoicemail.Detector({
             onGreeting() { phase('voicemail-waiting', 'Voicemail greeting recognized · waiting silently for beep'); void log('voicemail.greeting_detected'); },
-            onReady: () => void beginVoicemail(), onTimeout() {},
+            onReady: trigger => void beginVoicemail(trigger),
+            canFallback: () => !current.customerSpeaking && !current.humanPending && !current.classificationCheck && !current.stopping,
+            onTimeout() { if (run === current && ['screening', 'voicemail-waiting'].includes(report.phase)) {
+              report.voicemailOutcome = 'needs_review'; void log('voicemail.timeout'); mute(); phase('paused', 'No confirmed recording window · review the call or end it');
+            } },
             onUnavailable() { report.voicemailOutcome = 'mailbox_unavailable'; void log('voicemail.unavailable'); mute(); phase('paused', 'Mailbox unavailable · no message played · end the phone call'); }
           });
         }
@@ -394,6 +402,7 @@
           send({ type: 'response.create', response: { instructions: 'Introduce yourself clearly as an AI assistant calling from Jay Marketing Lab on behalf of Cena, then ask whether now is a good time to talk. Follow the office conversation instructions; do not give an audio-test introduction.' } });
         }
         if (message.type === 'input_audio_buffer.speech_started') {
+          current.detector?.resetConfirmation();
           // Keep a pending decision about the previous utterance while the
           // person repeats themselves. A newer transcript supersedes it in
           // classifyAnswer; voicemail playback/mute still invalidate old work.

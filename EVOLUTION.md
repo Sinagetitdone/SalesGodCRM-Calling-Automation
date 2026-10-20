@@ -1,5 +1,10 @@
 # Evolution
 
+## 2026-10-20 — Voicemail recovery after a missed beep
+
+The latest local attempt spent about 65 seconds from dispatch to review: media began, a recorded greeting was classified as voicemail, then the fixed screening timer fired with no beep/playback event. The exact acoustic reason the tone was missed is not available in metadata. Replace the one-minute detector deadline with bounded ringing/greeting windows and permit a model-confirmed voicemail plus fresh 2.5-second silence to recover a missed tone. Silence alone never authorizes playback; new speech invalidates the fallback approval and a separate event identifies this trigger. Keep playback/drain and human-takeover behavior unchanged. Seven new synthetic regressions and all existing checks pass (127 plus type checking). No phone call was placed; package 0.4.5 ships the fix.
+
+
 ## 2026-10-20 — Colleague setup walkthrough
 
 Package 0.4.4 turns the setup guide into a numbered Windows/Mac walkthrough with exact launcher commands and expected prompt handling. A small local renderer generates the browser guide during packaging, so HTML and Markdown remain aligned. This is a documentation/distribution change; no call behavior changes and no calls were placed.

@@ -16,9 +16,18 @@
     return 2 * peak / (samples.length * energy) > 0.75;
   }
   class Detector {
-    constructor({ now = () => performance.now(), onGreeting, onReady, onTimeout, onUnavailable = () => {} }) {
-      Object.assign(this, { now, onGreeting, onReady, onTimeout, onUnavailable }); this.active = true; this.started = now();
+    constructor({ now = () => performance.now(), onGreeting, onReady, onTimeout, onUnavailable = () => {}, canFallback = () => true }) {
+      Object.assign(this, { now, onGreeting, onReady, onTimeout, onUnavailable, canFallback }); this.active = true; this.started = now();
     }
+    confirmVoicemail() {
+      if (!this.active) return;
+      this.confirmed = true;
+      if (this.greeting === undefined) { this.greeting = this.now(); this.onGreeting(); }
+      // Only count silence observed after the classification, not earlier ringing gaps.
+      this.quietSince = undefined;
+      this.check();
+    }
+    resetConfirmation() { this.confirmed = false; this.quietSince = undefined; }
     transcript(text) {
       if (!this.active || typeof text !== 'string') return;
       if (/\b(mailbox (?:is )?full|cannot accept|not accepting|unable to (?:record|accept)|cannot be recorded)\b/i.test(text.slice(0, 4000))) {
@@ -33,19 +42,28 @@
     samples(values, sampleRate) {
       if (!this.active) return;
       const now = this.now();
-      if (now - this.started > 60000) { this.active = false; this.onTimeout(); return; }
+      const deadline = this.greeting === undefined ? this.started + 120000 : Math.max(this.started + 120000, this.greeting + 45000);
+      if (now > deadline) { this.active = false; this.onTimeout(); return; }
+      let energy = 0; for (const value of values) energy += value * value;
+      if (Math.sqrt(energy / values.length) < 0.012) this.quietSince ??= now;
+      else this.quietSince = undefined;
       if (tone(values, sampleRate)) { this.toneStart ??= now; this.lastTone = now; }
       else if (this.toneStart !== undefined && now - this.lastTone >= 100) {
         const duration = this.lastTone - this.toneStart;
-        if (duration >= 100 && duration <= 1500) this.beep = this.lastTone;
+        if (duration >= 60 && duration <= 1500) this.beep = this.lastTone;
         this.toneStart = undefined; this.check();
+      }
+      // A model-confirmed recorded greeting plus fresh sustained silence can
+      // recover a missing/unsupported beep. Never use silence alone to guess voicemail.
+      if (this.active && this.confirmed && this.quietSince !== undefined && now - this.quietSince >= 2500 && this.canFallback()) {
+        this.active = false; this.onReady('confirmed_silence');
       }
     }
     check() {
       if (!this.active || this.greeting === undefined || this.beep === undefined) return;
       // ASR may complete shortly after the beep; never reuse an old ringing/DTMF tone.
       if (this.beep < this.greeting - 8000 || this.now() - this.beep > 8000 || this.beep > this.greeting + 30000) return;
-      this.active = false; this.onReady();
+      this.active = false; this.onReady('beep');
     }
     stop() { this.active = false; }
   }

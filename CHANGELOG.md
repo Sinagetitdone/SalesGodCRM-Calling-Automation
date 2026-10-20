@@ -4,6 +4,13 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-20 — Recover missed voicemail beeps (team package 0.4.5)
+
+- The latest real attempt recognized voicemail but hit the fixed 60-second screening timeout without a beep event or playback. Detection now allows 120 seconds for ringing and a bounded extension of at least 45 seconds after a late recognized greeting. Short 60–100 ms mailbox tones are accepted while clicks/long tones remain rejected.
+- A model-confirmed recorded greeting followed by 2.5 seconds of fresh continuous silence can trigger the prepared message if the beep was missed. This path is logged as voicemail.silence_fallback, not a detected beep. New speech resets approval; pending/unknown human decisions cannot use old voicemail approval. Full mailbox, unavailable media, and existing human takeover gates remain active.
+- Added seven deterministic regressions for late greetings, short/missing beeps, silence gating, full mailbox, playback completion and human/ambiguous pickup. Full checks pass 127 tests plus type checking. No new phone call was placed; actual mailbox receipt remains unverified.
+
+
 ### 2026-10-20 — Step-by-step colleague guide (team package 0.4.4)
 
 - Rewrote the guide as ordered first-time setup, daily startup, practice, live import, results, shutdown and update steps. Separate Windows/Mac commands explain downloads, ready output, error-close prompts and Ctrl+C / Windows batch termination.

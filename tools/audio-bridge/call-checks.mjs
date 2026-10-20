@@ -207,6 +207,55 @@ async function automaticMailbox() {
   }, async liveGate() { await env.links[0].options.onMessage({ type: 'gate-state', open: true }); dc.message(vadAck); await tick(); await tick(); } });
 }
 
+test('confirmed voicemail with a missed beep plays once after silence and records the actual fallback trigger', async () => {
+  const env = await automaticMailbox();
+  try {
+    env.setTime(65000); env.classify('voicemail'); await tick();
+    const quiet = new Float32Array(2048);
+    env.setTime(65100); env.detectors[0].samples(quiet, 48000);
+    env.setTime(67700); env.detectors[0].samples(quiet, 48000); await tick(); await tick();
+    assert.equal(env.api.status().phase, 'voicemail-playing');
+    await env.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); await tick();
+    const source = env.contexts[0].sources[0]; assert.equal(source.started, true);
+    assert.equal(env.api.status().voicemailOutcome, 'playing');
+    const events = env.requests.filter(r => r.url === '/live-log').map(r => JSON.parse(r.options.body).event);
+    assert.ok(events.includes('voicemail.silence_fallback')); assert.ok(!events.includes('voicemail.beep_detected'));
+    assert.equal(events.filter(e => e === 'voicemail.playback_started').length, 1);
+    source.onended(); await env.fireTimers(1000);
+    assert.equal(env.api.status().voicemailOutcome, 'playback_completed');
+    assert.equal(env.api.status().phase, 'voicemail-complete');
+  } finally { await env.cleanup(); }
+});
+
+test('human speech during the missed-beep quiet window prevents voicemail and starts live conversation', async () => {
+  const env = await automaticMailbox();
+  try {
+    env.classify('voicemail'); await tick();
+    env.setTime(100); env.detectors[0].samples(new Float32Array(2048), 48000);
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'human' });
+    env.setTime(3000); env.detectors[0].samples(new Float32Array(2048), 48000); await tick();
+    assert.equal(env.contexts[0].sources.length, 0);
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'human' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'human', transcript: 'Hello, can you hear me?' });
+    await tick(); await tick(); await env.liveGate();
+    assert.equal(env.api.status().phase, 'talking'); assert.equal(env.contexts[0].sources.length, 0);
+  } finally { await env.cleanup(); }
+});
+
+test('ambiguous new speech invalidates an older voicemail silence-fallback approval', async () => {
+  const env = await automaticMailbox();
+  try {
+    env.classify('voicemail'); await tick();
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'ambiguous' });
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'ambiguous' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'ambiguous', transcript: 'Hmm.' });
+    env.classify('unknown', 'unknown-classifier'); await tick();
+    env.setTime(100); env.detectors[0].samples(new Float32Array(2048), 48000);
+    env.setTime(4000); env.detectors[0].samples(new Float32Array(2048), 48000); await tick();
+    assert.equal(env.contexts[0].sources.length, 0); assert.equal(env.api.status().phase, 'voicemail-waiting');
+  } finally { await env.cleanup(); }
+});
+
 test('repeated speech preserves the pending human decision and takeover starts at speech stop without a polling delay', async () => {
   const env = await automaticMailbox();
   try {

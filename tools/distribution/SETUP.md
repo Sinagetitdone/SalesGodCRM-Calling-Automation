@@ -204,6 +204,10 @@ A confirmed `unsupported_country_region_territory` error means OpenAI denied API
 
 Try the `bash` commands in Step 8. If macOS or company policy blocks the download, ask IT to review it. Do not disable Gatekeeper, certificate checks, or other security protections.
 
+### A call rang but no voicemail was left
+
+Version 0.4.5 fixes an early voicemail screening timeout and can recover a missed beep after a confirmed recorded greeting and 2.5 seconds of silence. It allows more time for ringing and late greetings. The list still pauses for unknown outcomes or a full mailbox rather than claiming delivery. A result of voicemail played means the audio finished playing; mailbox storage is not independently verified. If you updated, restart the idle bridge, close old calling-list windows, and reopen controls from CRM before a supervised test. Do not repeatedly redial an uncertain attempt.
+
 ### Chrome shows no audio device, or a local audio/WebRTC test fails
 
 Confirm the bridge is running and no CRM call is active. Check extension status, enable local routing, review CRM audio devices, and repeat the idle local audio checks. Ask your administrator if it still fails; do not change Chrome privacy flags or firewall rules to force it through. The standalone OpenAI test does not verify telephone media.

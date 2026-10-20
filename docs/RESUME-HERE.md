@@ -2,6 +2,9 @@
 
 ## Stop state
 
+Latest fix: package 0.4.5 addresses the last real attempt's recognized-voicemail/no-beep timeout. Detector permits 120 seconds ringing and at least 45 seconds after a late greeting; confirmed voicemail plus 2.5 seconds fresh quiet can recover a missed beep. New speech resets fallback confirmation, and full mailboxes/pending human decisions block it. Logs distinguish voicemail.silence_fallback from voicemail.beep_detected. All 127 checks plus type checking passed; no new call or mailbox delivery has been verified. Close old idle calling-list controls and reopen from CRM after restarting the idle bridge to load the change; no extension reload is needed for this client/server-only patch.
+
+
 Latest distribution: 0.4.4 contains the rewritten colleague guide (first-time setup, platform-specific command windows, daily startup, simulation, import-before-Start, notifications, logs, shutdown, errors and updates). SETUP.html is generated from SETUP.md by build-setup-guide.mjs during package:team. Runtime/extension behavior is unchanged from 0.4.3; no calls were placed for this guide update.
 
 

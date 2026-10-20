@@ -32,7 +32,7 @@ test('missing beep, short clicks, long tones and stale beeps do not trigger; det
   s.at(100, wave(1000)); s.at(120, wave(1000)); s.at(250, silence);
   s.at(300, wave(1000)); s.at(2500, wave(1000)); s.at(2650, silence);
   assert.equal(s.counts().ready, 0);
-  s.at(60001, silence); assert.equal(s.counts().timeouts, 1);
+  s.at(120001, silence); assert.equal(s.counts().timeouts, 1);
   const late = setup(); late.at(100, wave(1000)); late.at(400, wave(1000)); late.at(550, silence); late.at(10000);
   late.detector.transcript('Leave a message after the tone'); assert.equal(late.counts().ready, 0);
 });
@@ -47,4 +47,43 @@ test('a full mailbox stops detection instead of accepting its beep', () => {
   detector.transcript('The mailbox is full and cannot accept your message.');
   detector.transcript('Leave a message after the beep');
   assert.equal(unavailable, true); assert.equal(detector.active, false); assert.equal(played, false);
+});
+
+test('late voicemail greeting survives ringing past sixty seconds and a short completed beep', () => {
+  const s = setup(); s.at(85000, silence);
+  assert.equal(s.counts().timeouts, 0);
+  s.detector.transcript('Leave your message after the tone');
+  s.at(85100, wave(1000)); s.at(85180, wave(1000)); s.at(85300, silence);
+  assert.equal(s.counts().ready, 1);
+});
+
+test('missed beep recovers only after model-confirmed voicemail and fresh sustained silence', () => {
+  const s = setup();
+  s.detector.transcript('Please leave a message');
+  s.at(1000, silence); s.at(6000, silence);
+  assert.equal(s.counts().ready, 0);
+  s.detector.confirmVoicemail();
+  s.at(6100, silence); s.at(8500, silence); assert.equal(s.counts().ready, 0);
+  s.at(8700, silence); assert.equal(s.counts().ready, 1);
+  s.at(10000, silence); assert.equal(s.counts().ready, 1);
+});
+
+test('speech and pending human classification prevent the silence fallback', () => {
+  let now = 0, allow = false, played = 0;
+  const detector = new Detector({ now: () => now, onGreeting() {}, onReady: reason => { assert.equal(reason, 'confirmed_silence'); played++; }, onTimeout() {}, canFallback: () => allow });
+  detector.confirmVoicemail();
+  const at = (time, values) => { now = time; detector.samples(values, 48000); };
+  at(100, silence); at(3000, silence); assert.equal(played, 0);
+  allow = true; at(3100, wave(350)); at(3200, silence); at(5500, silence); assert.equal(played, 0);
+  at(5800, silence); assert.equal(played, 1);
+});
+
+test('full mailbox cannot use fallback and greeting extends the bounded deadline', () => {
+  const s = setup(); s.at(115000, silence); s.detector.confirmVoicemail();
+  s.at(121000, wave(350)); assert.equal(s.counts().timeouts, 0);
+  s.at(160001, wave(350)); assert.equal(s.counts().timeouts, 1);
+  let played = 0;
+  const detector = new Detector({ now: () => 0, onGreeting() {}, onReady: () => played++, onTimeout() {} });
+  detector.transcript('The mailbox is full'); detector.confirmVoicemail();
+  detector.samples(silence, 48000); assert.equal(played, 0); assert.equal(detector.active, false);
 });

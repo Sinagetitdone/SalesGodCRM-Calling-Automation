@@ -16,3 +16,8 @@ Model voicemail as a separate silent screening and one-shot playback path. Prepa
 # Evidence
 
 Pure signal tests cover mailbox frequencies, silence, ring tones, broadband input, clicks and long tones. Controller tests cover both-cue ordering, delayed transcripts, one-shot behavior, cancellation, failed preparation, gate acknowledgement, completion drain and hangup interruption. The actual OpenAI/browser rehearsal received the prepared message at the synthetic mailbox with peak 0.62636, persisted the event sequence and stopped all AI resources. Real mailbox recording remains unverified.
+
+
+## 2026-10-20 — Recognized greeting without a detected beep
+
+Metadata from the latest attempt established voicemail classification followed by the 60-second timeout, with no beep or playback events. Do not claim the acoustic cause is known without a recording. Give ringing and late greetings bounded time; support short legitimate tones; recover a missing beep only after model-confirmed voicemail and fresh continuous silence. New speech must reset fallback approval, pending/unknown human classification must block it, and full mailbox announcements must remain terminal. Log the silence fallback separately from acoustic beep detection. Tests must cover delayed ringing, missing/short beeps, playback drain and ambiguous/human interruption. Successful audio playback does not independently establish mailbox storage.
