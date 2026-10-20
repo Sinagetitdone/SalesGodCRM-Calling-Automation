@@ -1,6 +1,12 @@
 # Calling lists — version 0.4.0
 
-Initial implementation used synthetic contacts only under the owner's no-call instruction. On 2026-10-20 the owner explicitly authorized one real test to their latest provided number. Automatic dispatch, verified dialer audio, voicemail greeting/beep detection, single prepared-message playback, automatic hangup, saved events and list completion all succeeded. CRM then reported **No ongoing calls** and routing disabled. Carrier recording remains unconfirmed; automatic human classification/conversation ending still needs a separate real human-answer test. Opening, importing or reloading never starts calls automatically.
+Initial implementation used synthetic contacts only. On 2026-10-20 an explicitly authorized real call exercised dispatch, dialer audio, greeting/beep detection, message playback, hangup, saved events and completion. The owner then reported that a person picked up and spoke during voicemail, but the system hung up. That call therefore failed human takeover, despite its playback-completed log. The takeover fix below has synthetic regression coverage only; no new call was made for the fix. Opening, importing or reloading never starts calls automatically.
+
+### Human pickup during voicemail
+
+Automatic mode retains response-disabled VAD and transcription during message playback and an eight-second quiet window afterward. New speech immediately stops prepared audio and cancels voicemail hangup; confirmed human speech starts the existing gated live conversation on the same connection. Recognition continues even after a greeting was marked voicemail. Delayed pre-message greeting events and obsolete classifier results cannot trigger a false takeover. The initial human utterance is saved when human classification is confirmed.
+
+Speech awaiting transcription/classification blocks voicemail completion. After thirty seconds without a confirmed interpretation, the list requires review rather than claiming a successful voicemail. It does not replay a partially interrupted message. A disconnect while checking pickup also requires review. Noise/echo or uncertain classification can interrupt voicemail and require review; this is preferable to knowingly closing a possible human conversation. Manual supervised mode retains owner confirmation and now permits that control during playback too. Reopen local controls to load this fix; extension 0.4.0 itself is unchanged.
 
 ## Try without calling
 

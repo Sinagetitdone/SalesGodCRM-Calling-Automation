@@ -2,9 +2,9 @@
 
 Date: 2026-10-20
 
-Status: Implemented; synthetic checks and one explicitly authorized real automatic voicemail call passed. Automatic human-answer handling remains unverified on a real call.
+Status: Implemented with synthetic checks. The first automatic real call exposed a missed human pickup during voicemail. A takeover fix is regression-tested synthetically and awaits a separately authorized real verification.
 
-The owner requests sequential first-name/last-name/phone lists, transcripts and event logs without recordings, and completion notification. Initial development prohibited calls; the owner later authorized one controlled real test. It reached voicemail, played the approved message after greeting and beep, hung up automatically, saved events and completed the list. CRM confirmed no ongoing calls. Carrier recording is unconfirmed; human-answer behavior and multi-contact live processing were not exercised.
+The owner requests sequential first-name/last-name/phone lists, transcripts and event logs without recordings, and completion notification. An authorized test exercised voicemail playback and hangup, but the owner reported a person picked up and spoke before the system hung up. Playback telemetry was insufficient to call the test successful. Automatic mode now keeps speech detection/transcription enabled during and briefly after voicemail, interrupts prepared audio on new speech, blocks hangup while classification is pending, and permits a human transition from voicemail phases. Unknown interruptions pause for review; interrupted messages are not replayed. Real takeover and multi-contact live processing remain unverified after the fix.
 
 Use the existing loopback Fastify server and SQLite. A separate campaign store owns draft settings, explicit Start authorization, normalized contacts, suppression/windows, single active attempts, transcripts and material transitions. This local deployment trusts its operating-system user and exact loopback origin; it does not provide hosted multi-user authentication. The standard key remains server-side. No per-contact consent field is introduced.
 

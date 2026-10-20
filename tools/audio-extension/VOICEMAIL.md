@@ -1,5 +1,7 @@
 # Voicemail handling
 
+Automatic-list correction (2026-10-20): the owner reported a live person speaking during voicemail playback before the system hung up. [Calling-list mode](CALLING-LISTS.md) now keeps VAD/transcription running, stops voicemail on new speech, cancels hangup while checking human pickup, and can switch to live conversation. After uninterrupted playback it listens for eight quiet seconds before finishing. Unconfirmed interruptions require review. Synthetic regression tests passed; no follow-up phone call was made. The manual supervised behavior below remains separate.
+
 Port migration (2026-10-20): Windows reserved the previous loopback port, preventing the bridge from starting with `EACCES`. The bridge and extension now use `http://127.0.0.1:28431`. Reload extension **0.3.2** once and refresh the idle CRM tab before pairing. Earlier 0.3.1 notes below describe the original voicemail release.
 
 Voicemail is enabled by default in newly opened supervised-call controls. Before preparing, review/edit **Voicemail message**. Its default clearly identifies Sina's AI assistant and describes an audio test; replace it with approved campaign wording before business use. The message goes to OpenAI TTS (`gpt-4o-mini-tts`, `marin`) before dialing and is held only in browser memory. Text is limited to 1000 characters; decoded audio must be 0.5–60 seconds. Failed preparation stops setup before a phone call should start. No extension reload beyond 0.3.1 is needed for this server/page update.

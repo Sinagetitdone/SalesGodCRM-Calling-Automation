@@ -48,7 +48,7 @@ A generic webhook client is retained as an alternative integration primitive. Do
 
 ## Remaining work before real campaigns
 
-- One explicitly authorized automatic voicemail test passed: dispatch, greeting/beep detection, approved message playback, automatic hangup, saved events and completion. CRM confirmed no ongoing calls. Carrier recording is unconfirmed. Automatic human-answer handling and multiple-contact live processing still need separate authorized verification.
+- The first authorized automatic call exposed a missed human pickup during voicemail, despite successful playback/hangup telemetry. The fix keeps listening during/after voicemail and cancels hangup on possible pickup; regression tests pass without calls. Real takeover and multiple-contact live processing still need separately authorized verification. See [calling-list limits](tools/audio-extension/CALLING-LISTS.md).
 - CSV lists, local suppression/window checks, explicit Start authorization, crash recovery, transcripts and completion UI are now implemented in the audio bridge and tested synthetically. Hosted multi-user authentication and provider reconciliation remain future work.
 - Supply an approved business brief before real lists. Playback cannot prove carrier recording. Review unknown attempts in the CRM before explicit resume; they are never redialed automatically.
 

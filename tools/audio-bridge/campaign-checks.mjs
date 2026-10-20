@@ -110,7 +110,7 @@ test('campaign API rejects cross-origin/start without authorization and exposes 
   } finally { await app.close(); f.store.close(); }
 });
 const workerSource = await readFile(new URL('public/campaign-worker.js', import.meta.url), 'utf8');
-function workerFixture(simulation = true, failDial = false) {
+function workerFixture(simulation = true, failDial = false, terminal = {}) {
   const f = fixture(simulation), window = {}, states = [], commands = []; let now = 0, session = randomUUID(), status = { canPrepare: true, prepared: true, sessionId: session, phase: 'waiting' }, phone = 'idle';
   vm.runInNewContext(workerSource, { window, crypto: { randomUUID }, setInterval, clearInterval, document: { getElementById: () => ({}) } });
   const api = async (path, body) => {
@@ -129,7 +129,7 @@ function workerFixture(simulation = true, failDial = false) {
   const audio = { configure() { status = { canPrepare: true, prepared: true, sessionId: randomUUID(), phase: 'waiting' }; }, pair() {}, async prepare() {}, status: () => status, async stop() { status = { ...status, phase: 'stopped', humanAnswered: true, stopping: false }; } };
   const driver = async (command, data) => {
     commands.push(command);
-    if (command === 'dial') { phone = 'active'; if (failDial) throw new Error('Lost acknowledgement'); status = { ...status, phase: 'stopped', humanAnswered: true, conversationOutcome: 'completed' }; }
+    if (command === 'dial') { phone = 'active'; if (failDial) throw new Error('Lost acknowledgement'); status = { ...status, phase: 'stopped', humanAnswered: true, conversationOutcome: 'completed', ...terminal }; }
     if (command === 'hangup') phone = 'ended';
     if (command === 'status') return { state: phone };
     return {};
@@ -153,4 +153,12 @@ test('fake live driver hangs up before next dispatch, and lost dispatch acknowle
     await uncertain.worker.run(uncertain.id); assert.equal(uncertain.commands.filter(x => x === 'dial').length, 1);
     assert.deepEqual(uncertain.store.read(uncertain.id).contacts.map(c => c.state), ['unknown', 'pending']); assert.equal(uncertain.store.read(uncertain.id).state, 'paused');
   } finally { uncertain.store.close(); }
+});
+test('unconfirmed late human pickup overrides voicemail playback and pauses before the next contact', async () => {
+  const f = workerFixture(false, false, { voicemailOutcome: 'playback_completed', takeoverPending: true });
+  try {
+    await f.worker.run(f.id); assert.equal(f.commands.filter(c => c === 'dial').length, 1);
+    assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['needs_review', 'pending']);
+    assert.equal(f.store.read(f.id).state, 'paused');
+  } finally { f.store.close(); }
 });

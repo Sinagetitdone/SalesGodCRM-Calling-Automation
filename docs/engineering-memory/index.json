@@ -3,6 +3,12 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-008",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-VOICEMAIL-TAKEOVER.md",
+      "tags": ["audio", "calling", "testing", "state-transitions"]
+    },
+    {
       "id": "LL-2026-007",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-CAMPAIGN-RECOVERY.md",

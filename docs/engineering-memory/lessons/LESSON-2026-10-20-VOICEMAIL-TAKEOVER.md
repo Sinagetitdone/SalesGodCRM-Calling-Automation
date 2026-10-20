@@ -1,0 +1,7 @@
+# LL-2026-008: Voicemail is an interruptible phase, not a terminal answer type
+
+The first automatic call logged message playback and hangup as expected, yet the owner reported a person picked up and spoke during the message. The input track and VAD had been disabled for playback, classification only ran in initial screening, and playback completion closed the call. A recording opportunity is provisional: a person may take over at any stage.
+
+Keep response-disabled speech detection and transcription running during automatic voicemail. Stop prepared output and cancel the closing timer on new speech. Permit human transitions from greeting, playback and post-playback phases while retaining media/gate/VAD checks. Correlate classifier results with the current utterance; stale results and delayed known greeting events must not start a false conversation. Do not replay interrupted voicemail.
+
+Wait through a bounded quiet window after playback. Pending speech/transcription must override a playback-completed disposition, including on disconnect; unknown interruptions require review. Persist the initial confirmed human utterance. Validate before-beep, during-message, post-message and delayed-ASR paths, not just a quiet mailbox. Playback telemetry establishes only that samples were sent, not correct answer handling or mailbox recording. User feedback can invalidate a synthetically plausible success assessment.

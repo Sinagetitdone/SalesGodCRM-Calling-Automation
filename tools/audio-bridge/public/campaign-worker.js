@@ -56,7 +56,8 @@
                   if (status.phase === 'paused') { outcome = 'needs_review'; break; }
                   if (status.phase === 'failed') { outcome = 'failed'; break; }
                   if (['stopped'].includes(status.phase) && !status.stopping) {
-                    outcome = status.voicemailOutcome === 'playback_completed' ? 'voicemail_played' : status.conversationOutcome === 'opt_out' ? 'opt_out'
+                    outcome = status.takeoverPending || ['needs_review', 'incomplete'].includes(status.voicemailOutcome) ? 'needs_review'
+                      : status.voicemailOutcome === 'playback_completed' ? 'voicemail_played' : status.conversationOutcome === 'opt_out' ? 'opt_out'
                       : /limit/i.test(status.stopReason || '') || status.transcriptSaved === false ? 'needs_review'
                       : status.conversationOutcome === 'completed' ? 'completed'
                       : !['ended', 'idle'].includes(phone.state) ? 'needs_review'

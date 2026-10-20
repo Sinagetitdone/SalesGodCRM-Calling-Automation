@@ -48,7 +48,7 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
       .replace('Prepare the audio here, then use the SalesGodCRM dialer. This page cannot enter numbers, dial, or hang up the phone.', 'Preview a list, review its settings, then start it explicitly. Keep this window and your logged-in CRM open while a list runs.')
       .replace('<section><h2>Audio connection', form + '<section><h2>Audio connection')
       .replace('No phone numbers, names, transcripts, recordings, keys, or network addresses are stored.', 'The separate calling-list database stores contact details and conversation transcripts for seven days. No recordings or keys are saved.')
-      .replace('For a person, choose “Customer answered — start AI”. No sales pitch is configured.', 'List mode classifies human answers automatically. Uncertain answers pause the list for review.')
+      .replace('For a person, choose “Customer answered — start AI”. No sales pitch is configured.', 'List mode keeps listening during and after voicemail. New speech stops the message and cancels automatic hangup while it checks for a person. Confirmed human pickup switches to live conversation; uncertain speech requires review.')
       .replace('Ending or pausing AI does not hang up SalesGodCRM. End the phone call in the dialer when finished.', 'Use the list Stop button to end its owned call and pause. A natural goodbye or completed voicemail ends the owned call before moving on. If call identity is uncertain, check the CRM manually.')
       .replace('AI-generated voice · Supervised office conversation · No automatic dialing', 'AI-generated voice · Sequential calling lists · Explicit Start required');
     return reply.type('text/html; charset=utf-8').send(html);
