@@ -81,12 +81,10 @@
     return true;
   }
   function scheduleHumanStart(current) {
-    clearTimeout(current.humanTimer);
-    current.humanTimer = setTimeout(() => {
-      if (!answerPhases.includes(report.phase) || current.stopping || !current.humanPending) return;
-      if (current.customerSpeaking) { scheduleHumanStart(current); return; }
-      void confirmAnswer(true);
-    }, 1000);
+    // speech_stopped already includes the server VAD silence interval. Do not
+    // add another polling delay, or restart it for every repeated greeting.
+    if (run !== current || !answerPhases.includes(report.phase) || current.stopping || !current.humanPending || current.customerSpeaking) return;
+    void confirmAnswer(true);
   }
   function stopVoicemailAudio(current) {
     clearTimeout(current.drainTimer); clearTimeout(current.voicemailEndTimer); clearTimeout(current.vadTimer);
@@ -129,7 +127,7 @@
   function mute() {
     if (!run) return;
     run.detector?.stop(); run.listenPending = false; clearTimeout(run.screenTimer);
-    clearTimeout(run.classifyTimer); clearTimeout(run.humanTimer); clearTimeout(run.endTimer);
+    clearTimeout(run.classifyTimer); clearTimeout(run.endTimer);
     clearTimeout(run.voicemailEndTimer); clearTimeout(run.takeoverTimer); run.classificationCheck = undefined; run.humanPending = false;
     clearTimeout(run.instructionTimer); run.instructionPending = undefined;
     if (run.voicemailSource) {
@@ -174,7 +172,7 @@
     current.listenPending = true;
     send({ type: 'session.update', session: { type: 'realtime', audio: { input: {
       transcription: { model: 'gpt-4o-mini-transcribe', language: 'en' },
-      turn_detection: { type: 'server_vad', create_response: false, interrupt_response: false, silence_duration_ms: 600, prefix_padding_ms: 300 }
+      turn_detection: { type: 'server_vad', create_response: false, interrupt_response: false, silence_duration_ms: 350, prefix_padding_ms: 300 }
     } } } });
     current.screenTimer = setTimeout(() => {
       if (run === current && ['screening', 'voicemail-waiting'].includes(report.phase)) {
@@ -307,7 +305,7 @@
           if (data?.type === 'gate-state' && report.phase === 'starting') {
             if (!data.open || current.media.state !== 'ready') { $('error').textContent = 'Dialer audio is not ready.'; void finish('failed'); return; }
             current.vadPending = true; send({ type: 'input_audio_buffer.clear' });
-            send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true, silence_duration_ms: 600, prefix_padding_ms: 300 } } } } });
+            send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true, silence_duration_ms: 350, prefix_padding_ms: 300 } } } } });
           }
         },
       });
@@ -389,15 +387,18 @@
           send({ type: 'response.create', response: { instructions: 'Introduce yourself clearly as an AI assistant calling from Jay Marketing Lab on behalf of Cena, then ask whether now is a good time to talk. Follow the office conversation instructions; do not give an audio-test introduction.' } });
         }
         if (message.type === 'input_audio_buffer.speech_started') {
-          current.answerRevision++; current.classificationCheck = undefined;
-          if (!current.humanPending) clearTimeout(current.humanTimer);
+          // Keep a pending decision about the previous utterance while the
+          // person repeats themselves. A newer transcript supersedes it in
+          // classifyAnswer; voicemail playback/mute still invalidate old work.
           if (!current.voicemailAttempted && message.item_id) current.preVoicemailItems.add(message.item_id);
           checkVoicemailInterruption(current);
           current.customerSpeaking = true; current.endReason = undefined; clearTimeout(current.endTimer);
           report.customerTurns++; void log('customer.speech_started');
           if (current.responseActive || current.playback) { report.interruptions++; void log('ai.interrupted'); }
         }
-        if (message.type === 'input_audio_buffer.speech_stopped') { current.customerSpeaking = false; void log('customer.speech_stopped'); }
+        if (message.type === 'input_audio_buffer.speech_stopped') {
+          current.customerSpeaking = false; void log('customer.speech_stopped'); scheduleHumanStart(current);
+        }
         if (message.type === 'response.created') { current.responseActive = true; report.aiTurns++; void log('ai.response_started'); }
         if (message.type === 'response.done') {
           current.responseActive = false;

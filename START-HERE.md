@@ -26,7 +26,7 @@ The owner states imported lists are pre-authorized. The audio bridge enforces su
 
 ## Not implemented or unverified in this branch
 
-The automatic human-answer path is unresolved on real media: an answered test produced zero AI replies. Later fixes passed synthetic checks, but the latest real call only reached voicemail with nobody picking up. Multiple-contact live processing, carrier recording, provider outcome reconciliation, hosted multi-user identity and unattended production operation remain unverified or unimplemented. Do not describe the whole automatic workflow as passed. A specific approved brief is required before business campaigns; do not invent offers, contact details or bookings.
+A later single real call automatically switched from voicemail to a human conversation after earlier failed tests. The owner reported slow interruption recovery; a subsequent patch removes extra polling, preserves pending decisions across repeated speech, and shortens VAD silence. That latency patch has synthetic coverage but has not been phone-tested. Multiple-contact live processing, carrier recording, provider outcome reconciliation, hosted multi-user identity and unattended production operation remain unverified or unimplemented. Do not describe the whole automatic workflow as passed. A specific approved brief is required before business campaigns; do not invent offers, contact details or bookings.
 
 ## Validation and workflow
 

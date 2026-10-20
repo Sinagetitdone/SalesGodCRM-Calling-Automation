@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-20 — Automatic human takeover observed; reduce interruption delay
+
+One newly authorized single call recognized greeting/beep and began prepared voicemail. New speech stopped playback; correlated classification and an interactive question then triggered human takeover without an owner-answer button. The saved conversation contains live AI replies and the recipient's audibility confirmation. The AI included the approved contact-Cena closing; the telephone ended and CRM showed no ongoing calls. This establishes one observed automatic takeover, not unattended or multi-contact reliability. Repeated interruptions and imperfect transcription remained visible.
+
+The owner reported a long pause on interruption. Inspection found that a fresh speech onset erased an in-flight classifier decision, and confirmed human startup used a one-second polling timer in addition to VAD silence. Pending decisions now survive repeated speech until a newer transcript supersedes them. Confirmed human startup runs immediately when speech-stop and evidence are both available, retaining verified media/gate/VAD checks. Screening and live server VAD silence is reduced from 600 to 350 ms. Two new synthetic regressions exercise pending-result preservation and supersession, and existing regressions verify timer-free startup. No new call or paid API request was made to test this latency change; real end-to-end latency remains to be measured. The full check reached an unrelated transient fetch bad-port failure in the fake-provider HTTP check; that check passed on rerun.
+
 ## 2026-10-20 — Diagnostic voicemail-only test
 
 One further explicitly authorized call loaded the new detection logs. Incoming speech was transcribed, a classification returned voicemail, the greeting and beep were recognized, the approved message played, and the call ended after the eight-second quiet window. There were zero live AI response turns and no speech starting during message playback or the final listening window. The owner confirmed nobody picked up, so this exercised voicemail only and does not validate human-answer behavior. No retry was made; logs remain local and no call was left active.

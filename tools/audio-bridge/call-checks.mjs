@@ -123,7 +123,7 @@ test('hello can you hear me starts the gated human path without waiting for a cl
   const env = environment({ voicemail: true });
   try {
     env.api.configure({ automatic: true }); await env.start(); await env.media(); const dc = env.peers[0].channel; dc.message(listenAck); await tick();
-    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'person', transcript: 'Hello, can you hear me?' }); await env.fireTimers(1000);
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'person', transcript: 'Hello, can you hear me?' }); await tick(); await tick();
     assert.equal(env.api.status().phase, 'starting');
     assert.equal(dc.sent.filter(m => m.response?.metadata?.purpose === 'answer_classification').length, 0);
     await env.links[0].options.onMessage({ type: 'gate-state', open: true }); dc.message(vadAck); await tick(); await tick();
@@ -143,12 +143,13 @@ test('classification can be read from response.done alone and confirmed human ev
   const env = environment({ voicemail: true });
   try {
     env.api.configure({ automatic: true }); await env.start(); await env.media(); const dc = env.peers[0].channel; dc.message(listenAck); await tick();
+    dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'person' });
     dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'person', transcript: 'Hello, how can I help?' });
     const request = dc.sent.filter(m => m.response?.metadata?.purpose === 'answer_classification').at(-1);
     dc.message({ type: 'response.done', response: { id: 'classification', status: 'completed', metadata: request.response.metadata, output: [{ type: 'message', content: [{ type: 'output_text', text: 'human' }] }] } });
-    dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'repeat' }); await env.fireTimers(1000);
+    dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'repeat' }); await tick();
     assert.equal(env.api.status().phase, 'screening');
-    dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'repeat' }); await env.fireTimers(1000);
+    dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'repeat' }); await tick(); await tick();
     assert.equal(env.api.status().phase, 'starting'); assert.equal(env.api.status().aiTurns, 0);
     assert.ok(env.api.status().events.some(e => e.event === 'answer.classified_human'));
   } finally { await env.cleanup(); }
@@ -194,6 +195,43 @@ async function automaticMailbox() {
     dc.message({ type: 'response.done', response: { id, status: 'completed' } });
   }, async liveGate() { await env.links[0].options.onMessage({ type: 'gate-state', open: true }); dc.message(vadAck); await tick(); await tick(); } });
 }
+
+test('repeated speech preserves the pending human decision and takeover starts at speech stop without a polling delay', async () => {
+  const env = await automaticMailbox();
+  try {
+    const source = await env.play();
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'person' });
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'person' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'person', transcript: 'Hello, I just answered.' });
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'repeat' });
+    env.classify('human'); await tick();
+    assert.equal(source.stopped, true); assert.equal(env.api.status().phase, 'voicemail-complete');
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'repeat' }); await tick(); await tick();
+    assert.equal(env.api.status().phase, 'starting');
+    assert.equal(env.dc.sent.filter(m => m.type === 'response.create' && !m.response.metadata).length, 0);
+    await env.liveGate(); assert.equal(env.api.status().phase, 'talking');
+    const vad = env.dc.sent.filter(m => m.type === 'session.update').at(-1).session.audio.input.turn_detection;
+    assert.equal(vad.silence_duration_ms, 350); assert.equal(vad.interrupt_response, true); assert.equal(vad.create_response, true);
+  } finally { await env.cleanup(); }
+});
+
+test('a newer utterance supersedes a pending classification without treating speech activity alone as human', async () => {
+  const env = await automaticMailbox();
+  try {
+    await env.play();
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'first' });
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'first' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'first', transcript: 'Unclear words.' });
+    const old = env.dc.sent.filter(m => m.response?.metadata?.purpose === 'answer_classification').at(-1);
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'next' });
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'next' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'next', transcript: 'More unclear words.' });
+    env.dc.message({ type: 'response.done', response: { id: 'old-human', status: 'completed', metadata: old.response.metadata, output: [{ content: [{ type: 'output_text', text: 'human' }] }] } });
+    await tick(); assert.equal(env.api.status().humanAnswered, undefined);
+    env.classify('unknown'); await tick(); assert.equal(env.api.status().phase, 'voicemail-complete');
+    assert.equal(env.api.status().aiTurns, 0);
+  } finally { await env.cleanup(); }
+});
 test('a human can supersede a recognized voicemail greeting before the beep', async () => {
   const env = await automaticMailbox();
   try {

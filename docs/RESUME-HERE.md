@@ -2,7 +2,7 @@
 
 ## Stop state
 
-The owner paused work and requested all code/documentation on GitHub. Do not place another call or schedule an automatic retry without a new request. Existing live tests have ended. List import, page reload and bridge restart never start calls. The latest actual call took the voicemail path; the owner confirmed nobody picked up. Automatic human answering is **not yet verified**.
+The owner subsequently authorized one more call. It automatically switched from voicemail to a human conversation, saved replies and audibility confirmation, and ended with no ongoing CRM call. The owner then requested faster interruption recovery. The latency patch removes extra takeover polling, preserves pending classifier results across repeated speech, and changes VAD silence from 600 to 350 ms. Synthetic checks pass; this patch has not been phone-tested. No additional call is authorized by the fix request. Earlier test descriptions below remain historical evidence. List import, page reload and bridge restart never start calls.
 
 Repository: https://github.com/Sinagetitdone/SalesGodCRM-Calling-Automation
 
@@ -38,11 +38,11 @@ The difference between Cena in the live brief and Sina in the voicemail is owner
 5. Further changes added transcript/classifier lifecycle events without unconfirmed speech text, a narrow interactive-question shortcut after ASR, final `response.done` classification handling, and preservation of confirmed human evidence across repeated speech. Synthetic regressions passed. A bare hello remains ambiguous; speech activity alone is not a confirmed person.
 6. The latest real test recorded transcription and a voicemail classification, recognized greeting/beep, played the message, waited eight quiet seconds and ended the call. There were zero live AI replies and no speech starting during message playback or the final quiet window. The owner confirmed nobody answered. This verifies that voicemail run only; it does not prove the human fix or carrier recording.
 
-There is no successful real automatic human conversation yet. Multiple-contact live sequencing has only synthetic coverage. Do not repeatedly call the owner-provided number to discover whether somebody is ready.
+The later single-call update above established an observed automatic human conversation. Multiple-contact live sequencing has only synthetic coverage. Do not repeatedly call the owner-provided number to discover whether somebody is ready.
 
 ## Next session
 
-1. Inspect current Git state and these notes. The last complete `npm run check` passed **103 tests plus type checking** with fake external responses and synthetic contacts/audio. It places no calls or paid requests.
+1. Inspect current Git state and these notes. The current checks passed **105 tests plus type checking** with fake external responses and synthetic contacts/audio; the fake-provider HTTP check needed a rerun after a transient bad-port failure. Checks place no calls or paid requests.
 2. Check whether the bridge is already listening before starting another copy. Keep `OPENAI_API_KEY` only in the ignored root `.env`; never print it or paste it into GitHub/AGENTS.md. The existing local key was accepted. A colleague must configure their own local environment; secrets/runtime data are intentionally absent from GitHub.
 3. Reopen the local calling-list window through **Open calling list** in the CRM extension to load current client scripts and establish a fresh private control port. Reloading an old list window does not re-establish its previous control port. The recent fixes only changed server/pages, so extension 0.4.0 does not need another reload just for them.
 4. Prefer an OpenAI-backed **no-phone automatic-answer rehearsal** before another phone call. Existing unit tests inject classifier/transcription events; `/call-simulator` primarily exercises supervised mode and must not be presented as full automatic-answer validation. Diagnose ASR receipt, classifier requests/results/timeouts and actual output separately.

@@ -1,5 +1,7 @@
 # Calling lists — version 0.4.0
 
+Latest update: one subsequently authorized real call automatically switched from voicemail playback to a human conversation, saved AI/customer turns and audibility confirmation, and ended with no ongoing call. The owner reported slow interruption recovery. The current patch preserves pending classifier results across repeated speech, removes the extra one-second takeover polling delay, and uses 350 ms turn-end silence instead of 600 ms. Media/gate/VAD checks remain. Synthetic regressions pass; this latency patch has not been tested on another phone call. Earlier test descriptions below are historical, not the current verification state. Reopen controls through the CRM extension to load updated page code; no extension reload is needed for this change.
+
 Initial implementation used synthetic contacts only. On 2026-10-20 an explicitly authorized real call exercised dispatch, dialer audio, greeting/beep detection, message playback, hangup, saved events and completion. The owner then reported that a person picked up and spoke during voicemail, but the system hung up. That call therefore failed human takeover, despite its playback-completed log. The takeover fix below has synthetic regression coverage only; no new call was made for the fix. Opening, importing or reloading never starts calls automatically.
 
 ### Human pickup during voicemail

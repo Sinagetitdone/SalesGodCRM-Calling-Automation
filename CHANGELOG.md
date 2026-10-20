@@ -4,13 +4,19 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-20 — Faster interruption recovery
+
+- Removed the extra one-second human-takeover polling delay and preserved pending human classification across repeated speech. Newer transcripts still supersede older decisions.
+- Reduced screening/live turn-end silence from 600 to 350 ms, retaining interruption and media authorization gates. Shorter pauses may increase early turn-taking; real latency improvement is not yet phone-tested.
+- Recorded one real automatic voicemail-to-human conversation with saved transcript and audibility confirmation. This was before the latency patch; no additional call was made to test the patch.
+
 ### 2026-10-20 — Local browser calling workflow
 
 - Added extension 0.4.0 and loopback audio bridge on port 28431, without VB-CABLE or API keys in browser code.
 - Added CSV drafts, sequential list execution, backend suppression/window/Start checks, durable dispatch/lease recovery, transcripts/events, export and completion UI.
 - Added approved voicemail playback, guarded hangup and human-pickup interruption fixes, including post-message listening, correlated classification, repeated-speech handling and detection diagnostics.
-- Added regression coverage; the latest complete check passed 103 tests plus type checking without phone calls or paid API requests.
-- Recorded failed automatic human-answer tests and the later voicemail-only run accurately. Real automatic human answering and multi-contact calling are not yet validated. Playback does not prove carrier recording.
+- Added regression coverage; 105 tests plus type checking passed without phone calls or paid API requests (the fake-provider HTTP check needed a rerun after a transient bad-port failure).
+- Recorded failed automatic human-answer tests and the later voicemail-only run accurately, followed by the successful single takeover described above. Multi-contact live calling remains unvalidated. Playback does not prove carrier recording.
 - Added [resume notes](docs/RESUME-HERE.md) and refreshed onboarding/current-state documentation. Work is paused; no retry or new call is scheduled.
 
 ### Historical prototype changes
