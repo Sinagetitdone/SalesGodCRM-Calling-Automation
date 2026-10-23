@@ -6,6 +6,8 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **0.5.3** adds reusable real-call background and a **6,000–20,000-character** conversation guide, saved locally until replaced. New lists snapshot these defaults; apply context to an existing idle list explicitly. Real calls, prepared voicemail, manual supervised calls and each rehearsal agent offer **Cedar, Ash, Echo, Ballad and Marin**. Cedar is the new real-call default with a confident young-adult masculine delivery direction; perceived age is not guaranteed. Existing rehearsals retain their original fallback voices.
+
 - Extension **0.4.2** exposes a generated microphone, routes dialer audio, and provides a separate guarded browser adapter for explicitly started calling lists. It starts disabled and contains no API key. VB-CABLE is not required.
 - `/campaigns` imports `first_name,last_name,phone` CSV into draft lists, previews contacts, processes them sequentially, saves conversation transcripts and event logs, and displays completion. The separate **AI Agents Test Call** page offers **Live AI rehearsal**, which uses two OpenAI agents with streamed text, distinct voices and downloadable audio; **Offline workflow check** uses free canned replies. Neither simulation invokes the dialer. Import/reload/restart never starts calls.
 - Live lists enforce backend suppression, calling windows, campaign-level Start authorization, one active attempt, single-use dispatch, and recovery without blind redial. The owner pre-authorizes imported contacts; no per-contact consent field is required.

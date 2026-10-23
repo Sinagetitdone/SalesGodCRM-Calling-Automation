@@ -1,5 +1,12 @@
 # Evolution
 
+## 2026-10-23 — Persistent calling context and five voice choices (0.5.3)
+
+The owner explicitly required 6,000–20,000 characters for the manual live-conversation guide, including a true lower bound. Both the UI and sending code enforce it. Real calling lists now have a separate Background field (optional, up to 20,000 characters) and a conversation guide (6,000–20,000), with local saved defaults, character counts, reload and explicit application to an idle list. A singleton SQLite profile survives restart and seven-day campaign pruning. Lists retain independent context snapshots; updating defaults never changes existing attempts. Full context is included in authorized real-call session instructions, including represented identity instead of a hardcoded office opening. Voicemail wording remains separately approved.
+
+Added Cedar, Ash, Echo, Ballad and Marin selectors for real calls/voicemail, manual supervised calls and both rehearsal roles. Real-call voice saves in the reusable profile and list; rehearsal voices save per imported test list. Cedar requests confident young-adult masculine delivery, without claiming a real age or promising a perceived age. Voice is chosen at session creation; no mid-session voice mutation. Existing rehearsal drafts without voice fields retain Marin/Cedar. All 150 checks and TypeScript passed with mocked OpenAI requests, boundary checks, restart persistence, inactive-list update guards and all five voice payloads for real, manual, voicemail and both rehearsal roles. Browser verification uses idle pages and rejects a 5,999-character guide. No paid AI session or real call was made. Extension version remains 0.4.2; restart the bridge and reopen idle pages for new controls.
+
+
 ## 2026-10-23 — JML branding (0.5.2 / extension 0.4.2)
 
 Applied the supplied JML kit to the local setup, real calling lists, AI test/rehearsal, voice test, simulator and extension panel. Official SVG logos retain their original artwork and proportions. Shared color tokens use purple #4C0099 and lime #B1EB1E, with neutral surfaces, visible keyboard focus and responsive controls. The owner approved retaining the existing fonts when JML fonts are unavailable; no fonts are downloaded or distributed. Calling behavior, prompts, timing, contact data and API-key handling are unchanged.

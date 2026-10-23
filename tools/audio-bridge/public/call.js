@@ -29,6 +29,7 @@
     $('pause').disabled = !run || !['starting', 'talking', ...answerPhases].includes(report.phase);
     $('stop').disabled = !run || run.stopping;
     $('voicemailEnabled').disabled = $('voicemailMessage').disabled = Boolean(run);
+    if ($('liveVoice')) $('liveVoice').disabled = Boolean(run);
     $('sendInstruction').disabled = !run || run.stopping || report.phase !== 'talking' || run.dc.readyState !== 'open' || Boolean(run.instructionPending);
   };
   function render() { $('evidence').textContent = JSON.stringify(report, null, 2); controls(); window.dispatchEvent?.(new CustomEvent('salesgod-call-state')); }
@@ -131,7 +132,8 @@
   }
   async function sendOwnerInstruction() {
     const current = run, text = $('ownerInstruction').value?.trim();
-    if (!current || $('sendInstruction').disabled || !text || text.length > 1000) return;
+    if (!current || $('sendInstruction').disabled) return;
+    if (!text || text.length < 6000 || text.length > 20000) { $('instructionStatus').textContent = 'Enter 6,000–20,000 characters, excluding leading and trailing spaces.'; return; }
     const id = 'item_' + crypto.randomUUID().replaceAll('-', ''); current.instructionPending = id; controls();
     $('instructionStatus').textContent = 'Sending instruction · waiting for AI acknowledgement';
     await log('owner.instruction_sent');
@@ -264,6 +266,7 @@
       media: { state: 'waiting', bridgeMicrophone: false }, responseActive: false, playback: false, logFailed: false,
       config: { ...callConfig }, transcriptJournal: Promise.resolve(), pendingHumanTurns: [], classificationIds: new Map(), answerRevision: 0, preVoicemailItems: new Set() };
     run = current; current.input.enabled = false;
+    current.config.voice ||= $('liveVoice')?.value || 'cedar';
     report = { mode: 'supervised-call', sessionId: crypto.randomUUID(), startedAt: new Date().toISOString(), phase: 'preparing',
       dialingEnabled: false, physicalMicrophoneUsed: false, customerTurns: 0, aiTurns: 0, interruptions: 0, aiAudioPeak: 0, events: [] };
     $('error').textContent = ''; phase('preparing', 'Preparing silent OpenAI audio…');
@@ -296,7 +299,7 @@
       if (voicemailEnabled) {
         if (!voicemailMessage || voicemailMessage.length < 10 || voicemailMessage.length > 1000) throw new Error('Enter a voicemail message between 10 and 1000 characters.');
         $('voicemailState').textContent = 'Preparing your voicemail voice before dialing…';
-        const speech = await fetch('/voicemail-speech', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: voicemailMessage }), signal: current.abort.signal });
+        const speech = await fetch('/voicemail-speech', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: voicemailMessage, voice: current.config.voice }), signal: current.abort.signal });
         if (!speech.ok) { const result = await speech.json().catch(() => ({})); throw connectionFailure(result, speech, 'voicemail_preparation'); }
         const buffer = await context.decodeAudioData(await speech.arrayBuffer());
         if (current.stopping) return;
@@ -413,7 +416,7 @@
           current.vadPending = false; clearTimeout(current.vadTimer); await log('conversation.started');
           if (current.stopping || current.logFailed || report.phase !== 'starting' || current.media.state !== 'ready' || !current.media.bridgeMicrophone) return;
           current.input.enabled = true; output.gain.value = 1; phase('talking', 'AI conversation active · customer may interrupt');
-          send({ type: 'conversation.item.create', item: { type: 'message', role: 'system', content: [{ type: 'input_text', text: 'Begin now: introduce yourself clearly as an AI assistant calling from Jay Marketing Lab on behalf of Cena, then ask whether now is a good time to talk. Retain your assigned brief and concise speaking instructions.' }] } });
+          send({ type: 'conversation.item.create', item: { type: 'message', role: 'system', content: [{ type: 'input_text', text: current.config.automatic ? 'Begin now: clearly identify yourself as an AI assistant using the business and represented person in your approved session context. Ask whether now is a good time to talk. Follow your approved background, conversation guide and brief. Do not invent missing identity details. Retain your concise speaking instructions.' : 'Begin now: introduce yourself clearly as an AI assistant calling from Jay Marketing Lab on behalf of Cena, then ask whether now is a good time to talk. Retain your assigned brief and concise speaking instructions.' }] } });
           send({ type: 'response.create', response: {} });
         }
         if (message.type === 'input_audio_buffer.speech_started') {
@@ -458,7 +461,7 @@
         render();
       });
       await pc.setLocalDescription(await pc.createOffer()); if (current.stopping) return;
-      const response = await fetch('/session', { method: 'POST', headers: { 'Content-Type': 'application/sdp', 'X-Audio-Mode': current.config.automatic ? 'campaign-call' : 'supervised-call', ...(current.config.automatic ? { 'X-Campaign-Id': current.config.campaignId, 'X-Contact-Id': current.config.contactId, 'X-Worker-Id': current.config.workerId } : {}) }, body: pc.localDescription.sdp, signal: current.abort.signal });
+      const response = await fetch('/session', { method: 'POST', headers: { 'Content-Type': 'application/sdp', 'X-Audio-Voice': current.config.voice, 'X-Audio-Mode': current.config.automatic ? 'campaign-call' : 'supervised-call', ...(current.config.automatic ? { 'X-Campaign-Id': current.config.campaignId, 'X-Contact-Id': current.config.contactId, 'X-Worker-Id': current.config.workerId } : {}) }, body: pc.localDescription.sdp, signal: current.abort.signal });
       if (!response.ok) { const result = await response.json(); throw connectionFailure(result, response, 'openai_session'); }
       if (!current.stopping) await pc.setRemoteDescription({ type: 'answer', sdp: await response.text() });
     } catch (error) {
@@ -493,5 +496,5 @@
   $('save').onclick = () => { const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = 'salesgod-supervised-call.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
   $('savedLog').onclick = async () => { const response = await fetch('/live-log/' + report.sessionId); if (!response.ok) return; $('journal').hidden = false; $('journal').textContent = JSON.stringify(await response.json(), null, 2); };
   window.addEventListener('pagehide', () => { clearInterval(helloTimer); clearTimeout(pairTimer); port?.postMessage({ type: 'close' }); port?.close(); void finish(); });
-  fetch('/status').then(response => response.json()).then(status => { configured = status.keyConfigured; $('configuration').textContent = configured ? `Local key configured · ${status.model} · AI voice: marin` : 'Add the OpenAI key to the local .env file and restart the bridge.'; controls(); }).catch(() => { $('configuration').textContent = 'Local bridge unavailable'; });
+  fetch('/status').then(response => response.json()).then(status => { configured = status.keyConfigured; $('configuration').textContent = configured ? `Local key configured · ${status.model} · Voice chosen in call settings` : 'Add the OpenAI key to the local .env file and restart the bridge.'; controls(); }).catch(() => { $('configuration').textContent = 'Local bridge unavailable'; });
 })();

@@ -6,6 +6,7 @@
 <p>Use this guide in order. Steps 1–5 are for your first installation. For everyday use, go to Step 6. Keep this guide open while you work.</p>
 <p>You will use two parts: the Chrome extension adds controls to SalesGodCRM, and the local bridge runs in a command window on your computer. Both must be running. You do not need Docker, VB-CABLE, or a separate Node.js installation.</p>
 <p>Package 0.5.2 uses the Jay Marketing Lab logo and purple/lime interface. The button names and calling steps below are unchanged. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, reload extension 0.4.2 and refresh SalesGodCRM only while its dialer is idle.</p>
+<p>Package <strong>0.5.3</strong> adds saved background and conversation guidance plus five voice choices. Restart the bridge and reopen the calling/test pages while idle to load these controls. The extension remains version 0.4.2.</p>
 <h2 id="section-0">Step 1 — Prepare your computer and extract the ZIP</h2>
 <ol start="1">
 <li>Have Google Chrome installed, your own SalesGodCRM login ready, and a company-approved OpenAI API key available. A ChatGPT login alone does not supply API access.</li>
@@ -74,7 +75,7 @@
 <li>Wait for <strong>AI audio test passed · disconnected</strong>. If the test fails, go to Step 10. Do not start a live list until the voice check works.</li>
 <li>Return to the idle CRM. Enable local routing, then click <strong>AI Agents Test Call</strong> in the extension panel. Scroll to <strong>Rehearsal setup</strong>. You can also open <code>http://127.0.0.1:28431/supervised-call</code> directly for no-phone rehearsal; manual call controls require opening from the extension.</li>
 <li>Choose <strong>Live AI rehearsal</strong> for two speaking agents (uses API credits), or <strong>Offline workflow check</strong> for free canned replies.</li>
-<li>Click <strong>Use simulated contacts</strong>. Choose the customer personality, conversation length and timeout, then review the approved brief. Click <strong>Import and preview</strong>. Confirm the saved rehearsal says <strong>LIVE AI REHEARSAL — no calls</strong> or <strong>OFFLINE SIMULATION</strong>.</li>
+<li>Click <strong>Use simulated contacts</strong>. Choose <strong>Office AI voice</strong> and <strong>Simulated customer voice</strong> from Cedar, Ash, Echo, Ballad and Marin. Choose different voices if you want to distinguish the speakers. Choose the customer personality, conversation length and timeout, then review the approved brief. Click <strong>Import and preview</strong> to save these choices with the rehearsal. Confirm it says <strong>LIVE AI REHEARSAL — no calls</strong> or <strong>OFFLINE SIMULATION</strong>. Copy an old rehearsal to the editor and reimport to change its voices.</li>
 <li>Click <strong>Start rehearsal</strong>. Watch the live text and listen through your speakers/headset. No microphone or CRM connection is used by this practice workflow. Manual supervised AI preparation is disabled while a rehearsal runs. <strong>Open calling list</strong> is a separate page exclusively for real calling campaigns.</li>
 <li>For an additional local audio check, use <strong>Enable local routing</strong> and <strong>Test local audio</strong> in the idle CRM extension panel. <strong>Test WebRTC</strong> checks the local connection too. These tests use synthetic audio. Choose <strong>Disable</strong> afterward if you are finished testing.</li>
 </ol>
@@ -97,6 +98,18 @@
 <li>Continue to Step 7. If you changed the key, VPN, or proxy settings, restart the bridge while no call or list is active and repeat the no-call voice test first.</li>
 </ol>
 <h2 id="section-8">Step 7 — Import your list and start calling</h2>
+<h3>Save your background, guide and voice once</h3>
+<ol start="1">
+<li>At the top of <strong>Open calling list</strong>, find <strong>Saved calling context</strong>.</li>
+<li>Choose <strong>Voice for real calls and voicemail</strong>: Cedar, Ash, Echo, Ballad or Marin. Cedar is the default and requests a confident, young-adult masculine delivery. Perceived age is approximate; listen in rehearsal before deciding. The voice is fixed when a session starts.</li>
+<li>In <strong>Background: who the AI represents</strong>, enter your company, represented person's name, business description and approved contact details. This field is optional and accepts up to <strong>20,000 characters</strong>.</li>
+<li>In <strong>Guide the live conversation</strong>, enter your detailed objectives, approved facts, questions, objections and closing instructions. This field requires <strong>6,000–20,000 characters</strong>, excluding leading/trailing spaces. The counter shows your current length. Shorter instructions cannot be saved as this guide.</li>
+<li>Click <strong>Save for future calls</strong> and wait for the saved confirmation. This stores the background, guide and voice on this computer, surviving bridge restarts and the seven-day transcript cleanup. It does not share settings with a colleague or start calls. Context is sent to OpenAI when a call is prepared.</li>
+<li>On future visits, saved context loads automatically. <strong>Load saved context</strong> replaces the editor with the saved defaults. New imports copy the current editor values into the list. Defaults do not silently change lists already imported.</li>
+<li>To update an existing draft or paused list, select it under <strong>Saved lists</strong>, then click <strong>Apply to selected list</strong>. This applies the editor's context and voice to its remaining calls only while no attempt is active. To inspect a list's original context, use <strong>Copy selected list to editor</strong>. Saving defaults and applying to a list are separate actions.</li>
+</ol>
+<p>The <strong>Guide the live conversation</strong> area in <strong>AI Agents Test Call</strong> also requires <strong>6,000–20,000 characters</strong>. Its <strong>Send next-reply instruction</strong> button is available during a live human conversation and sends a one-off instruction, not the reusable defaults. Its <strong>Supervised call voice</strong> selector applies to the next prepared manual call and voicemail. The rehearsal roles below have their own voice selectors.</p>
+<h3>Import and call</h3>
 <ol start="1">
 <li>Prepare a CSV file with these exact column names in the first row:</li>
 </ol>
@@ -106,7 +119,7 @@
 <li>In the calling-list page, enter a descriptive <strong>List name</strong>. Use <strong>Choose CSV file</strong>, or paste the CSV text into <strong>Or paste CSV</strong>.</li>
 <li>Expand <strong>Call settings</strong>. Enter <strong>Your CRM caller number</strong>, including country code. This is the outgoing number assigned to your CRM account, not a customer's number.</li>
 <li>Set <strong>Calling timezone</strong>, <strong>Start hour</strong>, and <strong>End hour</strong>. For San Diego, use <code>America/Los_Angeles</code>. Hours use a 24-hour clock: 9 is 9 AM and 17 is 5 PM. One timezone applies to the whole list.</li>
-<li>Review the <strong>Approved conversation brief</strong>. State the approved purpose, what the AI may say, and what information it should collect. The current live AI identifies itself as calling from <strong>Jay Marketing Lab on behalf of Cena</strong>. Other office identities need a configuration/code change before use.</li>
+<li>Review <strong>Additional instructions for this list</strong> for any short list-specific details. Your saved Background and Guide define who the AI represents; no code change is needed for a different office identity. Older lists use their original brief until you explicitly apply new context.</li>
 <li>Review the <strong>Voicemail message</strong> and voicemail controls. The default voicemail refers to <strong>Sina</strong>. Confirm that this wording is appropriate for your list.</li>
 <li><strong>Open calling list is for real calls only.</strong> For no-phone practice, return to <strong>AI Agents Test Call</strong> instead.</li>
 <li>Click <strong>Import and preview</strong>. Review names, numbers, settings and <strong>LIVE CALLING</strong> before starting. Importing never places a call.</li>

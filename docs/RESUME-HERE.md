@@ -1,5 +1,12 @@
 # Resume here — 2026-10-23
 
+## Latest settings — package 0.5.3 / extension 0.4.2
+
+Manual next-reply guidance now requires 6,000–20,000 characters, explicitly confirmed by the owner. Real lists have saved local background and conversation guidance, with background capped at 20,000 and guidance requiring 6,000–20,000. Save for future calls persists defaults; new lists snapshot them. Apply to selected list updates only idle draft/paused lists, never active attempts. Old lists keep their original brief until explicitly updated. Background/guide control represented identity in new real sessions; automatic opening no longer overrides them with hardcoded names.
+
+Five voices (Cedar, Ash, Echo, Ballad, Marin) are selectable for real calls and matching voicemail, manual supervised calls and each rehearsal agent. New real calls default to Cedar with confident young-adult masculine delivery guidance; exact perceived age is not guaranteed. Rehearsal choices are saved on import. All 150 checks and TypeScript passed. No actual phone or paid API call was used to verify these changes; payload tests mock OpenAI. Local pages were visually checked. Reopen idle pages to load changes; no additional extension reload is required beyond installed 0.4.2. Do not start calls without new user authorization.
+
+
 ## Latest appearance — package 0.5.2 / extension 0.4.2
 
 JML branding is applied across localhost pages and the extension panel, using original kit SVGs and exact purple/lime tokens. See docs/brand/APPLICATION.md. Existing font fallbacks are explicitly approved by the owner. No calling or AI behavior changed. The running bridge serves new assets; Chrome must reload extension 0.4.2 and refresh idle CRM for its panel to update. All 143 checks and TypeScript passed. Local synthetic audio passed both directions and routing was disabled afterward. No phone or paid API call was made for branding.

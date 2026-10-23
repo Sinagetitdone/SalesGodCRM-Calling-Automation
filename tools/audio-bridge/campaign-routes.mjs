@@ -1,13 +1,17 @@
 import { CampaignStore, outcomes } from './campaign-store.mjs';
+import { callVoices } from './voice-settings.mjs';
 const uuid = { type: 'string', pattern: '^[a-f0-9-]{36}$' };
 const worker = { workerId: uuid };
 const object = (properties, required = Object.keys(properties)) => ({ type: 'object', additionalProperties: false, properties, required });
+const profileFields = { background: { type: 'string', maxLength: 20000 }, guidance: { type: 'string', minLength: 6000, maxLength: 20000 }, voice: { type: 'string', enum: callVoices } };
 const settingsSchema = object({ timeZone: { type: 'string', minLength: 1, maxLength: 80 }, startHour: { type: 'integer', minimum: 0, maximum: 23 }, endHour: { type: 'integer', minimum: 1, maximum: 24 }, callerNumber: { type: 'string', pattern: '^\\+[1-9][0-9]{7,14}$' }, voicemailMessage: { type: 'string', minLength: 10, maxLength: 1000 }, brief: { type: 'string', minLength: 1, maxLength: 2000 }, simulation: { type: 'boolean' },
   simulationMode: { type: 'string', enum: ['offline', 'agents'] }, rehearsalPersona: { type: 'string', enum: ['interested', 'busy', 'skeptical'] }, rehearsalTurns: { type: 'integer', minimum: 4, maximum: 12, multipleOf: 2 },
   rehearsalConfig: object({
     turnSeconds: { type: 'integer', minimum: 10, maximum: 120 },
   }, []),
   responsePauseMs: { type: 'integer', minimum: 200, maximum: 1000 },
+  ...profileFields,
+  customerVoice: { type: 'string', enum: callVoices },
 }, ['timeZone', 'startHour', 'endHour', 'callerNumber', 'voicemailMessage', 'brief', 'simulation']);
 export function campaignRoutes(app, { env, store: supplied }) {
   let store = supplied;
@@ -17,6 +21,9 @@ export function campaignRoutes(app, { env, store: supplied }) {
     try { return handler(get(), request); } catch { return reply.code(409).send({ error: 'Campaign action could not be completed. Check its status, calling window, worker lease and contact state.' }); }
   } });
   app.get('/campaigns-api', { schema: { querystring: object({ mode: { type: 'string', enum: ['live', 'rehearsal'] } }, []) } }, r => ({ campaigns: get().list(r.query.mode) }));
+  route('GET', '/calling-profile', null, s => s.callingProfile());
+  route('POST', '/calling-profile', object(profileFields, ['background', 'guidance']), (s, r) => s.saveCallingProfile(r.body));
+  route('POST', '/campaigns-api/:id/guidance', object(profileFields, ['background', 'guidance']), (s, r) => s.applyCallingProfile(r.params.id, r.body));
   route('POST', '/campaigns-api/import', object({ name: { type: 'string', minLength: 1, maxLength: 120 }, csv: { type: 'string', minLength: 1, maxLength: 400000 }, settings: settingsSchema }), (s, r) => s.create(r.body));
   route('GET', '/campaigns-api/:id', null, (s, r) => s.read(r.params.id));
   route('POST', '/campaigns-api/:id/start', object({ ...worker, authorized: { const: true } }), (s, r) => s.start(r.params.id, r.body.workerId));

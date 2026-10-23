@@ -42,7 +42,7 @@
               }
             } else {
               await this.driver('inspect');
-              this.audio.configure({ automatic: true, responsePauseMs: next.settings.responsePauseMs ?? 250, campaignId: id, contactId: this.current.id, workerId: this.workerId,
+              this.audio.configure({ automatic: true, voice: next.settings.voice || 'cedar', responsePauseMs: next.settings.responsePauseMs ?? 250, campaignId: id, contactId: this.current.id, workerId: this.workerId,
                 saveTurn: turn => this.post(contactPath + '/transcript', turn) });
               const token = crypto.randomUUID(); await this.driver('prepare', { token }); this.audio.pair(token);
               await this.until(() => this.audio.status().canPrepare, 15000);

@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { callVoices, defaultCallVoice } from './voice-settings.mjs';
 
 export const outcomes = ['completed', 'voicemail_played', 'no_answer', 'blocked', 'failed', 'unknown', 'needs_review', 'opt_out', 'cancelled'];
 const activeStates = ['preparing', 'dispatching', 'connected'];
@@ -56,10 +57,35 @@ export class CampaignStore {
       CREATE TABLE IF NOT EXISTS campaign_contacts(id TEXT PRIMARY KEY,campaign TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,position INTEGER NOT NULL,first_name TEXT NOT NULL,last_name TEXT NOT NULL,phone TEXT NOT NULL,state TEXT NOT NULL,session TEXT,dispatched TEXT,ended TEXT,UNIQUE(campaign,phone));
       CREATE TABLE IF NOT EXISTS campaign_events(id INTEGER PRIMARY KEY,campaign TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,contact TEXT,event TEXT NOT NULL,time TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS campaign_transcripts(contact TEXT NOT NULL REFERENCES campaign_contacts(id) ON DELETE CASCADE,item TEXT NOT NULL,speaker TEXT NOT NULL,text TEXT NOT NULL,time TEXT NOT NULL,PRIMARY KEY(contact,item,speaker));
-      CREATE TABLE IF NOT EXISTS campaign_suppressions(phone TEXT PRIMARY KEY,created TEXT NOT NULL);`);
+      CREATE TABLE IF NOT EXISTS campaign_suppressions(phone TEXT PRIMARY KEY,created TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS calling_profile(id INTEGER PRIMARY KEY CHECK(id=1),background TEXT NOT NULL,guidance TEXT NOT NULL,updated TEXT NOT NULL);`);
+    if (!this.db.prepare('PRAGMA table_info(calling_profile)').all().some(column => column.name === 'voice')) this.db.exec("ALTER TABLE calling_profile ADD COLUMN voice TEXT NOT NULL DEFAULT 'cedar'");
     this.recover(); this.prune();
   }
   stamp() { return this.now().toISOString(); }
+  callingProfile() {
+    return this.db.prepare('SELECT background,guidance,voice,updated FROM calling_profile WHERE id=1').get() ?? { background: '', guidance: '', voice: defaultCallVoice, updated: null };
+  }
+  validateProfile({ background = '', guidance, voice = defaultCallVoice }) {
+    if (!callVoices.includes(voice)) throw new Error('Unsupported calling voice.');
+    if (typeof background !== 'string' || background.trim().length > 20000 || typeof guidance !== 'string' || guidance.trim().length < 6000 || guidance.trim().length > 20000) throw new Error('Calling guidance must contain 6,000–20,000 characters; background allows up to 20,000.');
+    return { background: background.trim(), guidance: guidance.trim(), voice };
+  }
+  saveCallingProfile(profile) {
+    const { background, guidance, voice } = this.validateProfile(profile);
+    this.db.prepare('INSERT INTO calling_profile(id,background,guidance,updated,voice) VALUES(1,?,?,?,?) ON CONFLICT(id) DO UPDATE SET background=excluded.background,guidance=excluded.guidance,updated=excluded.updated,voice=excluded.voice').run(background, guidance, this.stamp(), voice);
+    return this.callingProfile();
+  }
+  applyCallingProfile(id, profile) {
+    const approved = this.validateProfile(profile);
+    return this.transaction(() => {
+      const c = this.read(id);
+      if (c.settings.simulation || !['draft', 'paused'].includes(c.state) || c.contacts.some(row => activeStates.includes(row.state))) throw new Error('Only an idle real calling list can be updated.');
+      this.db.prepare('UPDATE campaigns SET settings=? WHERE id=?').run(JSON.stringify({ ...c.settings, ...approved }), id);
+      this.event(id, null, 'calling_guidance_updated');
+      return this.read(id);
+    });
+  }
   event(campaign, contact, event) { this.db.prepare('INSERT INTO campaign_events(campaign,contact,event,time) VALUES(?,?,?,?)').run(campaign, contact ?? null, event, this.stamp()); }
   transaction(fn) { this.db.exec('BEGIN IMMEDIATE'); try { const value = fn(); this.db.exec('COMMIT'); return value; } catch (error) { this.db.exec('ROLLBACK'); throw error; } }
   prune() { this.db.prepare("DELETE FROM campaigns WHERE COALESCE(finished,created) < ? AND state != 'running'").run(new Date(this.now().getTime() - 7 * 86400000).toISOString()); }
@@ -72,6 +98,12 @@ export class CampaignStore {
     });
   }
   create({ name, csv, settings }) {
+    for (const value of [settings.voice, settings.customerVoice]) if (value !== undefined && !callVoices.includes(value)) throw new Error('Unsupported voice.');
+    if (!settings.simulation) {
+      const defaults = this.callingProfile();
+      settings = { ...(defaults.guidance ? { background: defaults.background, guidance: defaults.guidance, voice: defaults.voice } : {}), ...settings };
+      if (settings.guidance !== undefined) settings = { ...settings, ...this.validateProfile(settings) };
+    }
     const parsed = parseContacts(csv);
     new Intl.DateTimeFormat('en-US', { timeZone: settings.timeZone }).format(this.now());
     if (!(Number.isInteger(settings.startHour) && Number.isInteger(settings.endHour) && settings.startHour >= 0 && settings.endHour <= 24 && settings.startHour < settings.endHour)) throw new Error('Invalid calling window.');

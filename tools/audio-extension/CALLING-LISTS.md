@@ -1,4 +1,6 @@
-# Calling lists — package 0.5.2 / extension 0.4.2
+# Calling lists — package 0.5.3 / extension 0.4.2
+
+New in 0.5.3: **Saved calling context** stores background, a 6,000–20,000-character conversation guide and one of five voices (Cedar, Ash, Echo, Ballad, Marin) on this computer. New real lists use a snapshot. **Apply to selected list** updates only an idle draft/paused list, leaving active attempts unchanged. Real session identity follows this approved context. Each rehearsal role also has five voice choices, saved on import. Manual next-reply guidance requires the same 6,000–20,000 range. Restart the bridge and reopen idle pages; no new extension reload is needed. See SETUP.md Step 7 for instructions.
 
 Current update (2026-10-23): live human conversations use 250 ms turn-end silence, configurable under **Call settings → Live-call pause before replying** (200–1000 ms). Short routine answers and 1.1× speech reduce turn length. Voicemail timing stays unchanged. The actual live-call code generated audio in a no-phone WebRTC test; synthetic customer TTS failed, so round-trip telephone latency is not yet measured. No real calls were placed for this update. Reopen idle controls to load it. Live AI rehearsal also adds MP3 download and an editable 20-second complete-turn timeout; that watchdog is separate from live-call VAD. Use **Copy selected list to editor**, change settings and import to save a revised list without altering prior results.
 

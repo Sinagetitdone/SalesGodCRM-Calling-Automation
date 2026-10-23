@@ -5,6 +5,7 @@
   const readAgentSettings = () => ({ turnSeconds: Number($('turnSeconds').value) });
   document.title = practice ? 'AI Agents Test Call · SalesGod' : 'Real calling lists · SalesGod';
   let selected, control, pairTimer, worker, starting = false;
+  let profileLoaded = practice, profileBusy = false;
   const recordings = [], visibleTurns = new Map(); let rehearsalContact;
   const rehearsal = practice ? new window.SalesGodRehearsal({ onUpdate: update => {
     if (update.type === 'starting') {
@@ -16,7 +17,7 @@
       let row = visibleTurns.get(update.index);
       if (!row) { const element = document.createElement('li'); element.dataset.role = update.role; $('rehearsalTranscript').append(element); row = { element, role: update.role }; visibleTurns.set(update.index, row); }
       row.text = update.text; row.saved = Boolean(update.saved);
-      row.element.textContent = `${update.role === 'assistant' ? 'Office AI · Marin' : 'Fictional customer · Cedar'}${row.saved ? ' · saved · ' + update.seconds.toFixed(1) + 's including speech' : ''}\n${update.text || 'Thinking…'}`;
+      row.element.textContent = `${update.role === 'assistant' ? 'Office AI · ' + (selected?.settings.voice || 'marin') : 'Fictional customer · ' + (selected?.settings.customerVoice || 'cedar')}${row.saved ? ' · saved · ' + update.seconds.toFixed(1) + 's including speech' : ''}\n${update.text || 'Thinking…'}`;
       $('rehearsalStatus').textContent = `${update.role === 'assistant' ? 'Office AI' : 'Customer AI'} ${update.type === 'turn' ? 'finished speaking' : 'is speaking'} · reply ${update.index + 1}`;
       $('downloadRehearsalTranscript').disabled = false;
       $('rehearsalTranscript').scrollTop = $('rehearsalTranscript').scrollHeight;
@@ -42,6 +43,29 @@
     const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Local service unavailable.'); return data;
   }
   function error(e) { $('listError').textContent = e.message; }
+  function profileCounts() {
+    $('backgroundCount').textContent = `${$('callingBackground').value.trim().length.toLocaleString()} / 20,000 characters · optional`;
+    $('guidanceCount').textContent = `${$('conversationGuide').value.trim().length.toLocaleString()} / 20,000 characters · minimum 6,000`;
+  }
+  function readProfile() {
+    if (!profileLoaded) throw new Error('Load the saved calling context before continuing.');
+    const background = $('callingBackground').value.trim(), guidance = $('conversationGuide').value.trim();
+    if (background.length > 20000 || guidance.length < 6000 || guidance.length > 20000) throw new Error('Conversation guide requires 6,000–20,000 characters. Background allows up to 20,000. Leading and trailing spaces do not count.');
+    return { background, guidance, voice: $('callingVoice').value };
+  }
+  async function loadCallingProfile() {
+    if (profileBusy) return;
+    profileBusy = true; render();
+    try {
+      const profile = await api('/calling-profile');
+      $('listError').textContent = '';
+      $('callingBackground').value = profile.background; $('conversationGuide').value = profile.guidance;
+      $('callingVoice').value = profile.voice || 'cedar';
+      profileLoaded = true; profileCounts();
+      $('callingProfileStatus').textContent = profile.updated ? 'Saved context loaded. New lists use this copy; existing lists keep their own settings.' : 'No saved context yet. Enter a background and a 6,000–20,000-character guide, then save for future calls.';
+    } catch (e) { $('callingProfileStatus').textContent = 'Could not load saved context. Use Load saved context to retry.'; throw e; }
+    finally { profileBusy = false; render(); }
+  }
   function download(data, name) {
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -77,8 +101,20 @@
     $('importList').disabled = $('savedLists').disabled = running;
     $('exportList').disabled = !selected;
     $('copyList').disabled = !selected || running;
+    if (!practice) {
+      $('startList').disabled ||= profileBusy;
+      $('savedLists').disabled ||= profileBusy;
+      $('copyList').disabled ||= profileBusy;
+      $('importList').disabled = running || profileBusy || !profileLoaded;
+      $('saveCallingProfile').disabled = profileBusy || !profileLoaded;
+      $('loadCallingProfile').disabled = profileBusy;
+      $('callingBackground').disabled = $('conversationGuide').disabled = profileBusy || !profileLoaded;
+      $('callingVoice').disabled = profileBusy || !profileLoaded;
+      $('applyCallingProfile').disabled = profileBusy || !profileLoaded || running || !selected || !['draft', 'paused'].includes(selected.state) || selected.contacts.some(c => ['preparing', 'dispatching', 'connected'].includes(c.state));
+    }
     if (!selected) return;
     $('listMode').textContent = `${selected.name} · ${selected.settings.simulation ? selected.settings.simulationMode === 'agents' ? 'LIVE AI REHEARSAL — no calls · uses OpenAI credits' : 'OFFLINE SIMULATION — no calls or API usage' : 'LIVE CALLING'} · ${selected.state} · ${selected.contacts.length} contacts`;
+    if (!practice) $('listMode').textContent += (selected.settings.guidance ? ` · Saved guide: ${selected.settings.guidance.length.toLocaleString()} characters` : ' · Original brief only; apply saved context to add your new guide') + ` · Voice: ${selected.settings.voice || 'cedar'}`;
     $('contactRows').replaceChildren();
     for (const c of selected.contacts) {
       const tr = document.createElement('tr');
@@ -114,8 +150,13 @@
     const csvCell = value => '"' + String(value).replaceAll('"', '""') + '"';
     $('contactCsv').value = 'first_name,last_name,phone\n' + selected.contacts.map(c => [c.firstName, c.lastName, c.phone].map(csvCell).join(',')).join('\n');
     for (const [id, value] of Object.entries({ simulationMode: s.simulationMode || 'offline', rehearsalPersona: s.rehearsalPersona || 'interested', rehearsalTurns: s.rehearsalTurns || 8, callerNumber: s.callerNumber, listTimeZone: s.timeZone, startHour: s.startHour, endHour: s.endHour, callBrief: s.brief, ...(!practice ? { voicemailMessage: s.voicemailMessage } : {}) })) if ($(id)) $(id).value = value;
-    if (practice) $('turnSeconds').value = s.rehearsalConfig?.turnSeconds ?? 20;
-    else $('responsePauseMs').value = s.responsePauseMs ?? 250;
+    if (practice) { $('turnSeconds').value = s.rehearsalConfig?.turnSeconds ?? 20; $('rehearsalVoice').value = s.voice || 'marin'; $('customerVoice').value = s.customerVoice || 'cedar'; }
+    else {
+      $('responsePauseMs').value = s.responsePauseMs ?? 250;
+      $('callingBackground').value = s.background || ''; $('conversationGuide').value = s.guidance || ''; profileCounts();
+      $('callingVoice').value = s.voice || 'cedar';
+      $('callingProfileStatus').textContent = 'Copied this list’s context to the editor. This has not replaced your saved defaults.';
+    }
     $('listName').scrollIntoView({ behavior: 'smooth', block: 'start' });
     $('listState').textContent = 'Copied to editor. Change settings and click Import and preview to save a new list.';
   };
@@ -123,12 +164,13 @@
     try {
       $('listError').textContent = '';
       const simulation = practice;
+      const profile = practice ? { voice: $('rehearsalVoice').value, customerVoice: $('customerVoice').value } : readProfile();
       if (!practice && !$('responsePauseMs').reportValidity()) return;
       if (simulation && $('simulationMode').value === 'agents') {
         if (!$('turnSeconds').reportValidity()) return;
       }
       selected = await api('/campaigns-api/import', { name: $('listName').value.trim(), csv: $('contactCsv').value,
-        settings: { simulation, ...(practice ? { simulationMode: $('simulationMode').value, rehearsalPersona: $('rehearsalPersona').value, rehearsalTurns: Number($('rehearsalTurns').value), rehearsalConfig: readAgentSettings() } : { responsePauseMs: Number($('responsePauseMs').value) }), callerNumber: simulation ? '+12025550100' : $('callerNumber').value.trim(), timeZone: practice ? 'UTC' : $('listTimeZone').value.trim(), startHour: practice ? 0 : Number($('startHour').value), endHour: practice ? 24 : Number($('endHour').value), brief: $('callBrief').value.trim(), voicemailMessage: practice ? 'Fictional rehearsal; no voicemail is sent.' : $('voicemailMessage').value.trim() } });
+        settings: { simulation, ...profile, ...(practice ? { simulationMode: $('simulationMode').value, rehearsalPersona: $('rehearsalPersona').value, rehearsalTurns: Number($('rehearsalTurns').value), rehearsalConfig: readAgentSettings() } : { responsePauseMs: Number($('responsePauseMs').value) }), callerNumber: simulation ? '+12025550100' : $('callerNumber').value.trim(), timeZone: practice ? 'UTC' : $('listTimeZone').value.trim(), startHour: practice ? 0 : Number($('startHour').value), endHour: practice ? 24 : Number($('endHour').value), brief: $('callBrief').value.trim(), voicemailMessage: practice ? 'Fictional rehearsal; no voicemail is sent.' : $('voicemailMessage').value.trim() } });
       $('listState').textContent = `Imported ${selected.contacts.length} contacts. ${selected.duplicates} duplicate numbers skipped. Nothing has started.`; $('selectedTranscript').hidden = true; await refresh();
     } catch (e) { error(e); }
   };
@@ -150,6 +192,29 @@
   window.addEventListener('pagehide', () => { rehearsal?.stop(); void rehearsal?.close(); recordings.forEach(r => URL.revokeObjectURL(r.url)); });
   window.addEventListener('salesgod-call-state', render);
   window.addEventListener('beforeunload', event => { if (worker.running) { event.preventDefault(); event.returnValue = ''; } });
+  if (!practice) {
+    for (const id of ['callingBackground', 'conversationGuide', 'callingVoice']) $(id).oninput = () => { profileCounts(); $('callingProfileStatus').textContent = 'Editor changed. Save for future calls or apply to an idle selected list. Existing lists have not changed.'; };
+    $('loadCallingProfile').onclick = () => void loadCallingProfile().catch(error);
+    $('saveCallingProfile').onclick = async () => {
+      if (profileBusy) return;
+      try {
+        const profile = readProfile(); profileBusy = true; render();
+        await api('/calling-profile', profile);
+        $('callingProfileStatus').textContent = 'Saved for future calls on this computer. Existing lists are unchanged; use Apply to selected list to update one.';
+        $('listError').textContent = '';
+      } catch (e) { error(e); $('callingProfileStatus').textContent = e.message; } finally { profileBusy = false; render(); }
+    };
+    $('applyCallingProfile').onclick = async () => {
+      if (!selected || $('applyCallingProfile').disabled) return;
+      try {
+        const profile = readProfile(); profileBusy = true; render();
+        selected = await api(`/campaigns-api/${selected.id}/guidance`, profile);
+        $('callingProfileStatus').textContent = 'Context applied to this selected list for its remaining calls. Saved defaults are unchanged.';
+        $('listError').textContent = '';
+      } catch (e) { error(e); $('callingProfileStatus').textContent = e.message; } finally { profileBusy = false; render(); }
+    };
+    void loadCallingProfile().catch(error);
+  }
   void refresh().catch(error);
   setInterval(() => { if (worker.running) void refresh().catch(error); }, 5000);
 })();

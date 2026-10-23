@@ -3,6 +3,12 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-012",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-23-CALLING-CONTEXT.md",
+      "tags": ["architecture", "testing", "calling", "audio"]
+    },
+    {
       "id": "LL-2026-011",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-20-PROXY-ROUTING.md",

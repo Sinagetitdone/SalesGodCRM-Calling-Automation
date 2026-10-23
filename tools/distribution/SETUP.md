@@ -6,6 +6,8 @@ You will use two parts: the Chrome extension adds controls to SalesGodCRM, and t
 
 Package 0.5.2 uses the Jay Marketing Lab logo and purple/lime interface. The button names and calling steps below are unchanged. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, reload extension 0.4.2 and refresh SalesGodCRM only while its dialer is idle.
 
+Package **0.5.3** adds saved background and conversation guidance plus five voice choices. Restart the bridge and reopen the calling/test pages while idle to load these controls. The extension remains version 0.4.2.
+
 ## Step 1 — Prepare your computer and extract the ZIP
 
 1. Have Google Chrome installed, your own SalesGodCRM login ready, and a company-approved OpenAI API key available. A ChatGPT login alone does not supply API access.
@@ -78,7 +80,7 @@ The launchers do not require an administrator password. Mac launcher syntax has 
 4. Wait for **AI audio test passed · disconnected**. If the test fails, go to Step 10. Do not start a live list until the voice check works.
 5. Return to the idle CRM. Enable local routing, then click **AI Agents Test Call** in the extension panel. Scroll to **Rehearsal setup**. You can also open `http://127.0.0.1:28431/supervised-call` directly for no-phone rehearsal; manual call controls require opening from the extension.
 6. Choose **Live AI rehearsal** for two speaking agents (uses API credits), or **Offline workflow check** for free canned replies.
-7. Click **Use simulated contacts**. Choose the customer personality, conversation length and timeout, then review the approved brief. Click **Import and preview**. Confirm the saved rehearsal says **LIVE AI REHEARSAL — no calls** or **OFFLINE SIMULATION**.
+7. Click **Use simulated contacts**. Choose **Office AI voice** and **Simulated customer voice** from Cedar, Ash, Echo, Ballad and Marin. Choose different voices if you want to distinguish the speakers. Choose the customer personality, conversation length and timeout, then review the approved brief. Click **Import and preview** to save these choices with the rehearsal. Confirm it says **LIVE AI REHEARSAL — no calls** or **OFFLINE SIMULATION**. Copy an old rehearsal to the editor and reimport to change its voices.
 8. Click **Start rehearsal**. Watch the live text and listen through your speakers/headset. No microphone or CRM connection is used by this practice workflow. Manual supervised AI preparation is disabled while a rehearsal runs. **Open calling list** is a separate page exclusively for real calling campaigns.
 9. For an additional local audio check, use **Enable local routing** and **Test local audio** in the idle CRM extension panel. **Test WebRTC** checks the local connection too. These tests use synthetic audio. Choose **Disable** afterward if you are finished testing.
 
@@ -104,6 +106,20 @@ For **real calls**, open **Call settings** and use **Live-call pause before repl
 
 ## Step 7 — Import your list and start calling
 
+### Save your background, guide and voice once
+
+1. At the top of **Open calling list**, find **Saved calling context**.
+2. Choose **Voice for real calls and voicemail**: Cedar, Ash, Echo, Ballad or Marin. Cedar is the default and requests a confident, young-adult masculine delivery. Perceived age is approximate; listen in rehearsal before deciding. The voice is fixed when a session starts.
+3. In **Background: who the AI represents**, enter your company, represented person's name, business description and approved contact details. This field is optional and accepts up to **20,000 characters**.
+4. In **Guide the live conversation**, enter your detailed objectives, approved facts, questions, objections and closing instructions. This field requires **6,000–20,000 characters**, excluding leading/trailing spaces. The counter shows your current length. Shorter instructions cannot be saved as this guide.
+5. Click **Save for future calls** and wait for the saved confirmation. This stores the background, guide and voice on this computer, surviving bridge restarts and the seven-day transcript cleanup. It does not share settings with a colleague or start calls. Context is sent to OpenAI when a call is prepared.
+6. On future visits, saved context loads automatically. **Load saved context** replaces the editor with the saved defaults. New imports copy the current editor values into the list. Defaults do not silently change lists already imported.
+7. To update an existing draft or paused list, select it under **Saved lists**, then click **Apply to selected list**. This applies the editor's context and voice to its remaining calls only while no attempt is active. To inspect a list's original context, use **Copy selected list to editor**. Saving defaults and applying to a list are separate actions.
+
+The **Guide the live conversation** area in **AI Agents Test Call** also requires **6,000–20,000 characters**. Its **Send next-reply instruction** button is available during a live human conversation and sends a one-off instruction, not the reusable defaults. Its **Supervised call voice** selector applies to the next prepared manual call and voicemail. The rehearsal roles below have their own voice selectors.
+
+### Import and call
+
 1. Prepare a CSV file with these exact column names in the first row:
 
 ```csv
@@ -114,7 +130,7 @@ first_name,last_name,phone
 3. In the calling-list page, enter a descriptive **List name**. Use **Choose CSV file**, or paste the CSV text into **Or paste CSV**.
 4. Expand **Call settings**. Enter **Your CRM caller number**, including country code. This is the outgoing number assigned to your CRM account, not a customer's number.
 5. Set **Calling timezone**, **Start hour**, and **End hour**. For San Diego, use `America/Los_Angeles`. Hours use a 24-hour clock: 9 is 9 AM and 17 is 5 PM. One timezone applies to the whole list.
-6. Review the **Approved conversation brief**. State the approved purpose, what the AI may say, and what information it should collect. The current live AI identifies itself as calling from **Jay Marketing Lab on behalf of Cena**. Other office identities need a configuration/code change before use.
+6. Review **Additional instructions for this list** for any short list-specific details. Your saved Background and Guide define who the AI represents; no code change is needed for a different office identity. Older lists use their original brief until you explicitly apply new context.
 7. Review the **Voicemail message** and voicemail controls. The default voicemail refers to **Sina**. Confirm that this wording is appropriate for your list.
 8. **Open calling list is for real calls only.** For no-phone practice, return to **AI Agents Test Call** instead.
 9. Click **Import and preview**. Review names, numbers, settings and **LIVE CALLING** before starting. Importing never places a call.

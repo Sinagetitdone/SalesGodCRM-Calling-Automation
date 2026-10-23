@@ -1,0 +1,15 @@
+# ADR-0005: Saved calling context and session voice choices
+
+Status: accepted, 2026-10-23.
+
+The owner wants reusable context defining the organization/person represented and a detailed conversation guide. They explicitly confirmed a 6,000-character minimum and 20,000 maximum for guidance. Background is optional and capped at 20,000. Five selectable voices must work on real and simulated conversations.
+
+Use a singleton calling_profile table in the existing local campaign database, independent of seven-day campaign retention. Store only background, guidance, voice and update time. Same-origin/host checks and bounded schemas protect read/write routes. Defaults are copied into new real campaign settings; rehearsal imports do not inherit business context. Campaigns keep snapshots so a later default change cannot silently alter an active call. Explicit POST /campaigns-api/:id/guidance updates only draft/paused real lists with no active attempt. Existing lists without a guide remain readable and retain prior behavior; the new real-list editor requires a valid guide for import. Profile text is configuration, not event-log content; it is sent to OpenAI when an authorized call is prepared and appears in the owner's list export.
+
+The actual Realtime session receives full background and guidance. When supplied, these control represented identity instead of hardcoded office names. The automatic opening message follows that session context. AI disclosure, factual limits, opt-outs and application-managed voicemail stay enforced. The one-off supervised next-reply instruction has the same 6,000–20,000 bounds but remains ephemeral; it is not the saved profile.
+
+Allow exactly cedar, ash, echo, ballad and marin in server validation. Real-call voice is saved in profile/list settings; manual voice is selected before preparation. The worker sends the same choice to voicemail synthesis and the backend uses the authoritative list choice for real sessions. Both rehearsal roles select independent voices stored with their list, retaining the old fallback for old drafts. Cedar carries a confident young-adult masculine delivery instruction, which describes sound rather than a human identity and does not guarantee exact age. Other selected voices retain their own character with confident delivery. No voice is changed after session audio begins.
+
+No new browser permission, provider API, microphone access or dialing behavior is needed. Tests use synthetic data and mock OpenAI, verify all five choices end-to-end in payloads, and prove persistence, length boundaries, snapshots, idle-update guards and unchanged voicemail text. Audible voice preference still requires the owner to listen to a no-phone rehearsal.
+
+References: [Realtime voice options](https://developers.openai.com/api/docs/guides/realtime-conversations), [Realtime instructions](https://developers.openai.com/api/reference/resources/realtime/client-events), [speech voices](https://developers.openai.com/api/docs/guides/text-to-speech).

@@ -6,6 +6,9 @@
 <button id="demoContacts">Use simulated contacts</button>
 <p><strong>No-phone practice only.</strong> Uses OpenAI credits when Live AI rehearsal starts.</p>
 <div id="simulationSettings">
+<label for="rehearsalVoice">Office AI voice</label><select id="rehearsalVoice"><option value="cedar" selected>Cedar</option><option value="ash">Ash</option><option value="echo">Echo</option><option value="ballad">Ballad</option><option value="marin">Marin</option></select>
+<label for="customerVoice">Simulated customer voice</label><select id="customerVoice"><option value="cedar">Cedar</option><option value="ash">Ash</option><option value="echo">Echo</option><option value="ballad">Ballad</option><option value="marin" selected>Marin</option></select>
+<p>Five voices are available for each agent. Choose different voices to distinguish speakers. Voice choices are saved with the imported rehearsal; the offline check has no audio.</p>
 <label for="simulationMode">Simulation type</label><select id="simulationMode"><option value="agents">Live AI rehearsal — two speaking agents (uses OpenAI credits)</option><option value="offline">Offline workflow check — canned replies, free, no audio</option></select>
 <label for="rehearsalPersona">Fictional customer</label><select id="rehearsalPersona"><option value="interested">Interested — asks follow-up questions</option><option value="busy">Busy — prefers another time</option><option value="skeptical">Cautious — asks who is calling and why</option></select>
 <label for="rehearsalTurns">Conversation length</label><select id="rehearsalTurns"><option value="4">4 replies · quick check</option><option value="8" selected>8 replies · standard rehearsal</option><option value="12">12 replies · longer rehearsal</option></select>

@@ -1,3 +1,10 @@
+<section aria-labelledby="callingContextHeading"><h2 id="callingContextHeading">Saved calling context</h2>
+<p>Set who the AI represents and how it should handle conversations. Save once to reuse these settings in future calling lists on this computer.</p>
+<label for="callingVoice">Voice for real calls and voicemail</label><select id="callingVoice" disabled><option value="cedar" selected>Cedar</option><option value="ash">Ash</option><option value="echo">Echo</option><option value="ballad">Ballad</option><option value="marin">Marin</option></select><p>Cedar uses a confident, young-adult masculine delivery direction. Perceived age is approximate. Voice changes apply when a new call is prepared.</p>
+<label for="callingBackground">Background: who the AI represents</label><textarea id="callingBackground" rows="5" maxlength="20000" disabled aria-describedby="backgroundCount" placeholder="Company, represented person, business description, approved services and contact details. Include only facts the AI may use."></textarea><p id="backgroundCount">0 / 20,000 characters · optional</p>
+<label for="conversationGuide">Guide the live conversation (6,000–20,000 characters)</label><textarea id="conversationGuide" rows="10" required minlength="6000" maxlength="20000" disabled aria-describedby="guidanceCount" placeholder="Your detailed conversation objectives, approved information, questions, objection handling and closing instructions."></textarea><p id="guidanceCount">0 / 20,000 characters · minimum 6,000</p>
+<button id="saveCallingProfile" disabled>Save for future calls</button><button id="loadCallingProfile">Load saved context</button><button id="applyCallingProfile" disabled>Apply to selected list</button>
+<p id="callingProfileStatus" role="status">Loading saved context…</p><p>Saved locally until you replace it. Context is sent to OpenAI when a real call is prepared. New lists keep their own copy; existing lists change only with Apply to selected list while idle. Saving never starts a call.</p></section>
 <section aria-labelledby="listHeading"><h2 id="listHeading">Calling list</h2>
 <p>Import a CSV with <b>first_name,last_name,phone</b> columns. Numbers are processed one at a time. Importing a list never starts calls.</p>
 <label for="listName">List name</label><input id="listName" maxlength="120" value="My calling list">
@@ -11,7 +18,7 @@
 <label for="listTimeZone">Calling timezone</label><input id="listTimeZone" value="America/Los_Angeles">
 <label for="startHour">Start hour (0–23)</label><input id="startHour" type="number" min="0" max="23" value="9">
 <label for="endHour">End hour (1–24)</label><input id="endHour" type="number" min="1" max="24" value="17">
-<label for="callBrief">Approved conversation brief</label><textarea id="callBrief" rows="4" maxlength="2000">Introduce yourself as an AI assistant from Jay Marketing Lab on behalf of Cena. Ask whether now is a good time to talk. Answer only from this brief; collect questions for Cena when details are unknown. At a natural ending, say they can contact Cena if they would like to talk more. Do not claim an appointment is booked.</textarea>
+<label for="callBrief">Additional instructions for this list</label><textarea id="callBrief" rows="4" maxlength="2000">Follow the saved background and conversation guide. Do not claim an appointment is booked.</textarea>
 <input id="voicemailEnabled" type="checkbox" checked hidden>
 <label for="voicemailMessage">Voicemail message</label><textarea id="voicemailMessage" rows="4" maxlength="1000">Hi, this is Sina's AI assistant calling for a brief audio test. If you have received this voicemail, please notify me. Thanks.</textarea>
 <p>One calling timezone applies to the entire list. Review the brief and voicemail before importing.</p></details>

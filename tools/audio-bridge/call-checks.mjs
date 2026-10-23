@@ -113,7 +113,7 @@ test('regional denial during voicemail preparation is retained and prevents any 
 test('owner instructions require a live human conversation, wait for matching acknowledgement and retain no instruction text', async () => {
   const env = environment();
   try {
-    await env.start(); env.elements.get('ownerInstruction').value = 'Ask whether 4 PM San Diego time works, or ask their preferred time.';
+    await env.start(); env.elements.get('ownerInstruction').value = 'Ask whether 4 PM San Diego time works, or ask their preferred time.'.padEnd(6000, '.');
     env.elements.get('sendInstruction').onclick(); await tick();
     assert.equal(env.peers[0].channel.sent.some(x => x.type === 'conversation.item.create'), false);
     await env.media(); await env.confirm(); env.peers[0].channel.message(vadAck); await tick(); await tick();
@@ -132,6 +132,26 @@ test('owner instructions require a live human conversation, wait for matching ac
   } finally { await env.cleanup(); }
 });
 const listenAck = { type: 'session.updated', session: { audio: { input: { transcription: { model: 'gpt-4o-mini-transcribe' }, turn_detection: { type: 'server_vad', create_response: false, interrupt_response: false } } } } };
+test('live owner guidance enforces both boundaries before sending and preserves rejected input', async () => {
+  const env = environment();
+  try {
+    await env.start(); await env.media(); await env.confirm(); const dc = env.peers[0].channel;
+    dc.message(vadAck); await tick(); await tick();
+    for (const length of [0, 5999, 20001, 6000, 20000]) {
+      const text = 'x'.repeat(length); env.elements.get('ownerInstruction').value = text;
+      const before = dc.sent.filter(x => x.type === 'conversation.item.create' && x.item.id).length;
+      env.elements.get('sendInstruction').onclick(); await tick(); await tick();
+      const notes = dc.sent.filter(x => x.type === 'conversation.item.create' && x.item.id);
+      if (length < 6000 || length > 20000) {
+        assert.equal(notes.length, before); assert.equal(env.elements.get('ownerInstruction').value, text);
+        assert.match(env.elements.get('instructionStatus').textContent, /6,000–20,000/);
+      } else {
+        assert.equal(notes.length, before + 1); assert.ok(notes.at(-1).item.content[0].text.endsWith(text));
+        dc.message({ type: 'conversation.item.added', item: { id: notes.at(-1).item.id } }); await tick();
+      }
+    }
+  } finally { await env.cleanup(); }
+});
 test('automatic human classification stays silent until acknowledged media gates; transcripts save before natural end', async () => {
   const env = environment({ voicemail: true }), saved = [];
   try {
@@ -149,6 +169,9 @@ test('automatic human classification stays silent until acknowledged media gates
     assert.equal(dc.sent.filter(r => r.type === 'response.create' && !r.response.metadata).length, 0);
     await env.links[0].options.onMessage({ type: 'gate-state', open: true }); dc.message(vadAck); await tick(); await tick();
     assert.equal(env.api.status().phase, 'talking');
+    const introduction = dc.sent.find(r => r.type === 'conversation.item.create' && !r.item.id);
+    assert.match(introduction.item.content[0].text, /approved background/);
+    assert.doesNotMatch(introduction.item.content[0].text, /Jay Marketing Lab|Cena/);
     dc.message({ type: 'response.output_audio_transcript.done', item_id: 'reply', transcript: 'You can contact Cena if you would like to talk more. Goodbye.' }); await tick();
     dc.message({ type: 'response.created', response: { id: 'closing' } });
     dc.message({ type: 'output_audio_buffer.started' });
@@ -562,7 +585,7 @@ test('voicemail synthesis validates input, preserves owner text, exposes no upst
     const message = 'Hi, this is a synthetic AI test message.';
     const response = await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message } });
     assert.equal(response.statusCode, 200); assert.match(response.headers['content-type'], /audio\/wav/);
-    assert.equal(JSON.parse(requests[0].options.body).input, message); assert.equal(JSON.parse(requests[0].options.body).voice, 'marin');
+    assert.equal(JSON.parse(requests[0].options.body).input, message); assert.equal(JSON.parse(requests[0].options.body).voice, 'cedar');
     fail = true;
     const failed = await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message } });
     assert.equal(failed.statusCode, 502); assert.doesNotMatch(failed.body, /private upstream|synthetic-private-key/);

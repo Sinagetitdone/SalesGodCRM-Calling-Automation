@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { CampaignStore } from './campaign-store.mjs';
 import { createBridge } from './server.mjs';
+import { callVoices } from './voice-settings.mjs';
 
 const settings = { simulation: true, simulationMode: 'agents', rehearsalTurns: 4, rehearsalPersona: 'busy', timeZone: 'UTC', startHour: 0, endHour: 24, callerNumber: '+12025550100', brief: 'Introduce the office and collect questions for Cena.', voicemailMessage: 'Synthetic voicemail only.' };
 function fixture(overrides = {}) {
@@ -15,6 +16,16 @@ function fixture(overrides = {}) {
   const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431', 'content-type': 'application/sdp', 'x-campaign-id': campaign.id, 'x-contact-id': contact.id, 'x-worker-id': worker, 'x-rehearsal-session': session, 'x-rehearsal-role': 'assistant' };
   return { store, campaign, contact, worker, session, headers };
 }
+test('each rehearsal role uses its selected voice from all five options', async () => {
+  for (const [i, voice] of callVoices.entries()) {
+    const customerVoice = callVoices[(i + 1) % callVoices.length], f = fixture({ voice, customerVoice }), sessions = [];
+    const app = createBridge({ campaignStore: f.store, env: { OPENAI_API_KEY: 'synthetic-key' }, fetchImpl: async (_url, options) => { sessions.push(JSON.parse(options.body.get('session'))); return new Response('v=0\r\n'); } });
+    try {
+      for (const role of ['assistant', 'customer']) assert.equal((await app.inject({ method: 'POST', url: '/rehearsal-session', headers: { ...f.headers, 'x-rehearsal-role': role }, payload: 'v=0\r\n' })).statusCode, 200);
+      assert.deepEqual(sessions.map(s => s.audio.output.voice), [voice, customerVoice]);
+    } finally { await app.close(); f.store.close(); }
+  }
+});
 test('rehearsal uses two distinct voices, isolated roles and no phone number or tools', async () => {
   const f = fixture(), sessions = [];
   const app = createBridge({ campaignStore: f.store, env: { OPENAI_API_KEY: 'synthetic-key' }, fetchImpl: async (_url, options) => { sessions.push(JSON.parse(options.body.get('session'))); return new Response('v=0\r\n'); } });

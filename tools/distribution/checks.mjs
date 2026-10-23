@@ -21,6 +21,7 @@ test('release contains only runtime files, blank credentials and executable Mac 
   assert.ok(names.includes('tools/audio-bridge/public/rehearsal-form.html'));
   for (const name of ['rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt']) assert.ok(names.includes('tools/audio-bridge/public/' + name));
   assert.ok(names.includes('tools/audio-bridge/rehearsal-routes.mjs'));
+  assert.ok(names.includes('tools/audio-bridge/voice-settings.mjs'));
   const approvedVendor = new Set(['lame.min.js', 'lame.all.js', 'NOTICE.txt', 'LAME-LICENSE.txt', 'LGPL-3.0.txt', 'GPL-3.0.txt'].map(x => 'tools/audio-bridge/public/vendor/' + x));
   for (const name of names) if (!approvedVendor.has(name)) assert.doesNotMatch(name, /(?:^|\/)(?:\.env$|\.runtime|data|node_modules|\.git|vendor|releases)(?:\/|$)|\.(?:png|db|log|local\.json)$/);
   assert.equal(entries.find(e => e.name === '.env.example').data.toString(), 'OPENAI_API_KEY=\nOPENAI_REALTIME_MODEL=gpt-realtime-2.1\n');

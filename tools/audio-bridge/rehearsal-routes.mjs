@@ -1,4 +1,5 @@
 import { openAIFailure } from './openai-errors.mjs';
+import { speakingStyle } from './voice-settings.mjs';
 
 // Separate from /session: rehearsal can only open two output-only AI peers for
 // an already-started simulation attempt. It never returns a telephone permit.
@@ -28,14 +29,16 @@ export function rehearsalRoutes(app, { env, fetchImpl, campaigns }) {
       busy: 'You are busy. Politely ask for a brief explanation and suggest a fictional better time to talk. Never provide real personal details.',
       skeptical: 'You are cautious. Ask who is calling and what they want, then react to the actual answer. Be civil and concise.',
     }[settings.rehearsalPersona || 'interested'];
-    const instructions = base + (role === 'assistant'
+    let instructions = base + (role === 'assistant'
       ? 'You are an AI assistant from Jay Marketing Lab on behalf of Cena. Clearly introduce yourself as an AI assistant. Follow only this approved brief: ' + JSON.stringify(settings.brief) + '. Do not invent products, prices, promises or appointments. If details are missing, offer to pass questions to Cena. At the closing, say the person can contact Cena if they want to talk more, unless they requested no further contact.'
       : 'You play the fictional customer ' + JSON.stringify(context.row.first_name + ' ' + context.row.last_name) + '. ' + persona + ' You are not the office assistant. Do not repeat their introduction.');
+    const voice = role === 'assistant' ? settings.voice || 'marin' : settings.customerVoice || 'cedar';
+    if (role === 'assistant') instructions += ' ' + speakingStyle(voice);
     try {
       const form = new FormData(); form.set('sdp', request.body);
       form.set('session', JSON.stringify({ type: 'realtime', model: env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2.1',
         instructions, output_modalities: ['audio'], max_output_tokens: 600,
-        audio: { input: { turn_detection: null }, output: { voice: role === 'assistant' ? 'marin' : 'cedar', speed: 1.15 } }, tools: [] }));
+        audio: { input: { turn_detection: null }, output: { voice, speed: 1.15 } }, tools: [] }));
       const response = await fetchImpl('https://api.openai.com/v1/realtime/calls', {
         method: 'POST', headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: form, signal: AbortSignal.timeout(30000),
       });
