@@ -1,21 +1,47 @@
 {
   "manifest_version": 3,
   "name": "SalesGod Local Audio Bridge",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Local calling-list worker and AI audio bridge. Calling starts only from an authorized list; no key storage.",
   "minimum_chrome_version": "111",
   "content_scripts": [
     {
-      "matches": ["https://www.salesgodcrm.net/*", "https://salesgodcrm.net/*", "http://127.0.0.1:28431/extension-lab*"],
-      "js": ["local-rtc.js", "window-rtc.js", "audio-hook.js"],
+      "matches": [
+        "https://www.salesgodcrm.net/*",
+        "https://salesgodcrm.net/*",
+        "http://127.0.0.1:28431/extension-lab*"
+      ],
+      "js": [
+        "local-rtc.js",
+        "window-rtc.js",
+        "audio-hook.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://www.salesgodcrm.net/*", "https://salesgodcrm.net/*", "http://127.0.0.1:28431/extension-lab*"],
-      "js": ["campaign-driver.js", "panel.js"],
+      "matches": [
+        "https://www.salesgodcrm.net/*",
+        "https://salesgodcrm.net/*",
+        "http://127.0.0.1:28431/extension-lab*"
+      ],
+      "js": [
+        "campaign-driver.js",
+        "panel.js"
+      ],
       "run_at": "document_idle",
       "world": "ISOLATED"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "brand/JML-Logo-Full-Dark.svg"
+      ],
+      "matches": [
+        "https://www.salesgodcrm.net/*",
+        "https://salesgodcrm.net/*"
+      ]
     }
   ]
 }

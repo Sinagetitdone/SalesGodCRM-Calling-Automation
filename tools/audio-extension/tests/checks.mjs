@@ -15,7 +15,9 @@ test('panel accepts the installed manifest version and enables supervised contro
   const document = { getElementById() { return null; }, documentElement: { append() {} },
     createElement() { return { ...node(), set id(value) { nodes.set(value, this); }, style: {}, attachShadow() { return root; } }; } };
   const window = { postMessage() {}, addEventListener(name, fn) { if (!listeners.has(name)) listeners.set(name, []); listeners.get(name).push(fn); } };
-  vm.runInNewContext(panelSource, { document, window, location: { origin: 'https://www.salesgodcrm.net' }, crypto: { randomUUID: () => 'test-id' } });
+  const chrome = { runtime: { getURL: path => 'chrome-extension://test/' + path } };
+  vm.runInNewContext(panelSource, { document, window, chrome, location: { origin: 'https://www.salesgodcrm.net' }, crypto: { randomUUID: () => 'test-id' } });
+  assert.ok(root.innerHTML.includes('chrome-extension://test/brand/JML-Logo-Full-Dark.svg'));
   const report = { version: manifest.version, armed: false, testing: false, voiceState: 'disconnected' };
   const publish = () => listeners.get('message').forEach(fn => fn({ source: window, origin: 'https://www.salesgodcrm.net',
     data: { source: 'salesgod-local-audio-v1', type: 'result', status: report } }));

@@ -94,10 +94,11 @@ test('API quota, rate, key, IP and model failures remain distinguishable without
 test('voice setup and signaling assets are served locally with no key embedded', async () => {
   const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-secret-must-not-be-sent' } });
   try {
-    for (const url of ['/voice-test', '/voice.js', '/extension-lab/window-rtc.js']) {
+    for (const url of ['/voice-test', '/voice.js', '/extension-lab/window-rtc.js', '/brand/JML-Logo-Full-Dark.svg', '/brand/JML-Logo-J-Dark.svg']) {
       const response = await app.inject({ url, headers });
       assert.equal(response.statusCode, 200); assert.equal(response.body.includes('synthetic-secret-must-not-be-sent'), false);
       assert.equal(response.headers['cache-control'], 'no-store');
+      if (url.endsWith('.svg')) assert.match(response.headers['content-type'], /image\/svg\+xml/);
     }
     assert.equal((await app.inject({ url: '/.env', headers })).statusCode, 404);
   } finally { await app.close(); }

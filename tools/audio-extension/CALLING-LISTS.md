@@ -1,4 +1,4 @@
-# Calling lists — package 0.5.1 / extension 0.4.1
+# Calling lists — package 0.5.2 / extension 0.4.2
 
 Current update (2026-10-23): live human conversations use 250 ms turn-end silence, configurable under **Call settings → Live-call pause before replying** (200–1000 ms). Short routine answers and 1.1× speech reduce turn length. Voicemail timing stays unchanged. The actual live-call code generated audio in a no-phone WebRTC test; synthetic customer TTS failed, so round-trip telephone latency is not yet measured. No real calls were placed for this update. Reopen idle controls to load it. Live AI rehearsal also adds MP3 download and an editable 20-second complete-turn timeout; that watchdog is separate from live-call VAD. Use **Copy selected list to editor**, change settings and import to save a revised list without altering prior results.
 

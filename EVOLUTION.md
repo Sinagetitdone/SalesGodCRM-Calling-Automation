@@ -1,5 +1,12 @@
 # Evolution
 
+## 2026-10-23 — JML branding (0.5.2 / extension 0.4.2)
+
+Applied the supplied JML kit to the local setup, real calling lists, AI test/rehearsal, voice test, simulator and extension panel. Official SVG logos retain their original artwork and proportions. Shared color tokens use purple #4C0099 and lime #B1EB1E, with neutral surfaces, visible keyboard focus and responsive controls. The owner approved retaining the existing fonts when JML fonts are unavailable; no fonts are downloaded or distributed. Calling behavior, prompts, timing, contact data and API-key handling are unchanged.
+
+The extension exposes only its packaged logo to the two existing SalesGodCRM hostnames. Local pages serve their logos from explicit same-origin routes under the existing CSP. Package allowlists and checks include both logo copies. All 143 checks and TypeScript passed; the branded local panel passed the synthetic two-direction audio check and its minimize/restore controls were inspected. No telephone call or paid OpenAI session was started. Reload extension 0.4.2 and refresh idle CRM to apply the panel appearance.
+
+
 ## 2026-10-23 — Separate real calling lists from AI test controls (0.5.1)
 
 The owner requested Open calling list exclusively for real campaigns, with Live AI rehearsal and manual supervised controls moved to the extension's renamed AI Agents Test Call button. Package 0.5.1 includes extension 0.4.1. /campaigns has its own real-list template, real-only imports and saved-list filter; /supervised-call contains manual controls plus practice-only import, saved rehearsals, live dialogue and MP3 export. Prior records remain intact. A mode check rejects cross-workspace list execution before claiming a worker; rehearsal never pairs to CRM campaign controls. Manual AI preparation and rehearsal cannot run simultaneously in the same test tab.

@@ -31,6 +31,8 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
   for (const [route, name, type] of [
     ['/', 'setup.html', 'text/html; charset=utf-8'],
     ['/style.css', 'style.css', 'text/css; charset=utf-8'],
+    ['/brand/JML-Logo-Full-Dark.svg', 'brand/JML-Logo-Full-Dark.svg', 'image/svg+xml'],
+    ['/brand/JML-Logo-J-Dark.svg', 'brand/JML-Logo-J-Dark.svg', 'image/svg+xml'],
     ['/panel.css', 'panel.css', 'text/css; charset=utf-8'],
     ['/voice-test', 'voice.html', 'text/html; charset=utf-8'],
     ['/voice.js', 'voice.js', 'text/javascript; charset=utf-8'],

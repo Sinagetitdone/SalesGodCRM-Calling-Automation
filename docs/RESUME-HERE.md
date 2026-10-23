@@ -1,5 +1,10 @@
 # Resume here — 2026-10-23
 
+## Latest appearance — package 0.5.2 / extension 0.4.2
+
+JML branding is applied across localhost pages and the extension panel, using original kit SVGs and exact purple/lime tokens. See docs/brand/APPLICATION.md. Existing font fallbacks are explicitly approved by the owner. No calling or AI behavior changed. The running bridge serves new assets; Chrome must reload extension 0.4.2 and refresh idle CRM for its panel to update. All 143 checks and TypeScript passed. Local synthetic audio passed both directions and routing was disabled afterward. No phone or paid API call was made for branding.
+
+
 ## Latest layout — package 0.5.1 / extension 0.4.1
 
 Open calling list (/campaigns) is now real calls only, with no simulation selector, rehearsal panel or manual AI controls. AI Agents Test Call (renamed from Prepare supervised call) opens /supervised-call with manual controls plus the complete rehearsal workflow. Saved lists are filtered by mode, old transcripts retained, and workers reject the wrong mode before start. Rehearsal/manual sessions are mutually exclusive in a test tab. All 143 tests and type checking passed; two-contact offline browser rehearsal completed. No real call was made. Extension files are updated but Chrome must reload extension 0.4.1 and refresh idle CRM to show the renamed button; never refresh an active call.
