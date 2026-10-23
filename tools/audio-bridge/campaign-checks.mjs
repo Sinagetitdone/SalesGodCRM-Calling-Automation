@@ -135,7 +135,7 @@ function workerFixture(simulation = true, failDial = false, terminal = {}) {
     return {};
   };
   const worker = new window.SalesGodCampaignWorker({ api, audio, driver, onState: s => states.push(s.state), wait: async ms => { now += ms; }, now: () => now });
-  return { ...f, worker, commands, states };
+  return { ...f, worker, commands, states, audio };
 }
 test('simulated list finishes sequentially, saves transcripts and notifies without touching audio or dialer', async () => {
   const f = workerFixture(); try {
@@ -143,6 +143,34 @@ test('simulated list finishes sequentially, saves transcripts and notifies witho
     assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['completed', 'voicemail_played']);
     assert.equal(f.store.transcripts(f.id, f.store.read(f.id).contacts[0].id).length, 2); assert.equal(f.states.at(-1), 'finished');
   } finally { f.store.close(); }
+});
+test('AI rehearsal runs sequentially, persists agent replies, and never touches real audio or CRM', async () => {
+  const f = workerFixture(); const seen = [];
+  f.store.db.prepare('UPDATE campaigns SET settings=? WHERE id=?').run(JSON.stringify({ ...settings, simulation: true, simulationMode: 'agents' }), f.id);
+  f.audio.stop = async () => { throw new Error('Real audio must not be used'); };
+  f.worker.rehearsal = { async run(options) {
+    seen.push(options.contact.id);
+    for (const [speaker, text] of [['assistant', 'What works for you?'], ['customer', 'A fictional afternoon.']]) await options.saveTurn({ session: options.session, item: speaker, speaker, text });
+    return 'completed';
+  } };
+  try {
+    await f.worker.run(f.id); const c = f.store.read(f.id);
+    assert.deepEqual(seen, c.contacts.map(x => x.id)); assert.equal(f.commands.length, 0);
+    assert.equal(c.state, 'finished'); for (const row of c.contacts) assert.equal(f.store.transcripts(f.id, row.id).length, 2);
+  } finally { f.store.close(); }
+});
+test('AI rehearsal failure and Stop preserve pending rows and avoid even CRM release commands', async () => {
+  for (const mode of ['fail', 'stop']) {
+    const f = workerFixture(); let stopped = false;
+    f.store.db.prepare('UPDATE campaigns SET settings=? WHERE id=?').run(JSON.stringify({ ...settings, simulation: true, simulationMode: 'agents' }), f.id);
+    f.audio.stop = async () => { throw new Error('Real audio must not be used'); };
+    f.worker.rehearsal = { stop() { stopped = true; }, async run() { if (mode === 'fail') throw new Error('API unavailable'); await f.worker.stop(); return 'cancelled'; } };
+    try {
+      await f.worker.run(f.id); const c = f.store.read(f.id);
+      assert.deepEqual(c.contacts.map(x => x.state), [mode === 'fail' ? 'failed' : 'cancelled', 'pending']);
+      assert.equal(c.state, 'paused'); assert.equal(f.commands.length, 0); assert.equal(stopped, true);
+    } finally { f.store.close(); }
+  }
 });
 test('fake live driver hangs up before next dispatch, and lost dispatch acknowledgement pauses without retry', async () => {
   const f = workerFixture(false); try {

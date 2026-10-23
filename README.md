@@ -7,11 +7,11 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 ## Current behavior
 
 - Extension **0.4.0** exposes a generated microphone, routes dialer audio, and provides a separate guarded browser adapter for explicitly started calling lists. It starts disabled and contains no API key. VB-CABLE is not required.
-- `/campaigns` imports `first_name,last_name,phone` CSV into draft lists, previews contacts, processes them sequentially, saves conversation transcripts and event logs, and displays completion. Simulation is the default and invokes neither OpenAI nor the dialer. Import/reload/restart never starts calls.
+- `/campaigns` imports `first_name,last_name,phone` CSV into draft lists, previews contacts, processes them sequentially, saves conversation transcripts and event logs, and displays completion. Simulation is the default: **Live AI rehearsal** uses two OpenAI agents with streamed text, distinct voices and downloadable audio; **Offline workflow check** uses free canned replies. Neither simulation invokes the dialer. Import/reload/restart never starts calls.
 - Live lists enforce backend suppression, calling windows, campaign-level Start authorization, one active attempt, single-use dispatch, and recovery without blind redial. The owner pre-authorizes imported contacts; no per-contact consent field is required.
 - Voicemail uses the approved message after greeting/beep detection. Automatic mode keeps listening during playback and an eight-second quiet window afterward. New speech interrupts playback and blocks hangup while checking for a person. Unconfirmed interruptions require review.
 - Prior supervised telephone audio was confirmed by the owner. A later single call automatically switched from voicemail to a human conversation and saved the recipient's audibility confirmation. The owner reported slow interruption recovery; the subsequent latency patch has synthetic coverage but has not been phone-tested. Earlier failed calls and remaining limits are documented.
-- Local transcript/event export is available; no audio recordings are saved. Sensitive runtime databases are ignored by Git and inactive campaign data is pruned after seven days of service activity. Opt-out suppression persists separately.
+- Local transcript/event export is available. Live telephone calls are not recorded; fictional rehearsal audio is held in browser memory for replay/download until refresh/close (last 10 recordings). Sensitive runtime databases are ignored by Git and inactive campaign data is pruned after seven days of service activity. Opt-out suppression persists separately.
 
 This is a local development prototype, not a hosted multi-user service. The audio bridge binds to loopback and checks exact Host/Origin; it trusts the operating-system user. Keep it private and limit live use to explicitly authorized controlled tests until the remaining integration checks pass. The original TypeScript service and Docker configuration remain a separate fake-provider runtime; they do not run the browser/audio bridge.
 
@@ -34,7 +34,7 @@ Optional synthetic demonstrations:
 
     npm run audio:bridge
 
-Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.0**; reload and refresh the CRM only while idle. Opening/importing never starts calls. `/campaigns` defaults to simulation without calls or OpenAI requests. The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
+Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.0**; reload and refresh the CRM only while idle. Opening/importing never starts calls. `/campaigns` defaults to no-phone Live AI rehearsal with API usage after explicit Start; choose Offline workflow check for a free canned simulation. The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
 
 - [Extension setup and limits](tools/audio-extension/README.md)
 - [Observed no-call test results](tools/audio-extension/TEST-RESULTS.md)

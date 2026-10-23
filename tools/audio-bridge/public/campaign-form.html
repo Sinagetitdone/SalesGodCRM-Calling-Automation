@@ -4,8 +4,18 @@
 <label for="contactFile">Choose CSV file</label><input id="contactFile" type="file" accept=".csv,text/csv">
 <label for="contactCsv">Or paste CSV</label><textarea id="contactCsv" rows="5" placeholder="first_name,last_name,phone"></textarea>
 <button id="demoContacts">Use simulated contacts</button>
-<p><label><input type="checkbox" id="simulation" checked> Simulation only — no calls and no OpenAI requests</label></p>
+<p><label><input type="checkbox" id="simulation" checked> Simulation only — no phone calls</label></p>
+<div id="simulationSettings">
+<label for="simulationMode">Simulation type</label><select id="simulationMode"><option value="agents">Live AI rehearsal — two speaking agents (uses OpenAI credits)</option><option value="offline">Offline workflow check — canned replies, free, no audio</option></select>
+<label for="rehearsalPersona">Fictional customer</label><select id="rehearsalPersona"><option value="interested">Interested — asks follow-up questions</option><option value="busy">Busy — prefers another time</option><option value="skeptical">Cautious — asks who is calling and why</option></select>
+<label for="rehearsalTurns">Conversation length</label><select id="rehearsalTurns"><option value="4">4 replies · quick check</option><option value="8" selected>8 replies · standard rehearsal</option><option value="12">12 replies · longer rehearsal</option></select>
+<label for="turnSeconds">Reply timeout in seconds (10–120)</label><input id="turnSeconds" type="number" min="10" max="120" value="20">
+<p>This is the maximum time allowed for one complete spoken reply, including playback. It does not add a pause or make generation faster. A lower timeout can interrupt speech. The entire rehearsal still has a five-minute limit.</p>
+<p>Settings are saved when you click Import and preview. To revise a saved list, use Copy selected list to editor, change the timeout, then import a new list.</p>
+<p>Both voices are AI-generated live. The office agent follows your approved brief below; the customer reacts to its actual replies. Text is exchanged between agents, with audio played through your computer. This rehearses dialogue, not telephone audio, voicemail detection or interruptions. Each contact uses two OpenAI sessions. Use fictional names; phone numbers are never sent to the agents.</p></div>
 <details><summary>Call settings</summary>
+<label for="responsePauseMs">Live-call pause before replying (milliseconds, 200–1000)</label><input id="responsePauseMs" type="number" min="200" max="1000" value="250">
+<p>250 ms means 0.25 seconds of silence before the AI treats the customer’s turn as finished. Lower values respond sooner but may interrupt a hesitation. This applies to human conversations; voicemail detection keeps its own timing.</p>
 <label for="callerNumber">Your CRM caller number (with country code)</label><input id="callerNumber" placeholder="+1…">
 <label for="listTimeZone">Calling timezone</label><input id="listTimeZone" value="America/Los_Angeles">
 <label for="startHour">Start hour (0–23)</label><input id="startHour" type="number" min="0" max="23" value="9">
@@ -14,10 +24,17 @@
 <p>The voicemail text below is saved with this list. One calling timezone applies to the entire list.</p></details>
 <button id="importList">Import and preview</button><p id="listError" role="alert"></p>
 <label for="savedLists">Saved lists</label><select id="savedLists"><option value="">Choose a list</option></select><button id="refreshLists">Refresh</button>
+<button id="copyList" disabled>Copy selected list to editor</button>
 <p id="listMode">No list selected.</p><p id="driverState">Open from the CRM extension for live calling. Simulation works here directly.</p>
 <button id="startList" disabled>Start selected list</button><button id="pauseList" disabled>Pause after current contact</button><button id="stopList" disabled class="stop">Stop current call and pause</button>
 <button id="allowNotification">Enable completion notification</button><button id="exportList" disabled>Export transcripts and event log</button>
 <p id="listState" role="status" aria-live="polite">Nothing is running.</p>
 <div class="list-scroll"><table><thead><tr><th>Name</th><th>Phone</th><th>Result</th><th>Conversation</th></tr></thead><tbody id="contactRows"></tbody></table></div>
 <pre id="selectedTranscript" hidden></pre><details><summary>List event log</summary><pre id="listEvents">No events yet.</pre></details>
-<p>Transcripts, contact details and events stay in this computer’s local database for seven days. No audio recordings are saved. Speech is sent to OpenAI during live calls. An uncertain attempt pauses the list and is never automatically dialed again.</p></section>
+<p>Transcripts, contact details and events stay in this computer’s local database for seven days. Live phone calls are not recorded. Rehearsal audio stays in this window until you download it or close the page. Speech is sent to OpenAI during live calls; rehearsal names, brief and dialogue are sent during Live AI rehearsal. An uncertain attempt pauses the list and is never automatically dialed again.</p></section>
+<section id="rehearsalPanel" aria-labelledby="rehearsalHeading"><h2 id="rehearsalHeading">Live AI rehearsal</h2>
+<p id="rehearsalStatus" role="status" aria-live="polite">Choose simulated contacts, import and preview, then start the selected list. No CRM connection is needed.</p>
+<ol id="rehearsalTranscript" aria-label="Live rehearsal transcript"></ol>
+<button id="downloadRehearsalTranscript" disabled>Download visible transcript</button>
+<div id="rehearsalRecordings"></div>
+<p>Completed replies are saved with each contact. Replay or download the last 10 rehearsal MP3 recordings here before closing this window. Downloaded audio is a recording of AI-generated fictional dialogue.</p></section>

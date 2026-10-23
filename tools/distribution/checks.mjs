@@ -15,7 +15,10 @@ test('release contains only runtime files, blank credentials and executable Mac 
   assert.equal(new Set(names).size, names.length);
   assert.ok(names.includes('tools/audio-extension/manifest.json'));
   assert.ok(names.includes('tools/audio-bridge/public/campaign-worker.js'));
-  for (const name of names) assert.doesNotMatch(name, /(?:^|\/)(?:\.env$|\.runtime|data|node_modules|\.git|vendor|releases)(?:\/|$)|\.(?:png|db|log|local\.json)$/);
+  for (const name of ['rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt']) assert.ok(names.includes('tools/audio-bridge/public/' + name));
+  assert.ok(names.includes('tools/audio-bridge/rehearsal-routes.mjs'));
+  const approvedVendor = new Set(['lame.min.js', 'lame.all.js', 'NOTICE.txt', 'LAME-LICENSE.txt', 'LGPL-3.0.txt', 'GPL-3.0.txt'].map(x => 'tools/audio-bridge/public/vendor/' + x));
+  for (const name of names) if (!approvedVendor.has(name)) assert.doesNotMatch(name, /(?:^|\/)(?:\.env$|\.runtime|data|node_modules|\.git|vendor|releases)(?:\/|$)|\.(?:png|db|log|local\.json)$/);
   assert.equal(entries.find(e => e.name === '.env.example').data.toString(), 'OPENAI_API_KEY=\nOPENAI_REALTIME_MODEL=gpt-realtime-2.1\n');
   for (const file of entries.filter(e => e.name.endsWith('.command'))) {
     assert.equal(file.mode & 0o777, 0o755); assert.equal(file.data.includes(13), false);
@@ -23,6 +26,7 @@ test('release contains only runtime files, blank credentials and executable Mac 
   for (const file of entries.filter(e => e.name.endsWith('.cmd'))) assert.equal(file.data.toString().replaceAll('\r\n', '').includes('\n'), false);
   const manifest = JSON.parse(entries.find(e => e.name === 'package.json').data);
   const lock = JSON.parse(entries.find(e => e.name === 'package-lock.json').data);
+  assert.equal(manifest.version, lock.version); assert.equal(manifest.version, lock.packages[''].version);
   assert.deepEqual(manifest.dependencies, lock.packages[''].dependencies);
   assert.equal(lock.packages['node_modules/fastify'].version, manifest.dependencies.fastify);
   assert.equal(Object.values(lock.packages).some(p => p.dev), false);

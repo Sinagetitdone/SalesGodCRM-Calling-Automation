@@ -68,6 +68,25 @@ function environment({ failJournal = false, voicemail = false, failSpeech = fals
 }
 const awaitVoicemailSource = await readFile(new URL('public/voicemail.js', import.meta.url), 'utf8');
 const vadAck = { type: 'session.updated', session: { audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true } } } } };
+test('live conversation applies its configurable pause and measures response audio without shortening voicemail timing', async () => {
+  for (const [requested, expected] of [[undefined, 250], [500, 500], [0, 250]]) {
+    const env = environment({ voicemail: true });
+    try {
+      env.api.configure({ responsePauseMs: requested });
+      await env.start(); await env.media();
+      const screening = env.peers[0].channel.sent.find(m => m.type === 'session.update').session.audio.input.turn_detection;
+      assert.equal(screening.silence_duration_ms, 350); assert.equal(screening.create_response, false);
+      await env.confirm();
+      const dc = env.peers[0].channel;
+      assert.equal(dc.sent.filter(m => m.type === 'session.update').at(-1).session.audio.input.turn_detection.silence_duration_ms, expected);
+      dc.message(vadAck); await tick(); await tick();
+      dc.message({ type: 'input_audio_buffer.speech_stopped' });
+      dc.message({ type: 'output_audio_buffer.started' }); await tick();
+      assert.ok(env.api.status().lastReplyAfterVadMs >= 0);
+      assert.ok(env.api.status().events.some(e => e.event === 'ai.audio_started'));
+    } finally { await env.cleanup(); }
+  }
+});
 test('regional denial during voicemail preparation is retained and prevents any live media preparation', async () => {
   const env = environment({ voicemail: true, failSpeech: true, speechError: { error: 'API access blocked for detected country or region.', errorCode: 'unsupported_country_region_territory', upstreamStatus: 403 } });
   try {
@@ -87,7 +106,7 @@ test('owner instructions require a live human conversation, wait for matching ac
     assert.equal(env.peers[0].channel.sent.some(x => x.type === 'conversation.item.create'), false);
     await env.media(); await env.confirm(); env.peers[0].channel.message(vadAck); await tick(); await tick();
     env.elements.get('sendInstruction').onclick(); await tick(); await tick();
-    const note = env.peers[0].channel.sent.find(x => x.type === 'conversation.item.create');
+    const note = env.peers[0].channel.sent.find(x => x.type === 'conversation.item.create' && x.item.id);
     assert.equal(note.item.role, 'system'); assert.match(note.item.content[0].text, /San Diego/);
     assert.equal(env.elements.get('sendInstruction').disabled, true);
     env.peers[0].channel.message({ type: 'conversation.item.added', item: { id: 'unrelated' } }); await tick();
@@ -285,7 +304,7 @@ test('repeated speech preserves the pending human decision and takeover starts a
     assert.equal(env.dc.sent.filter(m => m.type === 'response.create' && !m.response.metadata).length, 0);
     await env.liveGate(); assert.equal(env.api.status().phase, 'talking');
     const vad = env.dc.sent.filter(m => m.type === 'session.update').at(-1).session.audio.input.turn_detection;
-    assert.equal(vad.silence_duration_ms, 350); assert.equal(vad.interrupt_response, true); assert.equal(vad.create_response, true);
+    assert.equal(vad.silence_duration_ms, 250); assert.equal(vad.interrupt_response, true); assert.equal(vad.create_response, true);
   } finally { await env.cleanup(); }
 });
 
@@ -436,7 +455,8 @@ test('supervised mode stays silent until verified media, owner answer confirmati
     await env.confirm(); assert.equal(pc.input.enabled, false); assert.ok(pc.channel.sent.some(item => item.type === 'session.update'));
     pc.channel.message(vadAck); await tick(); await tick();
     assert.equal(pc.input.enabled, true); assert.equal(pc.channel.sent.filter(item => item.type === 'response.create').length, 1);
-    const introduction = pc.channel.sent.find(item => item.type === 'response.create').response.instructions;
+    const introduction = pc.channel.sent.find(item => item.type === 'conversation.item.create').item.content[0].text;
+    assert.equal(pc.channel.sent.find(item => item.type === 'response.create').response.instructions, undefined);
     assert.match(introduction, /Jay Marketing Lab on behalf of Cena/);
     assert.doesNotMatch(introduction, /Can you hear me clearly/);
     assert.match(env.elements.get('state').textContent, /conversation active/);
@@ -508,6 +528,7 @@ test('supervised API session starts with VAD disabled and first-call instruction
     const response = await app.inject({ method: 'POST', url: '/session', headers: { ...headers, 'content-type': 'application/sdp', 'x-audio-mode': 'supervised-call' }, payload: 'v=0\r\n' });
     assert.equal(response.statusCode, 200); const session = JSON.parse(requests[0].options.body.get('session'));
     assert.equal(session.audio.input.turn_detection, null); assert.match(session.instructions, /AI assistant calling from Jay Marketing Lab on behalf of Cena/);
+    assert.equal(session.audio.output.speed, 1.1); assert.match(session.instructions, /one concise sentence/);
     assert.match(session.instructions, /do not invent a reason for the call/i);
     assert.match(session.instructions, /Do not conduct sales/);
     for (let i = 0; i < 2; i++) assert.equal((await app.inject({ method: 'POST', url: '/simulation-speech', headers, payload: {} })).statusCode, 200);

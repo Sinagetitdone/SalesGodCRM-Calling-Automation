@@ -1,8 +1,38 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  const readAgentSettings = () => ({ turnSeconds: Number($('turnSeconds').value) });
   document.title = 'Calling lists · SalesGod';
-  let selected, control, pairTimer, worker;
+  let selected, control, pairTimer, worker, starting = false;
+  const recordings = [], visibleTurns = new Map(); let rehearsalContact;
+  const rehearsal = new window.SalesGodRehearsal({ onUpdate: update => {
+    if (update.type === 'starting') {
+      rehearsalContact = update.contact; visibleTurns.clear(); $('rehearsalTranscript').replaceChildren();
+      $('downloadRehearsalTranscript').disabled = true;
+      $('rehearsalStatus').textContent = `Connecting two AI agents for ${rehearsalContact.firstName} ${rehearsalContact.lastName}…`;
+      $('rehearsalPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (['speaking', 'delta', 'turn'].includes(update.type)) {
+      let row = visibleTurns.get(update.index);
+      if (!row) { const element = document.createElement('li'); element.dataset.role = update.role; $('rehearsalTranscript').append(element); row = { element, role: update.role }; visibleTurns.set(update.index, row); }
+      row.text = update.text; row.saved = Boolean(update.saved);
+      row.element.textContent = `${update.role === 'assistant' ? 'Office AI · Marin' : 'Fictional customer · Cedar'}${row.saved ? ' · saved · ' + update.seconds.toFixed(1) + 's including speech' : ''}\n${update.text || 'Thinking…'}`;
+      $('rehearsalStatus').textContent = `${update.role === 'assistant' ? 'Office AI' : 'Customer AI'} ${update.type === 'turn' ? 'finished speaking' : 'is speaking'} · reply ${update.index + 1}`;
+      $('downloadRehearsalTranscript').disabled = false;
+      $('rehearsalTranscript').scrollTop = $('rehearsalTranscript').scrollHeight;
+    } else if (update.type === 'recording') {
+      $('rehearsalStatus').textContent = 'Preparing your MP3 recording on this computer…';
+    } else if (update.type === 'finished') {
+      $('rehearsalStatus').textContent = update.error || (update.outcome === 'completed' ? `Rehearsal completed · ${update.turns} replies saved · both agents’ audio verified · longest reply ${update.longestTurn.toFixed(1)}s including speech.` : 'Rehearsal stopped · partial results retained.');
+      if (update.error) $('listError').textContent = update.error;
+    }
+  }, onRecording: ({ contact, outcome, blob }) => {
+    const url = URL.createObjectURL(blob), article = document.createElement('article'), title = document.createElement('strong'), audio = document.createElement('audio'), link = document.createElement('a');
+    title.textContent = `${contact.firstName} ${contact.lastName} · ${outcome === 'completed' ? 'Completed rehearsal' : 'Partial rehearsal'}`;
+    audio.controls = true; audio.src = url;
+    link.href = url; link.download = `salesgod-rehearsal-${contact.id}.mp3`; link.textContent = 'Download rehearsal MP3';
+    article.append(title, audio, link); $('rehearsalRecordings').prepend(article); recordings.push({ url, article });
+    if (recordings.length > 10) { const old = recordings.shift(); old.article.remove(); URL.revokeObjectURL(old.url); }
+  } });
   const pending = new Map(); let serial = Promise.resolve();
   const args = new URLSearchParams(location.hash.slice(1)), token = args.get('token'), origin = args.get('origin');
   const labels = { completed: 'Conversation completed', voicemail_played: 'Voicemail playback completed', no_answer: 'No answer', blocked: 'Suppressed', unknown: 'Unknown — review', needs_review: 'Needs review', failed: 'Failed — review', opt_out: 'Opted out', cancelled: 'Cancelled', pending: 'Pending', preparing: 'Preparing', dispatching: 'Call attempted', connected: 'Connected' };
@@ -39,13 +69,14 @@
     $('selectedTranscript').textContent = `${contact.firstName} ${contact.lastName}\n${labels[contact.state] || contact.state}\n\n` + (data.turns.map(t => `${t.speaker}: ${t.text}`).join('\n\n') || 'No conversation transcript saved.');
   }
   function render() {
-    const running = Boolean(worker?.running);
+    const running = starting || Boolean(worker?.running);
     $('startList').disabled = !selected || running || !['draft', 'paused'].includes(selected.state) || (!selected.settings.simulation && !control);
     $('pauseList').disabled = $('stopList').disabled = !running;
     $('importList').disabled = $('savedLists').disabled = running;
     $('exportList').disabled = !selected;
+    $('copyList').disabled = !selected || running;
     if (!selected) return;
-    $('listMode').textContent = `${selected.name} · ${selected.settings.simulation ? 'SIMULATION — no calls' : 'LIVE CALLING'} · ${selected.state} · ${selected.contacts.length} contacts`;
+    $('listMode').textContent = `${selected.name} · ${selected.settings.simulation ? selected.settings.simulationMode === 'agents' ? 'LIVE AI REHEARSAL — no calls · uses OpenAI credits' : 'OFFLINE SIMULATION — no calls or API usage' : 'LIVE CALLING'} · ${selected.state} · ${selected.contacts.length} contacts`;
     $('contactRows').replaceChildren();
     for (const c of selected.contacts) {
       const tr = document.createElement('tr');
@@ -61,7 +92,7 @@
     if (selected) { selected = await api('/campaigns-api/' + selected.id); $('savedLists').value = selected.id; }
     render();
   }
-  worker = new window.SalesGodCampaignWorker({ api, driver, audio: window.SalesGodCall, onState: state => {
+  worker = new window.SalesGodCampaignWorker({ api, driver, audio: window.SalesGodCall, rehearsal, onState: state => {
     const name = state.contact ? `${state.contact.firstName} ${state.contact.lastName}` : '';
     $('listState').textContent = state.state === 'finished' ? 'Finished processing every contact. Review the results below.' : state.state === 'waiting' ? 'Waiting for the calling window. Keep this window open.' : `${state.state.replaceAll('_', ' ')} ${name}`;
     if (['paused', 'needs_review'].includes(state.state)) document.title = 'Calling list paused · SalesGod';
@@ -74,28 +105,49 @@
     void refresh().catch(error);
   } });
   $('contactFile').onchange = async () => { try { const f = $('contactFile').files[0]; if (f) { if (f.size > 400000) throw new Error('CSV file exceeds 400 KB.'); $('contactCsv').value = await f.text(); } } catch (e) { error(e); } };
-  $('demoContacts').onclick = () => { $('simulation').checked = true; $('contactCsv').value = 'first_name,last_name,phone\nAlex,Example,+12025550101\nSam,Example,+12025550102'; $('listName').value = 'Simulated calling list'; };
+  $('simulation').onchange = () => { $('simulationSettings').hidden = !$('simulation').checked; };
+  $('demoContacts').onclick = () => { $('simulation').checked = true; $('simulationSettings').hidden = false; $('contactCsv').value = 'first_name,last_name,phone\nAlex,Example,+12025550101\nSam,Example,+12025550102'; $('listName').value = 'Simulated calling list'; };
+  $('copyList').onclick = () => {
+    if (!selected || worker.running) return;
+    const s = selected.settings;
+    $('listName').value = (selected.name + ' — revised').slice(0, 120);
+    const csvCell = value => '"' + String(value).replaceAll('"', '""') + '"';
+    $('contactCsv').value = 'first_name,last_name,phone\n' + selected.contacts.map(c => [c.firstName, c.lastName, c.phone].map(csvCell).join(',')).join('\n');
+    $('simulation').checked = s.simulation; $('simulationSettings').hidden = !s.simulation;
+    for (const [id, value] of Object.entries({ simulationMode: s.simulationMode || 'offline', rehearsalPersona: s.rehearsalPersona || 'interested', rehearsalTurns: s.rehearsalTurns || 8, callerNumber: s.callerNumber, listTimeZone: s.timeZone, startHour: s.startHour, endHour: s.endHour, callBrief: s.brief, voicemailMessage: s.voicemailMessage })) $(id).value = value;
+    $('turnSeconds').value = s.rehearsalConfig?.turnSeconds ?? 20;
+    $('responsePauseMs').value = s.responsePauseMs ?? 250;
+    $('listName').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('listState').textContent = 'Copied to editor. Change settings and click Import and preview to save a new list.';
+  };
   $('importList').onclick = async () => {
     try {
       $('listError').textContent = '';
       const simulation = $('simulation').checked;
+      if (!$('responsePauseMs').reportValidity()) return;
+      if (simulation && $('simulationMode').value === 'agents') {
+        if (!$('turnSeconds').reportValidity()) return;
+      }
       selected = await api('/campaigns-api/import', { name: $('listName').value.trim(), csv: $('contactCsv').value,
-        settings: { simulation, callerNumber: simulation ? '+12025550100' : $('callerNumber').value.trim(), timeZone: $('listTimeZone').value.trim(), startHour: Number($('startHour').value), endHour: Number($('endHour').value), brief: $('callBrief').value.trim(), voicemailMessage: $('voicemailMessage').value.trim() } });
+        settings: { simulation, responsePauseMs: Number($('responsePauseMs').value), simulationMode: $('simulationMode').value, rehearsalPersona: $('rehearsalPersona').value, rehearsalTurns: Number($('rehearsalTurns').value), ...(simulation && $('simulationMode').value === 'agents' ? { rehearsalConfig: readAgentSettings() } : {}), callerNumber: simulation ? '+12025550100' : $('callerNumber').value.trim(), timeZone: $('listTimeZone').value.trim(), startHour: Number($('startHour').value), endHour: Number($('endHour').value), brief: $('callBrief').value.trim(), voicemailMessage: $('voicemailMessage').value.trim() } });
       $('listState').textContent = `Imported ${selected.contacts.length} contacts. ${selected.duplicates} duplicate numbers skipped. Nothing has started.`; $('selectedTranscript').hidden = true; await refresh();
     } catch (e) { error(e); }
   };
   $('savedLists').onchange = async () => { try { selected = $('savedLists').value ? await api('/campaigns-api/' + $('savedLists').value) : undefined; $('selectedTranscript').hidden = true; $('listState').textContent = selected?.state === 'finished' ? 'Finished processing every contact. Review the results below.' : 'Nothing is running in this window.'; render(); } catch (e) { error(e); } };
   $('refreshLists').onclick = () => void refresh().catch(error);
   $('startList').onclick = async () => {
-    if (!selected || worker.running) return;
+    if (!selected || worker.running || starting) return;
+    starting = true; render();
     $('listError').textContent = ''; document.title = 'Calling list running · SalesGod';
-    try { const task = worker.run(selected.id); render(); await task; } catch (e) { error(e); }
-    finally { await refresh().catch(error); render(); }
+    try { if (selected.settings.simulation && selected.settings.simulationMode === 'agents') await rehearsal.unlock(); const task = worker.run(selected.id); render(); await task; } catch (e) { error(e); }
+    finally { starting = false; await rehearsal.close().catch(() => {}); await refresh().catch(error); render(); }
   };
   $('pauseList').onclick = () => void worker.pause().catch(error);
   $('stopList').onclick = () => void worker.stop().catch(error);
   $('allowNotification').onclick = async () => { if (!window.Notification) return error(new Error('Desktop notifications are unavailable. Completion is always shown here.')); $('allowNotification').textContent = (await Notification.requestPermission()) === 'granted' ? 'Completion notifications enabled' : 'Completion will appear in this window'; };
   $('exportList').onclick = async () => { try { const report = await api('/campaigns-api/' + selected.id); for (const c of report.contacts) { c.transcript = (await api(`/campaigns-api/${report.id}/${c.id}/transcript`)).turns; c.audioEvents = c.session ? (await api('/live-log/' + c.session)).events : []; } download(report, 'salesgod-calling-list.json'); } catch (e) { error(e); } };
+  $('downloadRehearsalTranscript').onclick = () => download({ mode: 'ai-rehearsal', contact: rehearsalContact, turns: [...visibleTurns.values()].map(({ role, text, saved }) => ({ role, text, saved })) }, 'salesgod-rehearsal-transcript.json');
+  window.addEventListener('pagehide', () => { rehearsal.stop(); void rehearsal.close(); recordings.forEach(r => URL.revokeObjectURL(r.url)); });
   window.addEventListener('beforeunload', event => { if (worker.running) { event.preventDefault(); event.returnValue = ''; } });
   void refresh().catch(error);
   setInterval(() => { if (worker.running) void refresh().catch(error); }, 5000);

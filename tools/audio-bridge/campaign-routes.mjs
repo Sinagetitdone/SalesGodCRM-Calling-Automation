@@ -2,7 +2,13 @@ import { CampaignStore, outcomes } from './campaign-store.mjs';
 const uuid = { type: 'string', pattern: '^[a-f0-9-]{36}$' };
 const worker = { workerId: uuid };
 const object = (properties, required = Object.keys(properties)) => ({ type: 'object', additionalProperties: false, properties, required });
-const settingsSchema = object({ timeZone: { type: 'string', minLength: 1, maxLength: 80 }, startHour: { type: 'integer', minimum: 0, maximum: 23 }, endHour: { type: 'integer', minimum: 1, maximum: 24 }, callerNumber: { type: 'string', pattern: '^\\+[1-9][0-9]{7,14}$' }, voicemailMessage: { type: 'string', minLength: 10, maxLength: 1000 }, brief: { type: 'string', minLength: 1, maxLength: 2000 }, simulation: { type: 'boolean' } });
+const settingsSchema = object({ timeZone: { type: 'string', minLength: 1, maxLength: 80 }, startHour: { type: 'integer', minimum: 0, maximum: 23 }, endHour: { type: 'integer', minimum: 1, maximum: 24 }, callerNumber: { type: 'string', pattern: '^\\+[1-9][0-9]{7,14}$' }, voicemailMessage: { type: 'string', minLength: 10, maxLength: 1000 }, brief: { type: 'string', minLength: 1, maxLength: 2000 }, simulation: { type: 'boolean' },
+  simulationMode: { type: 'string', enum: ['offline', 'agents'] }, rehearsalPersona: { type: 'string', enum: ['interested', 'busy', 'skeptical'] }, rehearsalTurns: { type: 'integer', minimum: 4, maximum: 12, multipleOf: 2 },
+  rehearsalConfig: object({
+    turnSeconds: { type: 'integer', minimum: 10, maximum: 120 },
+  }, []),
+  responsePauseMs: { type: 'integer', minimum: 200, maximum: 1000 },
+}, ['timeZone', 'startHour', 'endHour', 'callerNumber', 'voicemailMessage', 'brief', 'simulation']);
 export function campaignRoutes(app, { env, store: supplied }) {
   let store = supplied;
   const get = () => { store ??= new CampaignStore(env.CAMPAIGN_DATABASE_PATH || 'data/campaigns.db'); store.expire(); return store; };

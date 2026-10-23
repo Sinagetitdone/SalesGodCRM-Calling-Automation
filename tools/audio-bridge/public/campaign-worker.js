@@ -2,34 +2,42 @@
 (() => {
   'use strict';
   class Worker {
-    constructor({ api, driver, audio, onState = () => {}, wait = ms => new Promise(r => setTimeout(r, ms)), now = () => Date.now() }) {
-      Object.assign(this, { api, driver, audio, onState, wait, now }); this.workerId = crypto.randomUUID();
+    constructor({ api, driver, audio, rehearsal, onState = () => {}, wait = ms => new Promise(r => setTimeout(r, ms)), now = () => Date.now() }) {
+      Object.assign(this, { api, driver, audio, rehearsal, onState, wait, now }); this.workerId = crypto.randomUUID();
     }
     async until(test, timeout) { const end = this.now() + timeout; while (!await test()) { if (this.now() > end) throw new Error('Operation timed out; no automatic retry.'); await this.wait(300); } }
     async post(suffix, body = {}) { return this.api('/campaigns-api/' + this.id + suffix, { workerId: this.workerId, ...body }); }
     async pause() { this.pauseRequested = true; if (this.running) await this.post('/pause'); }
-    async stop() { this.cancelCurrent = true; await this.pause(); await this.audio.stop('stopped', 'Owner stopped the calling list'); }
+    async stop() { this.cancelCurrent = true; this.rehearsal?.stop(); await this.pause(); if (!this.simulation) await this.audio.stop('stopped', 'Owner stopped the calling list'); }
     async run(id) {
       if (this.running) throw new Error('A list is already running.');
       this.id = id; this.pauseRequested = false; this.cancelCurrent = false; this.running = true;
       try {
         await this.post('/start', { authorized: true });
-        this.heartbeat = setInterval(() => { void this.post('/heartbeat').catch(() => { this.pauseRequested = true; this.cancelCurrent = true; void this.audio.stop('failed', 'Campaign connection lost'); }); }, 10000);
+        this.heartbeat = setInterval(() => { void this.post('/heartbeat').catch(() => { this.pauseRequested = true; this.cancelCurrent = true; this.rehearsal?.stop(); if (!this.simulation) void this.audio.stop('failed', 'Campaign connection lost'); }); }, 10000);
         while (!this.pauseRequested) {
           const next = await this.post('/next');
           if (next.finished) { this.onState({ state: 'finished', campaignId: id }); return; }
           if (next.waiting) { this.onState({ state: 'waiting', reason: next.waiting }); await this.wait(15000); continue; }
+          this.simulation = next.settings.simulation;
           this.current = next.contact; this.onState({ state: 'preparing', contact: this.current });
           const contactPath = '/' + this.current.id; let dispatchAttempted = false, outcome;
           try {
             if (next.settings.simulation) {
               const session = crypto.randomUUID(); await this.post(contactPath + '/dispatch', { session });
-              this.onState({ state: 'simulation', contact: this.current }); await this.wait(500);
-              outcome = this.current.position % 2 ? 'voicemail_played' : 'completed';
-              if (outcome === 'completed') for (const [speaker, text] of [['assistant', 'This is a simulated office introduction.'], ['customer', 'This is a simulated reply.']]) await this.post(contactPath + '/transcript', { session, item: 'sim_' + speaker, speaker, text });
+              this.onState({ state: 'simulation', contact: this.current });
+              if (next.settings.simulationMode === 'agents') {
+                if (!this.rehearsal) throw new Error('Live AI rehearsal is unavailable. Reopen the updated calling list.');
+                outcome = this.cancelCurrent ? 'cancelled' : await this.rehearsal.run({ campaignId: id, contact: this.current, workerId: this.workerId, session,
+                  settings: next.settings, saveTurn: turn => this.post(contactPath + '/transcript', turn) });
+              } else {
+                await this.wait(500);
+                outcome = this.cancelCurrent ? 'cancelled' : this.current.position % 2 ? 'voicemail_played' : 'completed';
+                if (outcome === 'completed') for (const [speaker, text] of [['assistant', 'This is a simulated office introduction.'], ['customer', 'This is a simulated reply.']]) await this.post(contactPath + '/transcript', { session, item: 'sim_' + speaker, speaker, text });
+              }
             } else {
               await this.driver('inspect');
-              this.audio.configure({ automatic: true, campaignId: id, contactId: this.current.id, workerId: this.workerId,
+              this.audio.configure({ automatic: true, responsePauseMs: next.settings.responsePauseMs ?? 250, campaignId: id, contactId: this.current.id, workerId: this.workerId,
                 saveTurn: turn => this.post(contactPath + '/transcript', turn) });
               const token = crypto.randomUUID(); await this.driver('prepare', { token }); this.audio.pair(token);
               await this.until(() => this.audio.status().canPrepare, 15000);
@@ -79,9 +87,12 @@
             this.onState({ state: 'contact_finished', outcome, contact: this.current });
             if (['failed', 'unknown', 'needs_review'].includes(outcome)) this.pauseRequested = true;
           } catch {
-            await this.audio.stop('failed', 'List paused after an uncertain attempt').catch(() => {});
-            if (dispatchAttempted) await this.driver('hangup', { attempt: this.current.id }).catch(() => {});
-            else await this.driver('release', { attempt: this.current.id }).catch(() => {});
+            if (this.simulation) this.rehearsal?.stop();
+            else {
+              await this.audio.stop('failed', 'List paused after an uncertain attempt').catch(() => {});
+              if (dispatchAttempted) await this.driver('hangup', { attempt: this.current.id }).catch(() => {});
+              else await this.driver('release', { attempt: this.current.id }).catch(() => {});
+            }
             await this.post(contactPath + '/finish', { outcome: dispatchAttempted ? 'unknown' : 'failed' }).catch(() => {});
             await this.post('/pause').catch(() => {}); this.pauseRequested = true;
             this.onState({ state: 'needs_review', contact: this.current });

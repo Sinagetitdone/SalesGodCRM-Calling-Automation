@@ -1,4 +1,12 @@
-# Resume here — 2026-10-20
+# Resume here — 2026-10-23
+
+## Latest work — package 0.5.0
+
+All 140 checks and TypeScript passed. The actual supervised-call code produced audio into a synthetic dialer using 250 ms VAD and 1.1× speed. Synthetic customer TTS failed twice, preventing round-trip latency measurement; no actual phone was dialed. The lab and AI sessions were stopped. Do not claim measured real-call latency yet.
+
+Live AI rehearsal now exchanges dynamically generated dialogue between separate office/customer sessions, plays both voices, saves transcripts and exports genuine local MP3. New drafts use 600 output tokens, under-15-word guidance, parallel peer setup, 1.15× speech and a configurable 20-second complete-turn watchdog. Eight real API replies completed within 4.4–12.6 seconds each. Audio remains in the page until downloaded; transcript retention is seven days.
+
+The owner's latest priority is real-call responsiveness. Live human VAD defaults to 250 ms (previously 350), per-list setting responsePauseMs accepts 200–1000 ms, and live replies use concise instructions with 1.1× speech. Voicemail timers and the five-minute AI session limit remain unchanged. Introduction no longer overrides session instructions. ai.audio_started events plus report.lastReplyAfterVadMs help measure actual latency. Reopen idle control pages after restarting the bridge to load changes; no extension reload needed. No real calls are authorized by this development task. Earlier dialing authorizations below were consumed.
 
 ## Stop state
 

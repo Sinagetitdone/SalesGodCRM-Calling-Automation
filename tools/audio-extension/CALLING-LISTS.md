@@ -1,4 +1,8 @@
-# Calling lists — version 0.4.0
+# Calling lists — package 0.5.0 / extension 0.4.0
+
+Current update (2026-10-23): live human conversations use 250 ms turn-end silence, configurable under **Call settings → Live-call pause before replying** (200–1000 ms). Short routine answers and 1.1× speech reduce turn length. Voicemail timing stays unchanged. The actual live-call code generated audio in a no-phone WebRTC test; synthetic customer TTS failed, so round-trip telephone latency is not yet measured. No real calls were placed for this update. Reopen idle controls to load it. Live AI rehearsal also adds MP3 download and an editable 20-second complete-turn timeout; that watchdog is separate from live-call VAD. Use **Copy selected list to editor**, change settings and import to save a revised list without altering prior results.
+
+### Earlier verification history
 
 Latest update: one subsequently authorized real call automatically switched from voicemail playback to a human conversation, saved AI/customer turns and audibility confirmation, and ended with no ongoing call. The owner reported slow interruption recovery. The current patch preserves pending classifier results across repeated speech, removes the extra one-second takeover polling delay, and uses 350 ms turn-end silence instead of 600 ms. Media/gate/VAD checks remain. Synthetic regressions pass; this latency patch has not been tested on another phone call. Earlier test descriptions below are historical, not the current verification state. Reopen controls through the CRM extension to load updated page code; no extension reload is needed for this change.
 
@@ -16,7 +20,9 @@ Speech awaiting transcription/classification blocks voicemail completion. After 
 
 ## Try without calling
 
-Run `npm run audio:bridge`, open <http://127.0.0.1:28431/campaigns>, choose **Use simulated contacts**, **Import and preview**, then **Start selected list**. Keep **Simulation only** checked. This path never prepares audio, contacts OpenAI, or invokes the CRM driver. Results and transcripts are explicitly simulated. A browser test completed two synthetic contacts and displayed their saved transcript and completion notice.
+Run `npm run audio:bridge`, open <http://127.0.0.1:28431/campaigns>, choose **Use simulated contacts**, **Import and preview**, then **Start selected list**. Keep **Simulation only** checked. Choose **Live AI rehearsal** to hear two independent OpenAI agents exchange replies and see streaming dialogue. Select interested, busy or cautious customer behavior and 4, 8 or 12 replies before importing. The office agent follows the approved brief. This mode uses API credits, needs no microphone or CRM pairing, and has no path to the CRM driver. It tests dialogue, not telephone media, voicemail detection or interruption timing.
+
+Completed text replies are saved with the contact. The page offers replay and download for the last 10 rehearsal recordings; audio is in browser memory only and is lost on refresh/close unless downloaded. Stop retains partial text/audio and pauses; failure pauses without retry. Choose **Offline workflow check** for the original canned simulation with no audio or API requests. Existing saved simulation drafts without a mode retain that offline behavior.
 
 ## Import
 
@@ -44,7 +50,7 @@ Incoming English transcription is classified as human, voicemail, unavailable or
 
 Results distinguish conversation completed, voicemail playback completed, no answer, suppressed, opted out, cancelled, failed, unknown and needs review. Completion banner/title appears after every row is processed; optional desktop notification requires browser permission. A paused list does not report completion. No email or external notification is sent.
 
-View transcripts in the table. Export downloads JSON with settings, contacts, outcomes, timestamps, conversation turns, campaign transitions and available audio-session metadata. Voicemail has an outcome/event record rather than a customer conversation transcript. No audio recordings are saved.
+View transcripts in the table. Export downloads JSON with settings, contacts, outcomes, timestamps, conversation turns, campaign transitions and available audio-session metadata. Voicemail has an outcome/event record rather than a customer conversation transcript. Live phone audio is not recorded. Rehearsal audio has a separate browser-only replay/download.
 
 Ignored `data/campaigns.db` stores sensitive contact details and text transcripts; `data/live-audio.db` stores audio metadata without transcript text. Inactive data is pruned after seven days on local service activity; opt-out suppression persists independently. Files are accessible to the OS user and are not encrypted by the application. Speech is sent to OpenAI during live calls. The standard API key stays in the ignored server-side `.env`.
 

@@ -1,5 +1,15 @@
 # Evolution
 
+## 2026-10-23 — Live rehearsal, MP3 export and faster live-call turns (0.5.0)
+
+Added two independent speaking AI agents for fictional contacts, streamed and saved transcripts, local MP3 replay/download, and a configurable rehearsal reply watchdog (20 seconds by default, 10–120 allowed). Connect both rehearsal peers concurrently; use brief replies and 1.15× rehearsal speech. An eight-reply browser test completed with both voices verified; measured complete turns ranged from 4.4 to 12.6 seconds. These timings include generation and speech, not telephone latency.
+
+The owner clarified that responsiveness must improve on real calls too. Human conversation VAD now defaults to 250 ms instead of 350 ms, configurable per imported list (200–1000 ms). Live sessions request concise routine answers and 1.1× speech; introductory guidance is additive so it retains the approved brief. Voicemail screening, ringing, beep, late-pickup and session-limit timers are unchanged. Audio-start events and the most recent delay after VAD are reported for measurement. No real phone call was placed for this change; carrier performance still requires an authorized test.
+
+See ADR-0004 and the 2026-10-23 rehearsal/audio Engineering Memory lesson. Windows/Mac distribution includes the encoder and setup guide; source extension version remains 0.4.0.
+
+Validation: all 140 automated checks plus TypeScript checking passed. A no-phone WebRTC test using the actual supervised-call code accepted 250 ms VAD and 1.1× speech, generated the introduction and delivered measurable audio to the synthetic dialer. Synthetic customer TTS generation failed twice, so customer-to-AI response latency was not measured in that browser test; do not infer carrier latency from the successful introduction. Both synthetic peers were stopped. A new real-call test remains necessary before claiming measured telephone responsiveness.
+
 ## 2026-10-20 — Successful v0.4.6 supervised voicemail playback
 
 One newly authorized single-contact phone test recognized the recorded greeting, detected an acoustic beep, played all 8.15 seconds of the prepared voicemail, waited for late pickup and ended the owned call. The list reported voicemail playback completed and finished; CRM returned to idle. The owner confirmed voicemail pickup but has not verified stored mailbox contents. The silent fallback was not exercised in this call. No implementation change or further dialing was needed for this verification.

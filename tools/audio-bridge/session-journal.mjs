@@ -4,7 +4,7 @@ import { dirname } from 'node:path';
 
 export const journalEvents = ['session.started', 'openai.ready', 'dialer.media_ready', 'owner.answer_confirmed', 'answer.human_detected', 'owner.instruction_sent', 'owner.instruction_accepted', 'owner.instruction_unconfirmed',
   'answer.transcript_received', 'answer.explicit_human_detected', 'answer.classification_requested', 'answer.classification_timeout', 'answer.classified_human', 'answer.classified_voicemail', 'answer.classified_unavailable', 'answer.classified_unknown',
-  'conversation.started', 'customer.speech_started', 'customer.speech_stopped', 'ai.response_started',
+  'conversation.started', 'customer.speech_started', 'customer.speech_stopped', 'ai.response_started', 'ai.audio_started',
   'ai.response_completed', 'ai.response_cancelled', 'ai.response_failed', 'ai.interrupted', 'ai.paused', 'session.stopped', 'session.error', 'bridge.disconnected', 'dialer.media_ended',
   'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.silence_fallback', 'voicemail.playback_started', 'voicemail.playback_completed', 'voicemail.incomplete', 'voicemail.timeout', 'voicemail.unavailable', 'voicemail.recognition_failed', 'voicemail.human_takeover', 'voicemail.takeover_unconfirmed'];
 export const phases = ['preparing', 'waiting', 'ready', 'starting', 'talking', 'paused', 'stopping', 'stopped', 'failed', 'screening', 'voicemail-waiting', 'voicemail-playing', 'voicemail-complete'];

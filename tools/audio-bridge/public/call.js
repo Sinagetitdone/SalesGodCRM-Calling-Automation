@@ -321,7 +321,9 @@
           if (data?.type === 'gate-state' && report.phase === 'starting') {
             if (!data.open || current.media.state !== 'ready') { $('error').textContent = 'Dialer audio is not ready.'; void finish('failed'); return; }
             current.vadPending = true; send({ type: 'input_audio_buffer.clear' });
-            send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true, silence_duration_ms: 350, prefix_padding_ms: 300 } } } } });
+            const pause = current.config.responsePauseMs;
+            report.responsePauseMs = Number.isInteger(pause) && pause >= 200 && pause <= 1000 ? pause : 250;
+            send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true, silence_duration_ms: report.responsePauseMs, prefix_padding_ms: 300 } } } } });
           }
         },
       });
@@ -404,7 +406,8 @@
           current.vadPending = false; clearTimeout(current.vadTimer); await log('conversation.started');
           if (current.stopping || current.logFailed || report.phase !== 'starting' || current.media.state !== 'ready' || !current.media.bridgeMicrophone) return;
           current.input.enabled = true; output.gain.value = 1; phase('talking', 'AI conversation active · customer may interrupt');
-          send({ type: 'response.create', response: { instructions: 'Introduce yourself clearly as an AI assistant calling from Jay Marketing Lab on behalf of Cena, then ask whether now is a good time to talk. Follow the office conversation instructions; do not give an audio-test introduction.' } });
+          send({ type: 'conversation.item.create', item: { type: 'message', role: 'system', content: [{ type: 'input_text', text: 'Begin now: introduce yourself clearly as an AI assistant calling from Jay Marketing Lab on behalf of Cena, then ask whether now is a good time to talk. Retain your assigned brief and concise speaking instructions.' }] } });
+          send({ type: 'response.create', response: {} });
         }
         if (message.type === 'input_audio_buffer.speech_started') {
           current.detector?.resetConfirmation();
@@ -414,10 +417,12 @@
           if (!current.voicemailAttempted && message.item_id) current.preVoicemailItems.add(message.item_id);
           checkVoicemailInterruption(current);
           current.customerSpeaking = true; current.endReason = undefined; clearTimeout(current.endTimer);
+          current.replyWaitStarted = undefined;
           report.customerTurns++; void log('customer.speech_started');
           if (current.responseActive || current.playback) { report.interruptions++; void log('ai.interrupted'); }
         }
         if (message.type === 'input_audio_buffer.speech_stopped') {
+          if (report.phase === 'talking') current.replyWaitStarted = Date.now();
           current.customerSpeaking = false; void log('customer.speech_stopped'); scheduleHumanStart(current);
         }
         if (message.type === 'response.created') { current.responseActive = true; report.aiTurns++; void log('ai.response_started'); }
@@ -428,7 +433,14 @@
           else { $('error').textContent = 'The AI response failed. End the phone call in SalesGodCRM.'; void log('ai.response_failed'); void finish('failed'); }
           scheduleConversationEnd(current);
         }
-        if (message.type === 'output_audio_buffer.started') current.playback = true;
+        if (message.type === 'output_audio_buffer.started') {
+          current.playback = true;
+          if (report.phase === 'talking' && current.replyWaitStarted !== undefined) {
+            report.lastReplyAfterVadMs = Date.now() - current.replyWaitStarted;
+            current.replyWaitStarted = undefined;
+          }
+          void log('ai.audio_started');
+        }
         if (openerOrigin === location.origin && message.type === 'response.output_audio_transcript.done' && /\borange\b/i.test(message.transcript || '')) {
           report.simulatedWordConfirmed = true;
         }

@@ -1,0 +1,9 @@
+# Spoken rehearsal replies need output drain and audio-sized token limits
+
+The first two-agent test used a 300-token output cap and cut off the customer's spoken response. Realtime output includes audio tokens, so text-only estimates are insufficient. The test paused with partial text instead of claiming completion. Increasing the cap to 1200 completed a four-reply exchange; the owner then requested shorter replies, so the final rehearsal setting is 600 tokens plus an under-15-word instruction. After concurrent setup and 1.15× speech, eight replies completed in 4.4–12.6 seconds including playback with a 20-second watchdog. Keep the watchdog separate from output tokens and do not claim that lowering a cap directly reduces time to first audio.
+
+Generation completion can precede playback completion. Relay only after response.done and output_audio_buffer.stopped, accepting either order. A final-turn response.instructions override replaced the original role constraints during an intermediate test; additive system-message guidance preserves the original brief instead.
+
+Browser MediaRecorder does not normally produce MP3. Do not rename a WebM blob. Decode and encode locally with a pinned MP3 encoder, test MPEG frame bytes and browser playback, and label partial recordings accurately. Close AI peers before encoding and yield during encoding so the campaign lease stays alive. Rehearsal audio is page-local, not a durable telephone recording.
+
+Real-call responsiveness is a different path: shorten human VAD silence from 350 to 250 ms and preserve voicemail screening deadlines. Concise answers and 1.1× speech reduce routine turn length, not network latency. Measure speech_stopped to output_audio_buffer.started and do not claim carrier improvements based only on a text-relay rehearsal. Keep the live introductory message additive too, so it cannot replace concise instructions or the approved brief.

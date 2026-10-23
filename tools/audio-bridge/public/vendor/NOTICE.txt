@@ -1,0 +1,10 @@
+lamejs 1.2.1 — MP3 encoder by Alex Zhukov, derived from jump3r/libmp3lame.
+Licensed under LGPL-3.0. Distributed here without modifications as a separate,
+replaceable JavaScript library. The unminified source is included in lame.all.js.
+Upstream source and build instructions: https://github.com/zhuker/lamejs
+Exact npm source package: https://registry.npmjs.org/lamejs/-/lamejs-1.2.1.tgz
+License text: https://www.gnu.org/licenses/lgpl-3.0.html
+LAME project: https://lame.sourceforge.net/
+Full license copies are included as LGPL-3.0.txt and GPL-3.0.txt.
+See also the upstream LAME-LICENSE.txt. No additional restriction is imposed
+on modifying or replacing this library for your own use under its license.
