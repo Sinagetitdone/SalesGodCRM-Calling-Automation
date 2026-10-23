@@ -26,10 +26,14 @@
 <p id="listState" role="status" aria-live="polite">Nothing is running.</p>
 <div class="list-scroll"><table><thead><tr><th>Name</th><th>Phone</th><th>Result</th><th>Conversation</th></tr></thead><tbody id="contactRows"></tbody></table></div>
 <pre id="selectedTranscript" hidden></pre><details><summary>List event log</summary><pre id="listEvents">No events yet.</pre></details>
-<p>Rehearsal transcripts stay in the local database for seven days. Download MP3 audio before closing or refreshing. Your fictional names, brief and dialogue are sent to OpenAI during Live AI rehearsal.</p></section>
+<p>Transcripts, logs and new rehearsal MP3s stay on this computer until you delete them in <a href="/history" target="_blank" rel="noopener">Previous Conversations</a>. If saving an MP3 fails, download it here before closing. Your fictional names, brief and dialogue are sent to OpenAI during Live AI rehearsal.</p></section>
 <section id="rehearsalPanel" aria-labelledby="rehearsalHeading"><h2 id="rehearsalHeading">Live AI rehearsal</h2>
+<p>Hear both agents as they speak. After each contact finishes, download one MP3 containing the whole conversation, including both voices. No individual reply downloads are required.</p>
+<button id="resumeRehearsalSound">Enable / resume live sound</button><button id="checkRehearsalSound">Test speakers (short tone)</button>
+<label for="rehearsalVolume">Live listening volume</label><input id="rehearsalVolume" type="range" min="0" max="100" value="100">
+<p id="rehearsalSoundStatus" role="status">Sound starts when you press Start rehearsal. If silent, check that this Chrome tab and your speakers are unmuted.</p>
 <p id="rehearsalStatus" role="status" aria-live="polite">Choose simulated contacts, import and preview, then start the selected list. No CRM connection is needed.</p>
 <ol id="rehearsalTranscript" aria-label="Live rehearsal transcript"></ol>
 <button id="downloadRehearsalTranscript" disabled>Download visible transcript</button>
 <div id="rehearsalRecordings"></div>
-<p>Completed replies are saved with each contact. Replay or download the last 10 rehearsal MP3 recordings here before closing this window. Downloaded audio is a recording of AI-generated fictional dialogue.</p></section>
+<p>Each MP3 combines both speakers for one contact, from start to finish (or until interrupted). The last 10 recordings also appear here for immediate replay. Saved recordings can be reopened in Previous Conversations. Downloaded audio is AI-generated fictional dialogue.</p></section>

@@ -15,6 +15,106 @@ const fixture = (simulation = false, date = '2026-10-20T19:00:00Z') => {
   const c = store.create({ name: 'Synthetic', csv, settings: { ...settings, simulation } });
   return { store, worker, id: c.id, advance(ms) { now = new Date(now.getTime() + ms); } };
 };
+
+test('history saves full MP3s, protects active records and deletes only the selected conversation', async () => {
+  const f = fixture(true), app = createBridge({ campaignStore: f.store, env: {} });
+  const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431' };
+  try {
+    f.store.start(f.id, f.worker); const c = f.store.claim(f.id, f.worker).contact;
+    const session = randomUUID(); f.store.dispatch(f.id, c.id, f.worker, session);
+    const base = `/campaigns-api/${f.id}/${c.id}`;
+    const upload = worker => app.inject({ method: 'POST', url: base + '/recording', headers: { ...headers, 'content-type': 'audio/mpeg', 'x-worker-id': worker }, payload: Buffer.from([0xff, 0xfb, 0x90, 0x00]) });
+    assert.equal((await upload(randomUUID())).statusCode, 409);
+    assert.equal((await upload(f.worker)).statusCode, 200);
+    assert.equal(f.store.read(f.id).contacts[0].hasRecording, 1);
+    const remove = () => app.inject({ method: 'POST', url: base + '/delete', headers, payload: { confirmed: true } });
+    assert.equal((await remove()).statusCode, 409);
+    f.store.finish(f.id, c.id, f.worker, 'failed', { message: 'Rehearsal turn timed out. sk-synthetic-secret' });
+    const events = f.store.read(f.id).events;
+    assert.match(events.at(-2).event, /timed out/); assert.doesNotMatch(JSON.stringify(events), /sk-synthetic/);
+    f.store.archiveAudio(c.id, [{ time: '2026-10-20T19:00:00Z', event: 'session.error', phase: 'failed' }]);
+    assert.equal((await app.inject({ url: base + '/events', headers })).json().events[0].event, 'session.error');
+    assert.deepEqual((await app.inject({ url: base + '/recording', headers })).rawPayload, Buffer.from([0xff, 0xfb, 0x90, 0x00]));
+    assert.equal((await app.inject({ url: '/conversation-history', headers })).json().campaigns.length, 1);
+    assert.equal((await remove()).statusCode, 200);
+    assert.equal(f.store.read(f.id).contacts.length, 1);
+    assert.equal(f.store.db.prepare('SELECT COUNT(*) AS n FROM campaign_recordings').get().n, 0);
+    assert.equal(f.store.db.prepare('SELECT COUNT(*) AS n FROM campaign_audio_archive').get().n, 0);
+    assert.equal((await app.inject({ url: base + '/recording', headers })).statusCode, 404);
+  } finally { await app.close(); f.store.close(); }
+});
+
+test('failure before dispatch retains its session and error without authorizing a phone call', () => {
+  const f = fixture();
+  try {
+    f.store.start(f.id, f.worker); const c = f.store.claim(f.id, f.worker).contact, session = randomUUID();
+    const result = f.store.finish(f.id, c.id, f.worker, 'failed', { session, message: 'AI preparation failed. httpStatus=403' });
+    assert.equal(result.contacts[0].session, session); assert.equal(result.contacts[0].dispatched, null);
+    assert.match(result.events.at(-2).event, /httpStatus=403/);
+    assert.throws(() => f.store.dispatch(f.id, c.id, f.worker, session));
+  } finally { f.store.close(); }
+});
+
+test('history ZIP contains transcripts, logs and one whole recording without credentials', async () => {
+  const f = fixture(true), app = createBridge({ campaignStore: f.store, env: {} });
+  try {
+    f.store.start(f.id, f.worker); const c = f.store.claim(f.id, f.worker).contact, session = randomUUID();
+    f.store.dispatch(f.id, c.id, f.worker, session);
+    f.store.transcript(f.id, c.id, f.worker, { session, item: 'one', speaker: 'assistant', text: 'Synthetic dialogue' });
+    f.store.saveRecording(f.id, c.id, f.worker, Buffer.from([0xff, 0xfb, 0x90, 0]));
+    f.store.finish(f.id, c.id, f.worker, 'completed');
+    const r = await app.inject({ url: '/conversation-history.zip', headers: { host: '127.0.0.1:28431' } });
+    assert.equal(r.statusCode, 200); assert.match(r.headers['content-type'], /application\/zip/);
+    const bytes = r.rawPayload, files = new Map(); let offset = 0;
+    while (bytes.readUInt32LE(offset) === 0x04034b50) {
+      const size = bytes.readUInt32LE(offset + 18), length = bytes.readUInt16LE(offset + 26), start = offset + 30 + length;
+      files.set(bytes.subarray(offset + 30, start).toString(), bytes.subarray(start, start + size)); offset = start + size;
+    }
+    assert.equal(bytes.readUInt32LE(offset), 0x02014b50); assert.equal(bytes.readUInt32LE(bytes.length - 22), 0x06054b50);
+    assert.equal(files.size, 5); // README, list, two contact reports, one MP3.
+    const report = JSON.parse(files.get(`${f.id}/${c.id}.json`));
+    assert.equal(report.transcript[0].text, 'Synthetic dialogue'); assert.ok(report.events.length);
+    assert.deepEqual(files.get(`${f.id}/${c.id}.mp3`), Buffer.from([0xff, 0xfb, 0x90, 0]));
+    assert.doesNotMatch(files.get(`${f.id}/list.json`).toString(), new RegExp(f.worker));
+    assert.equal((await app.inject({ url: '/conversation-history.zip', headers: { host: 'untrusted.invalid' } })).statusCode, 403);
+  } finally { await app.close(); f.store.close(); }
+});
+
+test('real and rehearsal transcript panels show exact failed/pending logs and retain completed transcripts', async () => {
+  const source = await readFile(new URL('public/campaign.js', import.meta.url), 'utf8');
+  for (const practice of [false, true]) {
+    const nodes = new Map(), requests = [];
+    const node = () => ({ children: [], value: '', hidden: true, dataset: {}, append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; }, scrollIntoView() {} });
+    const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
+    const contact = { id: 'contact', firstName: 'Synthetic', lastName: 'Example', state: 'pending', session: null };
+    const campaign = { id: 'list', name: 'Synthetic', state: 'draft', settings: { simulation: practice }, contacts: [contact], events: [{ contact: null, time: '2026-10-23T12:00:00Z', event: 'imported' }] };
+    vm.runInNewContext(source, { document: { body: { dataset: { workspace: practice ? 'rehearsal' : 'live' } }, getElementById: get, createElement: node },
+      window: { addEventListener() {}, SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class {}, SalesGodRehearsal: class {} },
+      location: { hash: '' }, URLSearchParams, Option: class {}, setInterval() {},
+      fetch: async path => {
+        requests.push(path); let data = {};
+        if (path.startsWith('/campaigns-api?')) data = { campaigns: [campaign] };
+        else if (path === '/calling-profile') data = { background: '', guidance: '' };
+        else if (path.endsWith('/transcript')) data = { turns: [{ speaker: 'assistant', text: 'Completed speech' }] };
+        else if (path.endsWith('/events')) data = { events: [{ time: '2026-10-23T12:00:01Z', event: 'session.error', phase: 'failed' }] };
+        else data = campaign;
+        return { ok: true, json: async () => data };
+      } });
+    await new Promise(resolve => setImmediate(resolve));
+    for (const state of ['pending', 'failed', 'completed']) {
+      contact.state = state; contact.session = state === 'pending' ? null : 'session';
+      if (state === 'failed') campaign.events.push({ contact: 'contact', time: '2026-10-23T12:00:02Z', event: 'failure_detail: Rehearsal connection timed out.' });
+      get('savedLists').value = 'list'; await get('savedLists').onchange();
+      const button = get('contactRows').children[0].children[3].children[0];
+      assert.equal(button.textContent, state === 'completed' ? 'View transcript' : 'View log');
+      button.onclick(); await new Promise(resolve => setImmediate(resolve));
+      const text = get('selectedTranscript').textContent;
+      if (state === 'pending') assert.match(text, /imported[\s\S]*has not been attempted/);
+      if (state === 'failed') { assert.match(text, /session.error · phase=failed/); assert.match(text, /Rehearsal connection timed out/); assert.doesNotMatch(text, /Completed speech/); }
+      if (state === 'completed') assert.match(text, /assistant: Completed speech/);
+    }
+  }
+});
 test('CSV handles quoted names, BOM and duplicate normalized numbers; malformed imports fail', () => {
   const parsed = parseContacts('\uFEFFfirst_name,last_name,phone\r\n"Alex, A",Example,(202) 555-0101\r\nAlex,Example,+12025550101');
   assert.equal(parsed.contacts[0].firstName, 'Alex, A'); assert.equal(parsed.duplicates, 1);
@@ -76,7 +176,7 @@ test('expired paused workers cannot strand active contacts or allow a competing 
     f.store.start(f.id, f.worker); assert.equal(f.store.claim(f.id, f.worker).contact.position, 1);
   } finally { f.store.close(); }
 });
-test('restart retains transcript and converts interrupted dispatch to unknown without retry; retention cascades', async () => {
+test('restart retains transcript and converts interrupted dispatch to unknown; history remains until deletion', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'salesgod-campaign-')), path = join(dir, 'campaigns.db'); let store;
   let now = new Date('2026-10-20T19:00:00Z');
   try {
@@ -86,7 +186,9 @@ test('restart retains transcript and converts interrupted dispatch to unknown wi
     store = new CampaignStore(path, () => now);
     assert.equal(store.read(c.id).contacts[0].state, 'unknown'); assert.equal(store.transcripts(c.id, contact.id).length, 1);
     store.start(c.id, worker); assert.equal(store.claim(c.id, worker).contact.position, 1); store.pause(c.id, worker);
-    now = new Date('2026-10-28T19:00:00Z'); store.prune(); assert.equal(store.list().length, 0);
+    now = new Date('2026-10-28T19:00:00Z'); store.prune(); store.expire(); assert.equal(store.list().length, 1);
+    for (const entry of store.read(c.id).contacts) store.deleteConversation(c.id, entry.id);
+    assert.equal(store.list().length, 0);
     assert.equal(store.db.prepare('SELECT COUNT(*) AS n FROM campaign_transcripts').get().n, 0);
   } finally { store?.close(); await rm(dir, { recursive: true }); }
 });

@@ -30,12 +30,41 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
   }
   document.documentElement.append(host);
   const $ = id => root.getElementById(id);
+  const move = root.querySelector('h2'); move.tabIndex = 0;
+  move.title = 'Drag this title to move the panel. Arrow keys also move it; Home resets its position.';
+  move.style.cssText = 'cursor:grab;touch-action:none;user-select:none';
+  const positionKey = 'salesgod-panel-position-v1'; let position, drag;
+  function place(x, y, save = true) {
+    const rect = host.getBoundingClientRect(), margin = 8;
+    position = { x: Math.max(margin, Math.min(x, Math.max(margin, window.innerWidth - rect.width - margin))), y: Math.max(margin, Math.min(y, Math.max(margin, window.innerHeight - rect.height - margin))) };
+    host.style.left = position.x + 'px'; host.style.top = position.y + 'px'; host.style.bottom = 'auto';
+    if (save) try { localStorage.setItem(positionKey, JSON.stringify(position)); } catch { /* Storage can be disabled. Dragging still works. */ }
+  }
+  try { const saved = JSON.parse(localStorage.getItem(positionKey)); if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) place(saved.x, saved.y); } catch { /* Use the default corner. */ }
+  move.onpointerdown = e => {
+    if (e.button !== 0) return;
+    const rect = host.getBoundingClientRect(); drag = { id: e.pointerId, x: e.clientX - rect.left, y: e.clientY - rect.top };
+    move.setPointerCapture(e.pointerId); e.preventDefault();
+  };
+  move.onpointermove = e => { if (drag?.id === e.pointerId) place(e.clientX - drag.x, e.clientY - drag.y, false); };
+  move.onpointerup = move.onpointercancel = e => { if (drag?.id !== e.pointerId) return; drag = null; if (position) place(position.x, position.y); if (move.hasPointerCapture(e.pointerId)) move.releasePointerCapture(e.pointerId); };
+  move.onkeydown = e => {
+    const delta = { ArrowLeft: [-20, 0], ArrowRight: [20, 0], ArrowUp: [0, -20], ArrowDown: [0, 20] }[e.key];
+    if (!delta && e.key !== 'Home') return;
+    e.preventDefault(); const rect = host.getBoundingClientRect();
+    if (e.key === 'Home') place(18, window.innerHeight - rect.height - 18); else place(rect.left + delta[0], rect.top + delta[1]);
+  };
+  const keepVisible = () => { if (position) place(position.x, position.y); };
+  window.addEventListener('resize', keepVisible);
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(keepVisible).observe(host);
   root.querySelector('small').textContent = 'Audio setup · Calling lists require Start';
   const voiceButton = document.createElement('button'); voiceButton.id = 'voice'; voiceButton.disabled = true;
   voiceButton.textContent = 'Open AI voice setup'; $('stop').before(voiceButton);
   const callButton = document.createElement('button'); callButton.id = 'callVoice'; callButton.disabled = true;
   callButton.textContent = 'AI Agents Test Call'; voiceButton.after(callButton);
   const listButton = document.createElement('button'); listButton.id = 'callingList'; listButton.textContent = 'Open calling list'; callButton.after(listButton);
+  const historyButton = document.createElement('button'); historyButton.id = 'previousConversations'; historyButton.textContent = 'Previous Conversations'; listButton.after(historyButton);
+  historyButton.onclick = () => { window.open('http://127.0.0.1:28431/history', '_blank', 'noopener'); };
   const voiceResult = document.createElement('p'); voiceResult.id = 'voiceResult'; $('rtcResult').after(voiceResult);
   let report, listPopup, listToken, listPort, dialer, listWatch;
   const pending = new Map();
@@ -49,11 +78,11 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
     const waiter = pending.get(event.data.requestId);
     if (waiter) { clearTimeout(waiter.timer); pending.delete(event.data.requestId); event.data.error ? waiter.reject(new Error(event.data.error)) : waiter.resolve(event.data.status); }
     report = event.data.status;
-    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2'].includes(report.version)) return;
+    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3'].includes(report.version)) return;
     $('state').textContent = report.testing ? 'Testing synthetic audio locally…' : report.armed ? 'Local routing enabled · OpenAI disconnected' : 'Local routing disabled · OpenAI disconnected';
     $('arm').disabled = report.armed || report.testing;
-    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2'].includes(report.version) || report.voiceState !== 'disconnected';
-    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2'].includes(report.version);
+    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3'].includes(report.version) || report.voiceState !== 'disconnected';
+    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3'].includes(report.version);
     if (report.voiceState && report.voiceState !== 'disconnected') $('state').textContent = `Local routing enabled · Voice setup ${report.voiceState} · Check setup window for OpenAI status`;
     $('test').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
     $('rtc').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');

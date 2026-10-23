@@ -93,6 +93,63 @@ function clientFixture(timers = {}) {
   const rehearsal = new window.SalesGodRehearsal({ onUpdate: u => updates.push(u) });
   return { rehearsal, peers, updates };
 }
+
+test('live monitor plays both remote speakers, volume leaves recording intact and blocked playback is visible', async () => {
+  const outputs = [], streams = [], connections = [];
+  class Audio {
+    constructor() { outputs.push(this); }
+    async play() { if (this.blocked) throw new Error('Blocked'); this.playing = true; }
+    pause() { this.playing = false; }
+  }
+  class Context {
+    state = 'running';
+    async resume() { this.state = 'running'; }
+    createMediaStreamDestination() { const n = { stream: { getTracks: () => [] } }; streams.push(n); return n; }
+    createMediaStreamSource(stream) { return { connect: node => connections.push({ stream, node }), disconnect() {} }; }
+    createAnalyser() { return { fftSize: 32, getFloatTimeDomainData() {}, disconnect() {} }; }
+    async close() { this.state = 'closed'; }
+  }
+  const { rehearsal, updates } = clientFixture({ Audio, AudioContext: Context });
+  // unlock checks browser recording support, even though this test never records.
+  // Use the fixture's window through an injected accessor rather than a real device.
+  const isolated = {};
+  vm.runInNewContext(source, { window: isolated, Audio, AudioContext: Context }); isolated.MediaRecorder = true;
+  const sound = new isolated.SalesGodRehearsal({ onUpdate: u => updates.push(u) });
+  await sound.unlock(); assert.equal(outputs[0].playing, true);
+  sound.setVolume(0.25); assert.equal(outputs[0].volume, 0.25);
+  rehearsal.context = sound.context; rehearsal.monitorMix = sound.monitorMix;
+  const mix = { stream: 'recording' }, run = { peers: [], nodes: [], timers: [], renderers: [], mix, controller: new AbortController() };
+  for (const role of ['assistant', 'customer']) {
+    const peer = await rehearsal.connect(run, role, { contact: { id: 'synthetic' } });
+    peer.pc.ontrack({ streams: [role] });
+  }
+  assert.equal(connections.filter(c => c.node === mix).length, 2);
+  assert.equal(connections.filter(c => c.node === sound.monitorMix).length, 2);
+  outputs[0].blocked = true; await assert.rejects(sound.unlock(), /Blocked/);
+  outputs[0].blocked = false; await sound.unlock();
+  assert.match(updates.at(-1).text, /Live sound enabled/);
+  for (const timer of run.timers) clearInterval(timer);
+  await sound.close(); assert.equal(outputs[0].playing, false);
+});
+
+test('one MP3 and one durable save contain every turn from both agents', async () => {
+  const recordings = [], savedAudio = [], savedTurns = []; let conversions = 0;
+  class Recorder {
+    static isTypeSupported() { return true; }
+    state = 'inactive'; mimeType = 'audio/webm';
+    start() { this.state = 'recording'; }
+    stop() { this.state = 'inactive'; this.onstop(); }
+  }
+  const window = { SalesGodMP3: { async fromRecording(blob) { conversions++; return new Blob([await blob.arrayBuffer()], { type: 'audio/mpeg' }); } } };
+  vm.runInNewContext(source, { window, MediaRecorder: Recorder, AbortController, Blob, setTimeout, clearTimeout, clearInterval });
+  const rehearsal = new window.SalesGodRehearsal({ onRecording: value => recordings.push(value) });
+  rehearsal.context = { state: 'running', createMediaStreamDestination: () => ({ stream: { getTracks: () => [] } }) };
+  rehearsal.connect = async (run, role) => { const peer = { role, peak: 0.1, pc: { close() {} }, channel: { close() {} } }; run.peers.push(peer); return peer; };
+  rehearsal.reply = async (peer, _text, index) => { const text = `${peer.role} reply ${index}`; rehearsal.active.recorder.ondataavailable({ data: new Blob([text + '\n']) }); return text; };
+  const outcome = await rehearsal.run({ session: 'synthetic', contact: { id: 'synthetic' }, settings: { rehearsalTurns: 4 }, saveTurn: async t => savedTurns.push(t), saveRecording: async blob => savedAudio.push(blob) });
+  assert.equal(outcome, 'completed'); assert.equal(conversions, 1); assert.equal(recordings.length, 1); assert.equal(savedAudio.length, 1); assert.equal(savedTurns.length, 4);
+  assert.equal(await savedAudio[0].text(), 'assistant reply 0\ncustomer reply 1\nassistant reply 2\ncustomer reply 3\n');
+});
 test('text relay waits for both response completion and audio drain in either order', async () => {
   for (const drainFirst of [false, true]) {
     const { rehearsal, peers, updates } = clientFixture();

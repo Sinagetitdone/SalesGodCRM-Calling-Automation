@@ -1,5 +1,17 @@
 # Evolution
 
+## 2026-10-23 — Conversation history, live listening and movable panel (0.5.4 / extension 0.4.3)
+
+The owner requested failure/pending logs in place of transcripts, audible live rehearsal, complete MP3 downloads, a draggable extension and review/delete/download history. Both list workspaces now show timestamped list/contact/audio events for failed or pending attempts, including persisted bounded application errors for new failures. Partial transcripts remain exportable. Historical errors that were never recorded are not reconstructed.
+
+Rehearsal uses a shared audible media renderer with explicit unlock/retry, speaker test and volume controls. Both voices feed a separate recording mix, so listening volume does not change the recording. One MP3 covers all turns for a contact. New MP3s persist locally before the worker finishes the contact; upload failure retains the in-page download and marks the attempt failed. No phone audio recording was added.
+
+Previous Conversations exposes all saved lists, per-contact JSON/MP3 exports, selected-list/all-history streaming ZIPs and explicit two-step deletion. Active lists/attempts cannot be deleted. Campaign history now remains until owner deletion; this supersedes automatic seven-day campaign pruning. Terminal audio metadata is archived with the contact; standalone diagnostic journal data still expires after seven days. Conversation deletion cascades through transcripts, recordings and archived events and removes the associated raw journal; opt-out suppression remains. The distribution contains no runtime history or credentials.
+
+Drag the extension title to reposition the panel, with viewport clamping and per-site local position persistence. No dedicated drag button. Keyboard arrows/Home on the title provide an alternative. Chrome must reload extension 0.4.3; refresh CRM only when idle.
+
+All 156 automated checks and TypeScript passed. Validation uses mocked AI exchanges, synthetic recordings, API authorization/deletion guards, whole-dialogue export checks, browser speaker-test acceptance, and local panel drag/reload checks. A ZIP downloaded from the running bridge also passed an independent Python ZIP/CRC check. No real call or paid OpenAI session is part of this release's verification; audibility on the user's chosen physical output still needs their confirmation.
+
 ## 2026-10-23 — Persistent calling context and five voice choices (0.5.3)
 
 The owner explicitly required 6,000–20,000 characters for the manual live-conversation guide, including a true lower bound. Both the UI and sending code enforce it. Real calling lists now have a separate Background field (optional, up to 20,000 characters) and a conversation guide (6,000–20,000), with local saved defaults, character counts, reload and explicit application to an idle list. A singleton SQLite profile survives restart and seven-day campaign pruning. Lists retain independent context snapshots; updating defaults never changes existing attempts. Full context is included in authorized real-call session instructions, including represented identity instead of a hardcoded office opening. Voicemail wording remains separately approved.

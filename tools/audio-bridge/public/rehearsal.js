@@ -9,10 +9,30 @@
     async unlock() {
       if (!window.MediaRecorder) throw new Error('This browser cannot record rehearsal audio. Use current Chrome.');
       this.context ??= new AudioContext();
+      this.monitor ??= new Audio();
+      this.monitor.autoplay = true;
+      this.monitorMix ??= this.context.createMediaStreamDestination();
+      this.monitor.srcObject = this.monitorMix.stream;
+      this.context.onstatechange = () => { if (this.active && this.context?.state !== 'running') this.onUpdate({ type: 'playback', text: 'Live sound paused by the browser. Click Enable / resume live sound.' }); };
       await this.context.resume();
       if (this.context.state !== 'running') throw new Error('Allow audio playback in this browser, then press Start again.');
+      await this.monitor.play();
+      for (const renderer of this.active?.renderers || []) await renderer.play();
+      this.onUpdate({ type: 'playback', text: 'Live sound enabled · playing through your browser’s output device.' });
     }
-    async close() { await this.context?.close(); this.context = null; }
+    async soundCheck() {
+      await this.unlock();
+      const tone = this.context.createOscillator(), gain = this.context.createGain();
+      gain.gain.value = 0.08; tone.connect(gain); gain.connect(this.monitorMix);
+      tone.onended = () => { tone.disconnect(); gain.disconnect(); };
+      tone.start(); tone.stop(this.context.currentTime + 0.4);
+    }
+    setVolume(value) { this.monitor ??= new Audio(); this.monitor.volume = Math.max(0, Math.min(1, Number(value))); }
+    async close() {
+      this.monitor?.pause(); if (this.monitor) this.monitor.srcObject = null;
+      this.monitorMix?.stream.getTracks().forEach(t => t.stop()); this.monitorMix = null;
+      await this.context?.close(); this.context = null;
+    }
     stop() {
       const run = this.active; if (!run || run.cancelled) return;
       run.cancelled = true; run.controller.abort();
@@ -28,13 +48,15 @@
         if (run.cancelled) return;
         const stream = streams[0] || new MediaStream([track]);
         const source = this.context.createMediaStreamSource(stream);
-        source.connect(this.context.destination); source.connect(run.mix);
+        // One audible output for both speakers; recording is independent of
+        // the listener's volume. A visible Resume sound button can retry play.
+        source.connect(this.monitorMix); source.connect(run.mix);
         const analyser = this.context.createAnalyser(); source.connect(analyser);
         const samples = new Float32Array(analyser.fftSize);
         const timer = setInterval(() => { analyser.getFloatTimeDomainData(samples); for (const v of samples) peer.peak = Math.max(peer.peak, Math.abs(v)); }, 50);
         run.nodes.push(source, analyser); run.timers.push(timer);
         const renderer = new Audio(); renderer.srcObject = stream; renderer.volume = 0;
-        renderer.play().catch(() => {}); run.renderers.push(renderer);
+        renderer.play().catch(() => this.onUpdate({ type: 'playback', text: 'Browser blocked remote audio. Click Enable / resume live sound.' })); run.renderers.push(renderer);
       };
       channel.onmessage = ({ data }) => {
         if (run.cancelled) return;
@@ -51,7 +73,7 @@
         }
         if (event.type === 'response.output_audio_transcript.done') turn.text = event.transcript || turn.text;
         if (event.type === 'response.done') {
-          turn.text = (event.response.output || []).flatMap(item => item.content || []).map(part => part.transcript || '').join('').trim() || turn.text;
+          turn.text = (event.response?.output || []).flatMap(item => item.content || []).map(part => part.transcript || '').join('').trim() || turn.text;
           if (event.response?.status !== 'completed') return peer.reject?.(new Error('The AI did not finish its reply. Partial transcript retained.'));
           turn.done = true;
         }
@@ -100,7 +122,7 @@
       if (this.active) throw new Error('A rehearsal is already running.');
       if (!this.context || this.context.state !== 'running') throw new Error('Press Start to enable rehearsal sound.');
       const run = { peers: [], nodes: [], renderers: [], timers: [], chunks: [], turns: [], turnSeconds: [], controller: new AbortController(), cancelled: false };
-      this.active = run;
+      this.active = run; this.lastError = null;
       run.mix = this.context.createMediaStreamDestination();
       const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(x => MediaRecorder.isTypeSupported(x));
       let outcome = 'completed', failure;
@@ -157,9 +179,14 @@
             this.onUpdate({ type: 'recording' });
             const blob = await window.SalesGodMP3.fromRecording(new Blob(run.chunks, { type: run.recorder.mimeType }), this.context);
             this.onRecording({ contact: options.contact, outcome, blob });
+            if (options.saveRecording) {
+              try { await options.saveRecording(blob); }
+              catch { outcome = 'failed'; failure = 'Recording could not be saved to Previous Conversations. Download the MP3 below before closing this page.'; }
+            }
           } catch { outcome = 'failed'; failure = 'MP3 conversion failed. Your transcript is retained; audio could not be exported.'; }
         }
         this.active = null;
+        this.lastError = failure;
         this.onUpdate({ type: 'finished', outcome, error: failure, peaks, turns: run.turns.length, longestTurn: Math.max(0, ...run.turnSeconds) });
       }
       return outcome;

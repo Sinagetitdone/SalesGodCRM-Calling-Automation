@@ -35,5 +35,6 @@ export class SessionJournal {
     this.db.prepare('INSERT INTO audio_events VALUES (?,?,?,?,?)').run(sessionId, sequence, new Date().toISOString(), event, phase);
   }
   read(sessionId) { this.prune(); return this.db.prepare('SELECT sequence, recorded_at AS time,event,phase FROM audio_events WHERE session_id=? ORDER BY sequence').all(sessionId); }
+  delete(sessionId) { this.db.prepare('DELETE FROM audio_events WHERE session_id=?').run(sessionId); }
   close() { this.db.close(); }
 }

@@ -9,7 +9,7 @@ const panelSource = await readFile(new URL('../panel.js', import.meta.url), 'utf
 
 test('panel accepts the installed manifest version and enables supervised controls only when armed', () => {
   const nodes = new Map(); const listeners = new Map();
-  const node = () => ({ disabled: false, textContent: '', before() {}, after() {}, prepend() {} });
+  const node = () => ({ disabled: false, textContent: '', style: {}, before() {}, after() {}, prepend() {} });
   const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
   const root = { innerHTML: '', querySelector: get, getElementById: get };
   const document = { getElementById() { return null; }, documentElement: { append() {} },

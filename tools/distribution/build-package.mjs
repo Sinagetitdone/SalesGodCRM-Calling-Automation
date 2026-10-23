@@ -6,8 +6,8 @@ import { deflateRawSync } from 'node:zlib';
 import { buildSetupGuide } from './build-setup-guide.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const bridgeFiles = ['server.mjs', 'start.mjs', 'openai-errors.mjs', 'voice-settings.mjs', 'session-journal.mjs', 'campaign-store.mjs', 'campaign-routes.mjs', 'rehearsal-routes.mjs'];
-const publicFiles = ['brand/JML-Logo-Full-Dark.svg', 'brand/JML-Logo-J-Dark.svg', 'setup.html', 'style.css', 'panel.css', 'voice.html', 'voice.js', 'call.html', 'call.js', 'voicemail.js', 'simulator.html', 'simulator.js', 'campaign.js', 'campaign-worker.js', 'campaign-form.html', 'campaign.html', 'rehearsal-form.html', 'rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt', 'vendor/LGPL-3.0.txt', 'vendor/GPL-3.0.txt'];
+const bridgeFiles = ['server.mjs', 'start.mjs', 'openai-errors.mjs', 'voice-settings.mjs', 'history-export.mjs', 'session-journal.mjs', 'campaign-store.mjs', 'campaign-routes.mjs', 'rehearsal-routes.mjs'];
+const publicFiles = ['brand/JML-Logo-Full-Dark.svg', 'brand/JML-Logo-J-Dark.svg', 'setup.html', 'style.css', 'panel.css', 'voice.html', 'voice.js', 'call.html', 'call.js', 'voicemail.js', 'simulator.html', 'simulator.js', 'campaign.js', 'campaign-worker.js', 'campaign-form.html', 'campaign.html', 'history.html', 'history.js', 'rehearsal-form.html', 'rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt', 'vendor/LGPL-3.0.txt', 'vendor/GPL-3.0.txt'];
 const extensionFiles = ['brand/JML-Logo-Full-Dark.svg', 'manifest.json', 'local-rtc.js', 'window-rtc.js', 'audio-hook.js', 'campaign-driver.js', 'panel.js', 'tests/lab.html', 'tests/lab.js'];
 const launchers = ['Start Windows.cmd', 'Configure OpenAI Windows.cmd', 'Start Mac.command', 'Configure OpenAI Mac.command'];
 export async function packageEntries(sourceRoot = root) {

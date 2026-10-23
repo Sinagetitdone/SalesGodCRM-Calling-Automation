@@ -57,6 +57,8 @@ export class CampaignStore {
       CREATE TABLE IF NOT EXISTS campaign_contacts(id TEXT PRIMARY KEY,campaign TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,position INTEGER NOT NULL,first_name TEXT NOT NULL,last_name TEXT NOT NULL,phone TEXT NOT NULL,state TEXT NOT NULL,session TEXT,dispatched TEXT,ended TEXT,UNIQUE(campaign,phone));
       CREATE TABLE IF NOT EXISTS campaign_events(id INTEGER PRIMARY KEY,campaign TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,contact TEXT,event TEXT NOT NULL,time TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS campaign_transcripts(contact TEXT NOT NULL REFERENCES campaign_contacts(id) ON DELETE CASCADE,item TEXT NOT NULL,speaker TEXT NOT NULL,text TEXT NOT NULL,time TEXT NOT NULL,PRIMARY KEY(contact,item,speaker));
+      CREATE TABLE IF NOT EXISTS campaign_recordings(contact TEXT PRIMARY KEY REFERENCES campaign_contacts(id) ON DELETE CASCADE,audio BLOB NOT NULL);
+      CREATE TABLE IF NOT EXISTS campaign_audio_archive(contact TEXT PRIMARY KEY REFERENCES campaign_contacts(id) ON DELETE CASCADE,events TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS campaign_suppressions(phone TEXT PRIMARY KEY,created TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS calling_profile(id INTEGER PRIMARY KEY CHECK(id=1),background TEXT NOT NULL,guidance TEXT NOT NULL,updated TEXT NOT NULL);`);
     if (!this.db.prepare('PRAGMA table_info(calling_profile)').all().some(column => column.name === 'voice')) this.db.exec("ALTER TABLE calling_profile ADD COLUMN voice TEXT NOT NULL DEFAULT 'cedar'");
@@ -88,7 +90,30 @@ export class CampaignStore {
   }
   event(campaign, contact, event) { this.db.prepare('INSERT INTO campaign_events(campaign,contact,event,time) VALUES(?,?,?,?)').run(campaign, contact ?? null, event, this.stamp()); }
   transaction(fn) { this.db.exec('BEGIN IMMEDIATE'); try { const value = fn(); this.db.exec('COMMIT'); return value; } catch (error) { this.db.exec('ROLLBACK'); throw error; } }
-  prune() { this.db.prepare("DELETE FROM campaigns WHERE COALESCE(finished,created) < ? AND state != 'running'").run(new Date(this.now().getTime() - 7 * 86400000).toISOString()); }
+  prune() { /* Conversation history is now retained until explicitly deleted. */ }
+  recording(id, contactId) {
+    this.transcripts(id, contactId); // Validate membership before returning audio.
+    return this.db.prepare('SELECT audio FROM campaign_recordings WHERE contact=?').get(contactId)?.audio;
+  }
+  saveRecording(id, contactId, worker, audio) {
+    const { row } = this.contact(id, contactId, worker);
+    if (!this.read(id).settings.simulation || !['dispatching', 'connected'].includes(row.state)) throw new Error('Recording is not associated with an active rehearsal.');
+    if (!audio.length || audio.length > 12000000 || !(audio[0] === 0xff && (audio[1] & 0xe0) === 0xe0)) throw new Error('Expected an MP3 recording.');
+    this.db.prepare('INSERT INTO campaign_recordings VALUES(?,?) ON CONFLICT(contact) DO UPDATE SET audio=excluded.audio').run(contactId, audio);
+    return { saved: true };
+  }
+  archiveAudio(contactId, events) { this.db.prepare('INSERT OR REPLACE INTO campaign_audio_archive VALUES(?,?)').run(contactId, JSON.stringify(events)); }
+  archivedAudio(contactId) { return JSON.parse(this.db.prepare('SELECT events FROM campaign_audio_archive WHERE contact=?').get(contactId)?.events || '[]'); }
+  deleteConversation(id, contactId) {
+    const campaign = this.read(id), contact = campaign.contacts.find(c => c.id === contactId);
+    if (!contact || campaign.state === 'running' || campaign.contacts.some(c => activeStates.includes(c.state))) throw new Error('Stop the list before deleting conversations.');
+    this.transaction(() => {
+      this.db.prepare('DELETE FROM campaign_events WHERE campaign=? AND contact=?').run(id, contactId);
+      this.db.prepare('DELETE FROM campaign_contacts WHERE campaign=? AND id=?').run(id, contactId);
+      if (!this.read(id).contacts.length) this.db.prepare('DELETE FROM campaigns WHERE id=?').run(id);
+    });
+    return contact.session;
+  }
   recover() {
     this.transaction(() => {
       for (const c of this.db.prepare("SELECT id FROM campaigns WHERE state IN ('running','paused') AND worker IS NOT NULL").all()) {
@@ -118,8 +143,9 @@ export class CampaignStore {
   read(id) {
     const c = this.db.prepare('SELECT * FROM campaigns WHERE id=?').get(id); if (!c) throw new Error('Campaign not found.');
     delete c.worker; c.settings = JSON.parse(c.settings);
-    return { ...c, contacts: this.db.prepare('SELECT id,position,first_name AS firstName,last_name AS lastName,phone,state,session,dispatched,ended FROM campaign_contacts WHERE campaign=? ORDER BY position').all(id), events: this.db.prepare('SELECT contact,event,time FROM campaign_events WHERE campaign=? ORDER BY id').all(id) };
+    return { ...c, contacts: this.db.prepare('SELECT id,position,first_name AS firstName,last_name AS lastName,phone,state,session,dispatched,ended,EXISTS(SELECT 1 FROM campaign_recordings r WHERE r.contact=campaign_contacts.id) AS hasRecording FROM campaign_contacts WHERE campaign=? ORDER BY position').all(id), events: this.db.prepare('SELECT contact,event,time FROM campaign_events WHERE campaign=? ORDER BY id').all(id) };
   }
+  history() { return this.db.prepare('SELECT id,name,state,created,finished FROM campaigns ORDER BY created DESC').all(); }
   list(mode) {
     this.prune();
     if (mode) return this.db.prepare('SELECT id,name,state,created,finished FROM campaigns WHERE json_extract(settings,\'$.simulation\')=? ORDER BY created DESC LIMIT 50').all(mode === 'rehearsal' ? 1 : 0);
@@ -176,12 +202,19 @@ export class CampaignStore {
       return { phone: row.phone, attempt: contactId };
     });
   }
-  finish(id, contactId, worker, outcome) {
+  finish(id, contactId, worker, outcome, diagnostic = {}) {
     if (!outcomes.includes(outcome)) throw new Error('Invalid outcome.');
     const { row } = this.contact(id, contactId, worker);
     if (row.state === outcome) return this.read(id);
     if (!activeStates.includes(row.state)) throw new Error('Attempt is already terminal.');
     this.transaction(() => {
+      if (!row.session && /^[a-f0-9-]{36}$/.test(diagnostic.session || '')) this.db.prepare('UPDATE campaign_contacts SET session=? WHERE id=?').run(diagnostic.session, contactId);
+      if (diagnostic.message) {
+        // Only application errors, never upstream response bodies. Defense in
+        // depth for accidentally included credentials; follows conversation retention.
+        const message = String(diagnostic.message).replace(/sk-[a-zA-Z0-9_-]+/g, '[redacted]').replace(/Bearer\s+\S+/gi, 'Bearer [redacted]').slice(0, 1500);
+        this.event(id, contactId, 'failure_detail: ' + message);
+      }
       this.db.prepare('UPDATE campaign_contacts SET state=?,ended=? WHERE id=?').run(outcome, this.stamp(), contactId); this.event(id, contactId, outcome);
       if (outcome === 'opt_out') this.suppress(row.phone);
       if (['unknown', 'needs_review', 'failed'].includes(outcome)) this.db.prepare("UPDATE campaigns SET state='paused' WHERE id=?").run(id);

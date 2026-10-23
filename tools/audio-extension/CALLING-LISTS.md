@@ -1,4 +1,6 @@
-# Calling lists — package 0.5.3 / extension 0.4.2
+# Calling lists — package 0.5.4 / extension 0.4.3
+
+New in 0.5.4: drag the extension title to move it. **Previous Conversations** opens `/history` for review, individual JSON/MP3 downloads, selected-list/all-history ZIP exports and deletion with confirmation. Active lists cannot be deleted. Failed/pending rows show saved event logs instead of transcripts. New errors include the bounded application error message; missing historical details cannot be reconstructed. Rehearsal includes live listening controls and stores one MP3 containing both speakers for each contact. These recordings and list history remain until owner deletion; telephone audio is not recorded. Restart the bridge, reload extension 0.4.3 and refresh idle CRM.
 
 New in 0.5.3: **Saved calling context** stores background, a 6,000–20,000-character conversation guide and one of five voices (Cedar, Ash, Echo, Ballad, Marin) on this computer. New real lists use a snapshot. **Apply to selected list** updates only an idle draft/paused list, leaving active attempts unchanged. Real session identity follows this approved context. Each rehearsal role also has five voice choices, saved on import. Manual next-reply guidance requires the same 6,000–20,000 range. Restart the bridge and reopen idle pages; no new extension reload is needed. See SETUP.md Step 7 for instructions.
 
@@ -54,7 +56,7 @@ Results distinguish conversation completed, voicemail playback completed, no ans
 
 View transcripts in the table. Export downloads JSON with settings, contacts, outcomes, timestamps, conversation turns, campaign transitions and available audio-session metadata. Voicemail has an outcome/event record rather than a customer conversation transcript. Live phone audio is not recorded. Rehearsal audio has a separate browser-only replay/download.
 
-Ignored `data/campaigns.db` stores sensitive contact details and text transcripts; `data/live-audio.db` stores audio metadata without transcript text. Inactive data is pruned after seven days on local service activity; opt-out suppression persists independently. Files are accessible to the OS user and are not encrypted by the application. Speech is sent to OpenAI during live calls. The standard API key stays in the ignored server-side `.env`.
+Ignored `data/campaigns.db` stores contact details, transcripts, archived list audio metadata and new rehearsal MP3s until explicitly deleted. `data/live-audio.db` stores standalone audio metadata for seven days. Deleting a conversation removes its transcript, recording and contact-specific logs; shared list events and opt-out suppression persist independently. Files are accessible to the OS user and are not encrypted by the application. Speech is sent to OpenAI during live calls. The API key stays in the ignored server-side `.env`.
 
 Only one running list and active attempt are allowed. Dispatch is saved before the browser action; lost acknowledgement becomes unknown, never a blind retry. Transcripts are session-bound and idempotent. Ten-second heartbeats maintain a thirty-second lease. Expiry/restart recovers running **and paused** active attempts to unknown and pauses the list. Inspect/end any remaining CRM call before explicit resume.
 

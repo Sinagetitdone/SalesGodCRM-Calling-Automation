@@ -4,9 +4,20 @@ Use this guide in order. Steps 1–5 are for your first installation. For everyd
 
 You will use two parts: the Chrome extension adds controls to SalesGodCRM, and the local bridge runs in a command window on your computer. Both must be running. You do not need Docker, VB-CABLE, or a separate Node.js installation.
 
-Package 0.5.2 uses the Jay Marketing Lab logo and purple/lime interface. The button names and calling steps below are unchanged. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, reload extension 0.4.2 and refresh SalesGodCRM only while its dialer is idle.
+Package **0.5.4** uses the Jay Marketing Lab logo and purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, restart the bridge, reload extension **0.4.3**, and refresh SalesGodCRM only while its dialer is idle.
 
-Package **0.5.3** adds saved background and conversation guidance plus five voice choices. Restart the bridge and reopen the calling/test pages while idle to load these controls. The extension remains version 0.4.2.
+Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.
+
+## Listening, reviewing and downloading conversations
+
+1. To move the extension, drag the **SalesGod audio bridge** title to the part of the page you prefer. Its position is remembered on that site. You can also focus the title and use arrow keys; Home returns it to the default corner. There is no separate drag button.
+2. For a speaking simulation, open **AI Agents Test Call**, choose **Live AI rehearsal**, import your fictional list and click **Start rehearsal**. The offline workflow check does not speak. Both agents should play live through Chrome's output device.
+3. Before starting, click **Test speakers (short tone)**. If silent, unmute the tab, check your computer's output device/volume, and click **Enable / resume live sound**. **Live listening volume** changes what you hear without lowering the saved recording.
+4. When a contact finishes, use **Download whole conversation MP3 (both voices)**. One MP3 contains the entire exchange for that contact; interrupted runs are labeled partial. No individual reply downloads are needed.
+5. Click **Previous Conversations** in the extension, or open `http://127.0.0.1:28431/history` while the bridge runs. Select a saved list and then a contact to review its transcript and recorded events. Failed/pending conversations show logs in the transcript area. Older attempts may lack a detailed failure message.
+6. Use **Download transcript and logs** for that contact's JSON file, or its MP3 link for saved rehearsal audio. **Download selected list (ZIP)** includes that list's records and recordings; **Download all history (ZIP)** includes everything saved in list history. Extract the ZIP to read JSON and play MP3s. Actual telephone calls save text and events, not audio.
+7. Records remain on this computer until you delete them. To delete one, choose **Delete this conversation**, review the warning, then **Permanently delete**. Active lists and conversations cannot be deleted. Downloaded copies remain outside the app. Opt-out suppression remains in force.
+8. New rehearsal MP3s are saved automatically. If saving fails, download the visible MP3 before closing or refreshing. Earlier browser-only recordings and data already cleared by older versions cannot be recovered. Back up the installation's private `data` folder if needed; do not include it or `.env` in a shared installation ZIP.
 
 ## Step 1 — Prepare your computer and extract the ZIP
 
@@ -68,7 +79,7 @@ The launchers do not require an administrator password. Mac launcher syntax has 
 3. Turn on **Developer mode** in the top-right corner.
 4. Click **Load unpacked**.
 5. Browse into your extracted **SalesGod-Team** folder, then **tools**, then **audio-extension**. Select this folder, which contains `manifest.json`. Do not select the ZIP or the whole SalesGod-Team folder.
-6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.2** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
+6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.3** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
 7. Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.
 8. Look for the **SalesGod audio bridge** panel. Continue to Step 5.
 
@@ -91,9 +102,9 @@ The **Reply timeout in seconds** field defaults to 20 and accepts 10–120. It l
 For **real calls**, open **Call settings** and use **Live-call pause before replying**. The default is 250 milliseconds (0.25 seconds), adjustable from 200 to 1000. This controls how much silence ends the customer's turn. Lower values can interrupt a hesitation; raise it if needed. Live AI answers are concise and spoken at 1.1× speed. Voicemail greeting/beep timing is separate and unchanged. Refresh idle controls after updating; these settings apply on the next session, not to a conversation already running.
 
 1. Wait for **Rehearsal completed** and **Finished processing every contact**, or use **Stop rehearsal** to stop the rehearsal immediately. **Pause after current rehearsal** lets the current fictional conversation finish.
-2. Under **Live AI rehearsal**, play the recording or choose **Download rehearsal MP3**. Only the last 10 recordings remain in this page, and they disappear when you refresh or close it. Download anything you want to keep first.
+2. Under **Live AI rehearsal**, listen live or choose **Download whole conversation MP3 (both voices)** when the contact finishes. The last 10 recordings appear on this page; saved recordings remain accessible through **Previous Conversations** after refresh or close.
 3. Choose **View transcript** beside a contact for the saved dialogue. Use **Export rehearsal transcripts and event log** for the whole rehearsal list, or **Download visible transcript** for the currently displayed conversation, including partial text.
-4. Completed text replies stay in the local database for seven days, just like other list logs. Rehearsal MP3 audio is generated by AI and is not a recording of a real phone call. This feature tests dialogue; it does not test telephone routing, voicemail detection or interruptions. It ends after the chosen reply count or five minutes. On connection failure it pauses with partial results; import a fresh draft to retry a failed fictional contact.
+4. Completed text replies, logs and new MP3s stay in the local database until you delete them. Rehearsal MP3 audio is generated by AI and is not a recording of a real phone call. This feature tests dialogue; it does not test telephone routing, voicemail detection or interruptions. It ends after the chosen reply count or five minutes. On connection failure it pauses with partial results; import a fresh draft to retry a failed fictional contact.
 
 ## Step 6 — Start your normal workday
 
@@ -186,8 +197,8 @@ bash "Start Mac.command"
 1. To finish the current call and then pause, click **Pause after current contact**.
 2. To stop the system's current call and pause, click **Stop current call and pause**. Check that the CRM phone actually ended. If the system cannot identify its owned call, inspect the CRM manually.
 3. To read a conversation, select its list under **Saved lists**, then click **View transcript** beside the contact. Expand **List event log** to see what happened.
-4. Click **Export transcripts and event log** to save a copy. Keep the export private. Records are stored separately on each computer; there is no shared team dashboard. Live phone audio is not recorded. Rehearsal recordings have a separate download and must be saved before closing or refreshing the page.
-5. Inactive contact details, transcripts, and events expire after seven days of bridge activity. Export records you need before then. Suppression records persist.
+4. Click **Export transcripts and event log** to save a copy, or use **Previous Conversations** to download individual records or ZIPs with saved rehearsal MP3s. Keep exports private. Records are stored separately on each computer; there is no shared team dashboard. Live phone audio is not recorded.
+5. Conversation history stays until you explicitly delete it in **Previous Conversations**. Standalone manual diagnostic logs still expire after seven days. Suppression records persist independently of conversation deletion.
 6. When no list or phone call is active, click the bridge's command/Terminal window and press **Ctrl+C**. On Mac, use **Control+C**, not Command+C. If Windows asks **Terminate batch job (Y/N)?**, type `Y` and press Enter.
 7. Once the command returns to a prompt or the launcher exits, close its window. Next time, repeat Step 6. Closing the bridge during a call interrupts the AI and may leave the CRM phone connected; inspect the phone if that happens.
 

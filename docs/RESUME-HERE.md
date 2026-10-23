@@ -1,6 +1,12 @@
 # Resume here — 2026-10-23
 
-## Latest settings — package 0.5.3 / extension 0.4.2
+## Latest update — package 0.5.4 / extension 0.4.3
+
+Previous Conversations (`/history`) reviews, exports and deletes saved list conversations. Per-contact JSON/MP3, selected-list ZIP and all-history ZIP are supported. Rehearsal MP3s now persist in the local campaign database and contain both speakers for a whole contact (partial if interrupted). Real phone audio is not recorded. Campaign history remains until explicitly deleted; previously pruned records and old browser-only audio cannot be recovered. Standalone manual diagnostic logs still use seven-day retention; terminal list audio events are archived.
+
+Failed/pending rows display exact recorded logs in the transcript panel. New worker failure messages and preparation session IDs persist without granting dispatch authorization. Rehearsal has live sound resume, speaker test and volume controls, using one audible output and independent recording mix. Extension panel is draggable by its title, remembers position, and includes Previous Conversations. Reload extension 0.4.3 and refresh idle CRM after updating. No phone call or paid API session was made for this release.
+
+## Prior settings — package 0.5.3 / extension 0.4.2
 
 Manual next-reply guidance now requires 6,000–20,000 characters, explicitly confirmed by the owner. Real lists have saved local background and conversation guidance, with background capped at 20,000 and guidance requiring 6,000–20,000. Save for future calls persists defaults; new lists snapshot them. Apply to selected list updates only idle draft/paused lists, never active attempts. Old lists keep their original brief until explicitly updated. Background/guide control represented identity in new real sessions; automatic opening no longer overrides them with hardcoded names.
 

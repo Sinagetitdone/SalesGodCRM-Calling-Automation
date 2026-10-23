@@ -7,6 +7,11 @@
     }
     async until(test, timeout) { const end = this.now() + timeout; while (!await test()) { if (this.now() > end) throw new Error('Operation timed out; no automatic retry.'); await this.wait(300); } }
     async post(suffix, body = {}) { return this.api('/campaigns-api/' + this.id + suffix, { workerId: this.workerId, ...body }); }
+    diagnostic(message) {
+      const status = this.simulation || !this.audioAttempt ? {} : this.audio.status();
+      const detail = message || (this.simulation ? this.rehearsal?.lastError : status.stopReason);
+      return { ...(status.sessionId ? { session: status.sessionId } : {}), ...(detail || status.failure ? { message: [detail, status.failure && JSON.stringify(status.failure)].filter(Boolean).join(' · ').slice(0, 1500) } : {}) };
+    }
     async pause() { this.pauseRequested = true; if (this.running) await this.post('/pause'); }
     async stop() { this.cancelCurrent = true; this.rehearsal?.stop(); await this.pause(); if (!this.simulation) await this.audio.stop('stopped', 'Owner stopped the calling list'); }
     async run(id) {
@@ -26,7 +31,8 @@
           if (next.waiting) { this.onState({ state: 'waiting', reason: next.waiting }); await this.wait(15000); continue; }
           this.simulation = next.settings.simulation;
           this.current = next.contact; this.onState({ state: 'preparing', contact: this.current });
-          const contactPath = '/' + this.current.id; let dispatchAttempted = false, outcome;
+          const contactPath = '/' + this.current.id; let dispatchAttempted = false, outcome, diagnostic;
+          this.audioAttempt = false;
           try {
             if (next.settings.simulation) {
               const session = crypto.randomUUID(); await this.post(contactPath + '/dispatch', { session });
@@ -34,7 +40,10 @@
               if (next.settings.simulationMode === 'agents') {
                 if (!this.rehearsal) throw new Error('Live AI rehearsal is unavailable. Reopen the updated calling list.');
                 outcome = this.cancelCurrent ? 'cancelled' : await this.rehearsal.run({ campaignId: id, contact: this.current, workerId: this.workerId, session,
-                  settings: next.settings, saveTurn: turn => this.post(contactPath + '/transcript', turn) });
+                  settings: next.settings, saveTurn: turn => this.post(contactPath + '/transcript', turn), saveRecording: async blob => {
+                    const r = await fetch('/campaigns-api/' + id + contactPath + '/recording', { method: 'POST', headers: { 'Content-Type': 'audio/mpeg', 'X-Worker-Id': this.workerId }, body: blob });
+                    if (!r.ok) throw new Error('Recording save failed.');
+                  } });
               } else {
                 await this.wait(500);
                 outcome = this.cancelCurrent ? 'cancelled' : this.current.position % 2 ? 'voicemail_played' : 'completed';
@@ -48,6 +57,7 @@
               await this.until(() => this.audio.status().canPrepare, 15000);
               document.getElementById('voicemailEnabled').checked = true;
               document.getElementById('voicemailMessage').value = next.settings.voicemailMessage;
+              this.audioAttempt = true;
               await this.audio.prepare(); await this.until(() => this.audio.status().prepared || ['failed', 'stopped'].includes(this.audio.status().phase), 40000);
               if (!this.audio.status().prepared) throw new Error('AI preparation failed.');
               if (this.pauseRequested) { outcome = 'cancelled'; }
@@ -81,6 +91,7 @@
                   await this.wait(1000);
                 }
               }
+              diagnostic = this.diagnostic();
               await this.audio.stop('stopped', 'List contact finished');
               if (dispatchAttempted) {
                 await this.driver('hangup', { attempt: this.current.id });
@@ -88,17 +99,18 @@
               }
               await this.driver('release', { attempt: this.current.id });
             }
-            await this.post(contactPath + '/finish', { outcome });
+            await this.post(contactPath + '/finish', { outcome, ...(['failed', 'unknown', 'needs_review'].includes(outcome) ? { diagnostic: diagnostic || this.diagnostic() } : {}) });
             this.onState({ state: 'contact_finished', outcome, contact: this.current });
             if (['failed', 'unknown', 'needs_review'].includes(outcome)) this.pauseRequested = true;
-          } catch {
+          } catch (error) {
+            const diagnostic = this.diagnostic(error.message || 'Attempt failed without an error message.');
             if (this.simulation) this.rehearsal?.stop();
             else {
               await this.audio.stop('failed', 'List paused after an uncertain attempt').catch(() => {});
               if (dispatchAttempted) await this.driver('hangup', { attempt: this.current.id }).catch(() => {});
               else await this.driver('release', { attempt: this.current.id }).catch(() => {});
             }
-            await this.post(contactPath + '/finish', { outcome: dispatchAttempted ? 'unknown' : 'failed' }).catch(() => {});
+            await this.post(contactPath + '/finish', { outcome: dispatchAttempted ? 'unknown' : 'failed', diagnostic }).catch(() => {});
             await this.post('/pause').catch(() => {}); this.pauseRequested = true;
             this.onState({ state: 'needs_review', contact: this.current });
           }

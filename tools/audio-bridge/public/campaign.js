@@ -5,10 +5,14 @@
   const readAgentSettings = () => ({ turnSeconds: Number($('turnSeconds').value) });
   document.title = practice ? 'AI Agents Test Call · SalesGod' : 'Real calling lists · SalesGod';
   let selected, control, pairTimer, worker, starting = false;
+  let detailContact, detailRequest = 0;
+  const showsLog = contact => ['failed', 'pending', 'unknown', 'needs_review', 'preparing', 'dispatching', 'connected'].includes(contact.state);
   let profileLoaded = practice, profileBusy = false;
   const recordings = [], visibleTurns = new Map(); let rehearsalContact;
   const rehearsal = practice ? new window.SalesGodRehearsal({ onUpdate: update => {
-    if (update.type === 'starting') {
+    if (update.type === 'playback') {
+      $('rehearsalSoundStatus').textContent = update.text;
+    } else if (update.type === 'starting') {
       rehearsalContact = update.contact; visibleTurns.clear(); $('rehearsalTranscript').replaceChildren();
       $('downloadRehearsalTranscript').disabled = true;
       $('rehearsalStatus').textContent = `Connecting two AI agents for ${rehearsalContact.firstName} ${rehearsalContact.lastName}…`;
@@ -26,12 +30,17 @@
     } else if (update.type === 'finished') {
       $('rehearsalStatus').textContent = update.error || (update.outcome === 'completed' ? `Rehearsal completed · ${update.turns} replies saved · both agents’ audio verified · longest reply ${update.longestTurn.toFixed(1)}s including speech.` : 'Rehearsal stopped · partial results retained.');
       if (update.error) $('listError').textContent = update.error;
+      if (update.outcome === 'failed') {
+        const line = document.createElement('li');
+        line.textContent = `${new Date().toISOString()} [Rehearsal failed]\n${update.error || 'No detailed error was returned.'}\nPartial replies remain available in the transcript download. View log in the contact row for saved events.`;
+        $('rehearsalTranscript').replaceChildren(line);
+      }
     }
   }, onRecording: ({ contact, outcome, blob }) => {
     const url = URL.createObjectURL(blob), article = document.createElement('article'), title = document.createElement('strong'), audio = document.createElement('audio'), link = document.createElement('a');
     title.textContent = `${contact.firstName} ${contact.lastName} · ${outcome === 'completed' ? 'Completed rehearsal' : 'Partial rehearsal'}`;
     audio.controls = true; audio.src = url;
-    link.href = url; link.download = `salesgod-rehearsal-${contact.id}.mp3`; link.textContent = 'Download rehearsal MP3';
+    link.href = url; link.download = `salesgod-rehearsal-${contact.id}.mp3`; link.textContent = outcome === 'completed' ? 'Download whole conversation MP3 (both voices)' : 'Download partial conversation MP3 (both voices)';
     article.append(title, audio, link); $('rehearsalRecordings').prepend(article); recordings.push({ url, article });
     if (recordings.length > 10) { const old = recordings.shift(); old.article.remove(); URL.revokeObjectURL(old.url); }
   } }) : null;
@@ -90,9 +99,31 @@
     pairTimer = setInterval(hello, 1000); hello(); setTimeout(() => clearInterval(pairTimer), 30000);
   }
   async function transcript(contact) {
-    const data = await api(`/campaigns-api/${selected.id}/${contact.id}/transcript`);
+    const campaign = selected, request = ++detailRequest;
+    detailContact = contact.id;
     $('selectedTranscript').hidden = false;
-    $('selectedTranscript').textContent = `${contact.firstName} ${contact.lastName}\n${labels[contact.state] || contact.state}\n\n` + (data.turns.map(t => `${t.speaker}: ${t.text}`).join('\n\n') || 'No conversation transcript saved.');
+    const heading = `${contact.firstName} ${contact.lastName}\n${labels[contact.state] || contact.state}\n\n`;
+    $('selectedTranscript').textContent = heading + 'Loading…';
+    let content;
+    try {
+      if (showsLog(contact)) {
+        const events = campaign.events.filter(e => !e.contact || e.contact === contact.id).map(e => ({ ...e, source: e.contact ? 'Contact' : 'List' }));
+        let audioError = '';
+        if (contact.session) {
+          try { events.push(...(await api(`/campaigns-api/${campaign.id}/${contact.id}/events`)).events.map(e => ({ ...e, source: 'Audio' }))); }
+          catch (e) { audioError = '\nAudio log unavailable: ' + e.message; }
+        }
+        events.sort((a, b) => a.time.localeCompare(b.time));
+        content = 'Recorded event log\n' + events.map(e => `${e.time} [${e.source}] ${e.event}${e.phase ? ' · phase=' + e.phase : ''}`).join('\n');
+        if (contact.state === 'pending') content += '\nPending: this contact has not been attempted.';
+        else if (!events.some(e => e.event.startsWith('failure_detail:')) && contact.state === 'failed') content += '\nNo detailed error message was saved for this older attempt.';
+        content += audioError;
+      } else {
+        const data = await api(`/campaigns-api/${campaign.id}/${contact.id}/transcript`);
+        content = data.turns.map(t => `${t.speaker}: ${t.text}`).join('\n\n') || 'No conversation transcript saved.';
+      }
+    } catch (e) { content = 'Could not load conversation details: ' + e.message; }
+    if (request === detailRequest && selected?.id === campaign.id && detailContact === contact.id) $('selectedTranscript').textContent = heading + content;
   }
   function render() {
     const running = starting || Boolean(worker?.running);
@@ -119,7 +150,7 @@
     for (const c of selected.contacts) {
       const tr = document.createElement('tr');
       for (const value of [`${c.firstName} ${c.lastName}`, c.phone, (selected.settings.simulation ? 'Simulated: ' : '') + (labels[c.state] || c.state)]) { const td = document.createElement('td'); td.textContent = value; tr.append(td); }
-      const td = document.createElement('td'), b = document.createElement('button'); b.textContent = 'View transcript'; b.onclick = () => void transcript(c).catch(error); td.append(b); tr.append(td); $('contactRows').append(tr);
+      const td = document.createElement('td'), b = document.createElement('button'); b.textContent = showsLog(c) ? 'View log' : 'View transcript'; b.onclick = () => void transcript(c).catch(error); td.append(b); tr.append(td); $('contactRows').append(tr);
     }
     $('listEvents').textContent = selected.events.map(e => `${e.time} ${e.contact ? selected.contacts.find(c => c.id === e.contact)?.firstName + ': ' : ''}${e.event}`).join('\n');
   }
@@ -129,6 +160,7 @@
     lists.forEach(c => $('savedLists').append(new Option(`${c.name} (${c.state})`, c.id)));
     if (selected) { selected = await api('/campaigns-api/' + selected.id); $('savedLists').value = selected.id; }
     render();
+    if (detailContact && !$('selectedTranscript').hidden) { const contact = selected?.contacts.find(c => c.id === detailContact); if (contact) await transcript(contact); }
   }
   worker = new window.SalesGodCampaignWorker({ api, driver, audio: window.SalesGodCall, rehearsal, expectedSimulation: practice, onState: state => {
     const name = state.contact ? `${state.contact.firstName} ${state.contact.lastName}` : '';
@@ -189,6 +221,12 @@
   $('allowNotification').onclick = async () => { if (!window.Notification) return error(new Error('Desktop notifications are unavailable. Completion is always shown here.')); $('allowNotification').textContent = (await Notification.requestPermission()) === 'granted' ? 'Completion notifications enabled' : 'Completion will appear in this window'; };
   $('exportList').onclick = async () => { try { const report = await api('/campaigns-api/' + selected.id); for (const c of report.contacts) { c.transcript = (await api(`/campaigns-api/${report.id}/${c.id}/transcript`)).turns; c.audioEvents = c.session ? (await api('/live-log/' + c.session)).events : []; } download(report, 'salesgod-calling-list.json'); } catch (e) { error(e); } };
   if (practice) $('downloadRehearsalTranscript').onclick = () => download({ mode: 'ai-rehearsal', contact: rehearsalContact, turns: [...visibleTurns.values()].map(({ role, text, saved }) => ({ role, text, saved })) }, 'salesgod-rehearsal-transcript.json');
+  if (practice) {
+    const soundError = e => { $('rehearsalSoundStatus').textContent = 'Live playback blocked: ' + e.message + ' Unmute this tab and allow sound, then try again.'; };
+    $('resumeRehearsalSound').onclick = () => void rehearsal.unlock().catch(soundError);
+    $('checkRehearsalSound').onclick = () => void rehearsal.soundCheck().catch(soundError);
+    $('rehearsalVolume').oninput = () => rehearsal.setVolume(Number($('rehearsalVolume').value) / 100);
+  }
   window.addEventListener('pagehide', () => { rehearsal?.stop(); void rehearsal?.close(); recordings.forEach(r => URL.revokeObjectURL(r.url)); });
   window.addEventListener('salesgod-call-state', render);
   window.addEventListener('beforeunload', event => { if (worker.running) { event.preventDefault(); event.returnValue = ''; } });

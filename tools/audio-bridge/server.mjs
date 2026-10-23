@@ -11,7 +11,7 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
   const app = Fastify({ logger: false, bodyLimit: 512 * 1024, ajv: { customOptions: { removeAdditional: false } } });
   const host = '127.0.0.1:28431';
   const origin = `http://${host}`;
-  const campaigns = campaignRoutes(app, { env, store: campaignStore });
+  const campaigns = campaignRoutes(app, { env, store: campaignStore, journal: () => getJournal() });
   rehearsalRoutes(app, { env, fetchImpl, campaigns });
   let connecting = false;
   let journal = suppliedJournal;
@@ -42,6 +42,8 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     ['/call-simulator', 'simulator.html', 'text/html; charset=utf-8'],
     ['/simulator.js', 'simulator.js', 'text/javascript; charset=utf-8'],
     ['/campaign.js', 'campaign.js', 'text/javascript; charset=utf-8'],
+    ['/history', 'history.html', 'text/html; charset=utf-8'],
+    ['/history.js', 'history.js', 'text/javascript; charset=utf-8'],
     ['/campaign-worker.js', 'campaign-worker.js', 'text/javascript; charset=utf-8'],
     ['/rehearsal.js', 'rehearsal.js', 'text/javascript; charset=utf-8'],
     ['/rehearsal-mp3.js', 'rehearsal-mp3.js', 'text/javascript; charset=utf-8'],

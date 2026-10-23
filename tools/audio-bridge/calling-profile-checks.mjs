@@ -49,7 +49,7 @@ test('calling profile survives restart and pruning; imports keep independent sna
     assert.equal(store.create(draft).settings.guidance.length, 20000);
     assert.equal(store.create({ ...draft, settings: { ...settings, simulation: true } }).settings.guidance, undefined);
     store.close(); store = new CampaignStore(path, () => new Date('2099-01-01T12:00:00Z'));
-    assert.equal(store.list().length, 0); assert.equal(store.callingProfile().guidance.length, 20000);
+    assert.equal(store.list().length, 4); assert.equal(store.callingProfile().guidance.length, 20000);
     assert.equal(store.callingProfile().background, profile.background);
     assert.equal(store.callingProfile().voice, 'ash');
   } finally {
