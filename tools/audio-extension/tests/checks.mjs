@@ -13,11 +13,11 @@ test('panel accepts the installed manifest version and enables supervised contro
   const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
   const root = { innerHTML: '', querySelector: get, getElementById: get };
   const document = { getElementById() { return null; }, documentElement: { append() {} },
-    createElement() { return { ...node(), set id(value) { nodes.set(value, this); }, style: {}, attachShadow() { return root; } }; } };
-  const window = { postMessage() {}, addEventListener(name, fn) { if (!listeners.has(name)) listeners.set(name, []); listeners.get(name).push(fn); } };
+    createElement() { return { ...node(), set id(value) { nodes.set(value, this); }, style: {}, getBoundingClientRect() { return { left: 18, top: 18, width: 350, height: 500 }; }, attachShadow() { return root; } }; } };
+  const window = { innerWidth: 1200, innerHeight: 900, postMessage() {}, addEventListener(name, fn) { if (!listeners.has(name)) listeners.set(name, []); listeners.get(name).push(fn); } };
   const chrome = { runtime: { getURL: path => 'chrome-extension://test/' + path } };
   vm.runInNewContext(panelSource, { document, window, chrome, location: { origin: 'https://www.salesgodcrm.net' }, crypto: { randomUUID: () => 'test-id' } });
-  assert.ok(root.innerHTML.includes('chrome-extension://test/brand/JML-Logo-Full-Dark.svg'));
+  assert.doesNotMatch(root.innerHTML, /<img|brand-logo/);
   const report = { version: manifest.version, armed: false, testing: false, voiceState: 'disconnected' };
   const publish = () => listeners.get('message').forEach(fn => fn({ source: window, origin: 'https://www.salesgodcrm.net',
     data: { source: 'salesgod-local-audio-v1', type: 'result', status: report } }));
@@ -26,6 +26,17 @@ test('panel accepts the installed manifest version and enables supervised contro
   report.armed = true; publish();
   assert.equal(get('callVoice').disabled, false); assert.equal(get('voice').disabled, false);
   assert.equal(get('callVoice').textContent, 'AI Agents Test Call'); assert.equal(get('callingList').textContent, 'Open calling list');
+  const tile = get('section'); let captured = false;
+  tile.setPointerCapture = () => { captured = true; }; tile.hasPointerCapture = () => captured; tile.releasePointerCapture = () => { captured = false; };
+  const pointer = { button: 0, pointerId: 1, clientX: 30, clientY: 200, preventDefault() {}, target: { closest: () => ({}) } };
+  tile.onpointerdown(pointer); assert.equal(captured, false, 'controls must remain clickable');
+  pointer.target.closest = () => null; tile.onpointerdown(pointer); assert.equal(captured, true, 'body text must start dragging');
+  tile.onpointermove({ ...pointer, clientX: 400, clientY: 300 });
+  assert.equal(get('salesgod-local-audio-panel').style.left, '388px');
+  tile.onpointerup(pointer); assert.equal(captured, false);
+  const before = get('salesgod-local-audio-panel').style.left;
+  tile.onkeydown({ target: get('arm'), key: 'ArrowRight' });
+  assert.equal(get('salesgod-local-audio-panel').style.left, before, 'control keyboard input must not drag');
 });
 function environment() {
   const listeners = new Map(); const messages = []; const originals = { requests: 0 };

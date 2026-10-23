@@ -4,13 +4,13 @@ Use this guide in order. Steps 1–5 are for your first installation. For everyd
 
 You will use two parts: the Chrome extension adds controls to SalesGodCRM, and the local bridge runs in a command window on your computer. Both must be running. You do not need Docker, VB-CABLE, or a separate Node.js installation.
 
-Package **0.5.4** uses the Jay Marketing Lab logo and purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, restart the bridge, reload extension **0.4.3**, and refresh SalesGodCRM only while its dialer is idle.
+Package **0.5.5** uses the Jay Marketing Lab logo and purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, restart the bridge, reload extension **0.4.4**, and refresh SalesGodCRM only while its dialer is idle.
 
 Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.
 
 ## Listening, reviewing and downloading conversations
 
-1. To move the extension, drag the **SalesGod audio bridge** title to the part of the page you prefer. Its position is remembered on that site. You can also focus the title and use arrow keys; Home returns it to the default corner. There is no separate drag button.
+1. To move the extension, drag any background or text area of the extension panel to the part of the page you prefer. Its position is remembered on that site. You can also focus the panel and use arrow keys; Home returns it to the default corner. There is no separate drag button.
 2. For a speaking simulation, open **AI Agents Test Call**, choose **Live AI rehearsal**, import your fictional list and click **Start rehearsal**. The offline workflow check does not speak. Both agents should play live through Chrome's output device.
 3. Before starting, click **Test speakers (short tone)**. If silent, unmute the tab, check your computer's output device/volume, and click **Enable / resume live sound**. **Live listening volume** changes what you hear without lowering the saved recording.
 4. When a contact finishes, use **Download whole conversation MP3 (both voices)**. One MP3 contains the entire exchange for that contact; interrupted runs are labeled partial. No individual reply downloads are needed.
@@ -79,7 +79,7 @@ The launchers do not require an administrator password. Mac launcher syntax has 
 3. Turn on **Developer mode** in the top-right corner.
 4. Click **Load unpacked**.
 5. Browse into your extracted **SalesGod-Team** folder, then **tools**, then **audio-extension**. Select this folder, which contains `manifest.json`. Do not select the ZIP or the whole SalesGod-Team folder.
-6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.3** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
+6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.4** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
 7. Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.
 8. Look for the **SalesGod audio bridge** panel. Continue to Step 5.
 

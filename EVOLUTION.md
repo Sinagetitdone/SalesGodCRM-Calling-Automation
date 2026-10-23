@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-10-24 — Logo-free draggable tile (0.5.5 / extension 0.4.4)
+
+Removed the logo from the extension panel and expanded dragging from the heading to the panel's background and text. Buttons, links, inputs, disclosure summaries and selectable log output are excluded so they remain usable. Keyboard movement applies only when the panel itself is focused. Saved position and viewport clamping remain. The 25 extension checks passed, including body drag and control exclusion. Browser preview was unavailable because the browser-control runtime could not initialize; no call or paid AI session was made.
+
 ## 2026-10-23 — Conversation history, live listening and movable panel (0.5.4 / extension 0.4.3)
 
 The owner requested failure/pending logs in place of transcripts, audible live rehearsal, complete MP3 downloads, a draggable extension and review/delete/download history. Both list workspaces now show timestamped list/contact/audio events for failed or pending attempts, including persisted bounded application errors for new failures. Partial transcripts remain exportable. Historical errors that were never recorded are not reconstructed.

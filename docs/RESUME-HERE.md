@@ -1,6 +1,10 @@
 # Resume here — 2026-10-23
 
-## Latest update — package 0.5.4 / extension 0.4.3
+## Latest update — package 0.5.5 / extension 0.4.4
+
+The extension logo is removed. Drag any panel background/text area to reposition it; interactive controls and log selection stay usable. Keyboard arrows/Home move the panel when it is focused. All 25 extension checks passed. Browser-control initialization failed during this small update, so the new layout was not visually rechecked. Reload extension 0.4.4 and refresh idle CRM. No calling behavior changed.
+
+## Previous update — package 0.5.4 / extension 0.4.3
 
 Previous Conversations (`/history`) reviews, exports and deletes saved list conversations. Per-contact JSON/MP3, selected-list ZIP and all-history ZIP are supported. Rehearsal MP3s now persist in the local campaign database and contain both speakers for a whole contact (partial if interrupted). Real phone audio is not recorded. Campaign history remains until explicitly deleted; previously pruned records and old browser-only audio cannot be recovered. Standalone manual diagnostic logs still use seven-day retention; terminal list audio events are archived.
 
