@@ -34,7 +34,6 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     ['/panel.css', 'panel.css', 'text/css; charset=utf-8'],
     ['/voice-test', 'voice.html', 'text/html; charset=utf-8'],
     ['/voice.js', 'voice.js', 'text/javascript; charset=utf-8'],
-    ['/supervised-call', 'call.html', 'text/html; charset=utf-8'],
     ['/call.js', 'call.js', 'text/javascript; charset=utf-8'],
     ['/voicemail.js', 'voicemail.js', 'text/javascript; charset=utf-8'],
     ['/call-simulator', 'simulator.html', 'text/html; charset=utf-8'],
@@ -49,17 +48,17 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     ['/vendor/LAME-LICENSE.txt', 'vendor/LAME-LICENSE.txt', 'text/plain; charset=utf-8'],
   ]) app.get(route, async (_request, reply) => reply.type(type).send(await readFile(new URL(`public/${name}`, import.meta.url))));
   app.get('/campaigns', async (_request, reply) => {
-    let html = await readFile(new URL('public/call.html', import.meta.url), 'utf8');
+    let html = await readFile(new URL('public/campaign.html', import.meta.url), 'utf8');
     const form = await readFile(new URL('public/campaign-form.html', import.meta.url), 'utf8');
-    html = html.replace('</head>', '<script defer src="/vendor/lame.min.js"></script><script defer src="/rehearsal-mp3.js"></script><script defer src="/rehearsal.js"></script><script defer src="/campaign-worker.js"></script><script defer src="/campaign.js"></script></head>')
-      .replace('Supervised AI conversation.</h1>', 'Your calling list.</h1>')
-      .replace('Owner starts the phone call', 'Simulation enabled by default')
-      .replace('Prepare the audio here, then use the SalesGodCRM dialer. This page cannot enter numbers, dial, or hang up the phone.', 'Preview a list, review its settings, then start it explicitly. Keep this window and your logged-in CRM open while a list runs.')
-      .replace('<section><h2>Audio connection', form + '<section><h2>Audio connection')
-      .replace('No phone numbers, names, transcripts, recordings, keys, or network addresses are stored.', 'The separate calling-list database stores contact details and conversation transcripts for seven days. No recordings or keys are saved.')
-      .replace('For a person, choose “Customer answered — start AI”. No sales pitch is configured.', 'List mode keeps listening during and after voicemail. New speech stops the message and cancels automatic hangup while it checks for a person. Confirmed human pickup switches to live conversation; uncertain speech requires review.')
-      .replace('Ending or pausing AI does not hang up SalesGodCRM. End the phone call in the dialer when finished.', 'Use the list Stop button to end its owned call and pause. A natural goodbye or completed voicemail ends the owned call before moving on. If call identity is uncertain, check the CRM manually.')
-      .replace('AI-generated voice · Supervised office conversation · No automatic dialing', 'AI-generated voice · Sequential calling lists · Explicit Start required');
+    html = html.replace('<!-- CAMPAIGN_FORM -->', form);
+    return reply.type('text/html; charset=utf-8').send(html);
+  });
+  app.get('/supervised-call', async (_request, reply) => {
+    let html = await readFile(new URL('public/call.html', import.meta.url), 'utf8');
+    const form = await readFile(new URL('public/rehearsal-form.html', import.meta.url), 'utf8');
+    html = html.replace('<body>', '<body data-workspace="rehearsal">')
+      .replace('</head>', '<script defer src="/vendor/lame.min.js"></script><script defer src="/rehearsal-mp3.js"></script><script defer src="/rehearsal.js"></script><script defer src="/campaign-worker.js"></script><script defer src="/campaign.js"></script></head>')
+      .replace('<footer>', form + '<footer>');
     return reply.type('text/html; charset=utf-8').send(html);
   });
   app.get('/extension-lab', async (_request, reply) => reply.type('text/html; charset=utf-8').send(await readFile(new URL('../audio-extension/tests/lab.html', import.meta.url))));

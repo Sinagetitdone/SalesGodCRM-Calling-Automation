@@ -2,8 +2,8 @@
 (() => {
   'use strict';
   class Worker {
-    constructor({ api, driver, audio, rehearsal, onState = () => {}, wait = ms => new Promise(r => setTimeout(r, ms)), now = () => Date.now() }) {
-      Object.assign(this, { api, driver, audio, rehearsal, onState, wait, now }); this.workerId = crypto.randomUUID();
+    constructor({ api, driver, audio, rehearsal, expectedSimulation, onState = () => {}, wait = ms => new Promise(r => setTimeout(r, ms)), now = () => Date.now() }) {
+      Object.assign(this, { api, driver, audio, rehearsal, expectedSimulation, onState, wait, now }); this.workerId = crypto.randomUUID();
     }
     async until(test, timeout) { const end = this.now() + timeout; while (!await test()) { if (this.now() > end) throw new Error('Operation timed out; no automatic retry.'); await this.wait(300); } }
     async post(suffix, body = {}) { return this.api('/campaigns-api/' + this.id + suffix, { workerId: this.workerId, ...body }); }
@@ -13,6 +13,11 @@
       if (this.running) throw new Error('A list is already running.');
       this.id = id; this.pauseRequested = false; this.cancelCurrent = false; this.running = true;
       try {
+        if (typeof this.expectedSimulation === 'boolean') {
+          const campaign = await this.api('/campaigns-api/' + id);
+          if (campaign.settings.simulation !== this.expectedSimulation) throw new Error('Open this list in the correct workspace.');
+          this.simulation = campaign.settings.simulation;
+        }
         await this.post('/start', { authorized: true });
         this.heartbeat = setInterval(() => { void this.post('/heartbeat').catch(() => { this.pauseRequested = true; this.cancelCurrent = true; this.rehearsal?.stop(); if (!this.simulation) void this.audio.stop('failed', 'Campaign connection lost'); }); }, 10000);
         while (!this.pauseRequested) {

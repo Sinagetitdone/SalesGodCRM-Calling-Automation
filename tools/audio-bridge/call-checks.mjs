@@ -13,7 +13,7 @@ const origin = 'http://127.0.0.1:28431';
 const sessionId = '11111111-1111-4111-8111-111111111111';
 const headers = { host: '127.0.0.1:28431', origin, 'content-type': 'application/json' };
 
-function environment({ failJournal = false, voicemail = false, failSpeech = false, speechError = { error: 'Voicemail voice preparation failed. Do not start a call.' } } = {}) {
+function environment({ headless = false, failJournal = false, voicemail = false, failSpeech = false, speechError = { error: 'Voicemail voice preparation failed. Do not start a call.' } } = {}) {
   const elements = new Map();
   for (const id of ['configuration', 'pairing', 'state', 'media', 'error', 'prepare', 'answer', 'pause', 'stop', 'save', 'savedLog', 'evidence', 'journal', 'voicemailEnabled', 'voicemailMessage', 'voicemailState', 'ownerInstruction', 'sendInstruction', 'instructionStatus']) elements.set(id, { disabled: true, textContent: '' });
   elements.get('voicemailEnabled').checked = voicemail; elements.get('voicemailMessage').value = 'Hi, this is a synthetic voicemail test message.';
@@ -36,7 +36,7 @@ function environment({ failJournal = false, voicemail = false, failSpeech = fals
   const opener = { postMessage() {} };
   const window = { opener, addEventListener(name, fn) { if (!listeners.has(name)) listeners.set(name, []); listeners.get(name).push(fn); } };
   window[Symbol.for('salesgod.window.rtc.v1')] = { connect(port, options) { const link = { options, sent: [], ready: Promise.resolve(), send(data) { this.sent.push(data); }, close() { this.closed = true; } }; links.push(link); return link; } };
-  const sandbox = { window, document: { getElementById: id => elements.get(id) },
+  const sandbox = { window, document: { body: { dataset: { workspace: headless ? 'live' : 'rehearsal' } }, createElement: () => ({ disabled: true, textContent: '' }), getElementById: id => headless && !['voicemailEnabled', 'voicemailMessage', 'state', 'media', 'error', 'configuration'].includes(id) ? null : elements.get(id) },
     location: { origin, hash: '#token=11111111-1111-4111-8111-111111111111&origin=https%3A%2F%2Fwww.salesgodcrm.net' },
     URLSearchParams, URL, AudioContext: Context, RTCPeerConnection: Peer, Audio: class { async play() {} pause() {} },
     MediaStream: Stream, Float32Array, AbortController, AbortSignal, crypto: { randomUUID: () => sessionId },
@@ -58,7 +58,7 @@ function environment({ failJournal = false, voicemail = false, failSpeech = fals
   vm.runInNewContext(source, sandbox);
   const port = { postMessage() {}, close() {} };
   for (const fn of listeners.get('message')) fn({ source: opener, origin: 'https://www.salesgodcrm.net', data: { source: 'salesgod-voice-link-v1', type: 'paired', token: sessionId }, ports: [port] });
-  return { elements, peers, tracks, contexts, requests, links, detectors, api: window.SalesGodCall, setTime(value) { now = value; }, timers,
+  return { window, elements, peers, tracks, contexts, requests, links, detectors, api: window.SalesGodCall, setTime(value) { now = value; }, timers,
     async fireTimers(delay) { for (const [timer, cb] of [...callbacks]) if (cb.delay === delay && callbacks.has(timer)) { clearTimeout(timer); callbacks.delete(timer); cb.fn(); } await tick(); await tick(); },
     async start() { await tick(); elements.get('prepare').onclick(); await tick(); await tick(); await tick(); },
     async media(bridgeMicrophone = true) { await links[0].options.onMessage({ type: 'call-media', state: 'ready', bridgeMicrophone }); await tick(); },
@@ -68,6 +68,18 @@ function environment({ failJournal = false, voicemail = false, failSpeech = fals
 }
 const awaitVoicemailSource = await readFile(new URL('public/voicemail.js', import.meta.url), 'utf8');
 const vadAck = { type: 'session.updated', session: { audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true } } } } };
+test('list audio engine works without manual controls and manual preparation cannot overlap rehearsal', async () => {
+  const env = environment({ headless: true });
+  try {
+    await tick(); env.window.SalesGodRehearsalBusy = true;
+    await env.api.prepare(); assert.equal(env.peers.length, 0);
+    env.window.SalesGodRehearsalBusy = false;
+    await env.api.prepare(); await tick(); await tick();
+    assert.equal(env.api.status().prepared, true); assert.equal(env.api.status().active, true);
+    assert.equal(env.peers[0].input.enabled, false);
+    await env.api.stop(); assert.equal(env.api.status().active, false);
+  } finally { await env.cleanup(); }
+});
 test('live conversation applies its configurable pause and measures response audio without shortening voicemail timing', async () => {
   for (const [requested, expected] of [[undefined, 250], [500, 500], [0, 250]]) {
     const env = environment({ voicemail: true });

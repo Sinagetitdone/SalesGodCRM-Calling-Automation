@@ -1,5 +1,9 @@
 # Resume here — 2026-10-23
 
+## Latest layout — package 0.5.1 / extension 0.4.1
+
+Open calling list (/campaigns) is now real calls only, with no simulation selector, rehearsal panel or manual AI controls. AI Agents Test Call (renamed from Prepare supervised call) opens /supervised-call with manual controls plus the complete rehearsal workflow. Saved lists are filtered by mode, old transcripts retained, and workers reject the wrong mode before start. Rehearsal/manual sessions are mutually exclusive in a test tab. All 143 tests and type checking passed; two-contact offline browser rehearsal completed. No real call was made. Extension files are updated but Chrome must reload extension 0.4.1 and refresh idle CRM to show the renamed button; never refresh an active call.
+
 ## Latest work — package 0.5.0
 
 All 140 checks and TypeScript passed. The actual supervised-call code produced audio into a synthetic dialer using 250 ms VAD and 1.1× speed. Synthetic customer TTS failed twice, preventing round-trip latency measurement; no actual phone was dialed. The lab and AI sessions were stopped. Do not claim measured real-call latency yet.

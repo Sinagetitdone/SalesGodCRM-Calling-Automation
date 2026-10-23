@@ -88,7 +88,11 @@ export class CampaignStore {
     delete c.worker; c.settings = JSON.parse(c.settings);
     return { ...c, contacts: this.db.prepare('SELECT id,position,first_name AS firstName,last_name AS lastName,phone,state,session,dispatched,ended FROM campaign_contacts WHERE campaign=? ORDER BY position').all(id), events: this.db.prepare('SELECT contact,event,time FROM campaign_events WHERE campaign=? ORDER BY id').all(id) };
   }
-  list() { this.prune(); return this.db.prepare('SELECT id,name,state,created,finished FROM campaigns ORDER BY created DESC LIMIT 50').all(); }
+  list(mode) {
+    this.prune();
+    if (mode) return this.db.prepare('SELECT id,name,state,created,finished FROM campaigns WHERE json_extract(settings,\'$.simulation\')=? ORDER BY created DESC LIMIT 50').all(mode === 'rehearsal' ? 1 : 0);
+    return this.db.prepare('SELECT id,name,state,created,finished FROM campaigns ORDER BY created DESC LIMIT 50').all();
+  }
   owner(id, worker) {
     const c = this.db.prepare('SELECT * FROM campaigns WHERE id=?').get(id);
     if (!c || c.worker !== worker || !c.authorized_at || !['running', 'paused'].includes(c.state)) throw new Error('Campaign worker is not authorized.');

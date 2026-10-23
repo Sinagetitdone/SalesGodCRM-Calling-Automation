@@ -18,7 +18,7 @@
   const voiceButton = document.createElement('button'); voiceButton.id = 'voice'; voiceButton.disabled = true;
   voiceButton.textContent = 'Open AI voice setup'; $('stop').before(voiceButton);
   const callButton = document.createElement('button'); callButton.id = 'callVoice'; callButton.disabled = true;
-  callButton.textContent = 'Prepare supervised call'; voiceButton.after(callButton);
+  callButton.textContent = 'AI Agents Test Call'; voiceButton.after(callButton);
   const listButton = document.createElement('button'); listButton.id = 'callingList'; listButton.textContent = 'Open calling list'; callButton.after(listButton);
   const voiceResult = document.createElement('p'); voiceResult.id = 'voiceResult'; $('rtcResult').after(voiceResult);
   let report, listPopup, listToken, listPort, dialer, listWatch;
@@ -33,11 +33,11 @@
     const waiter = pending.get(event.data.requestId);
     if (waiter) { clearTimeout(waiter.timer); pending.delete(event.data.requestId); event.data.error ? waiter.reject(new Error(event.data.error)) : waiter.resolve(event.data.status); }
     report = event.data.status;
-    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0'].includes(report.version)) return;
+    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1'].includes(report.version)) return;
     $('state').textContent = report.testing ? 'Testing synthetic audio locally…' : report.armed ? 'Local routing enabled · OpenAI disconnected' : 'Local routing disabled · OpenAI disconnected';
     $('arm').disabled = report.armed || report.testing;
-    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0'].includes(report.version) || report.voiceState !== 'disconnected';
-    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0'].includes(report.version);
+    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1'].includes(report.version) || report.voiceState !== 'disconnected';
+    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1'].includes(report.version);
     if (report.voiceState && report.voiceState !== 'disconnected') $('state').textContent = `Local routing enabled · Voice setup ${report.voiceState} · Check setup window for OpenAI status`;
     $('test').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
     $('rtc').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');

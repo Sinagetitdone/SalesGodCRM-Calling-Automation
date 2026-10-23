@@ -1,0 +1,32 @@
+<section aria-labelledby="listHeading"><h2 id="listHeading">Rehearsal setup</h2>
+<p>Import a CSV with <b>first_name,last_name,phone</b> columns. Use fictional names and numbers. This section never places phone calls.</p>
+<label for="listName">List name</label><input id="listName" maxlength="120" value="My rehearsal">
+<label for="contactFile">Choose CSV file</label><input id="contactFile" type="file" accept=".csv,text/csv">
+<label for="contactCsv">Or paste CSV</label><textarea id="contactCsv" rows="5" placeholder="first_name,last_name,phone"></textarea>
+<button id="demoContacts">Use simulated contacts</button>
+<p><strong>No-phone practice only.</strong> Uses OpenAI credits when Live AI rehearsal starts.</p>
+<div id="simulationSettings">
+<label for="simulationMode">Simulation type</label><select id="simulationMode"><option value="agents">Live AI rehearsal — two speaking agents (uses OpenAI credits)</option><option value="offline">Offline workflow check — canned replies, free, no audio</option></select>
+<label for="rehearsalPersona">Fictional customer</label><select id="rehearsalPersona"><option value="interested">Interested — asks follow-up questions</option><option value="busy">Busy — prefers another time</option><option value="skeptical">Cautious — asks who is calling and why</option></select>
+<label for="rehearsalTurns">Conversation length</label><select id="rehearsalTurns"><option value="4">4 replies · quick check</option><option value="8" selected>8 replies · standard rehearsal</option><option value="12">12 replies · longer rehearsal</option></select>
+<label for="turnSeconds">Reply timeout in seconds (10–120)</label><input id="turnSeconds" type="number" min="10" max="120" value="20">
+<p>This is the maximum time allowed for one complete spoken reply, including playback. It does not add a pause or make generation faster. A lower timeout can interrupt speech. The entire rehearsal still has a five-minute limit.</p>
+<p>Settings are saved when you click Import and preview. To revise a saved list, use Copy selected list to editor, change the timeout, then import a new list.</p>
+<p>Both voices are AI-generated live. The office agent follows your approved brief below; the customer reacts to its actual replies. Text is exchanged between agents, with audio played through your computer. This rehearses dialogue, not telephone audio, voicemail detection or interruptions. Each contact uses two OpenAI sessions. Use fictional names; phone numbers are never sent to the agents.</p></div>
+<label for="callBrief">Approved conversation brief</label><textarea id="callBrief" rows="4" maxlength="2000">Introduce yourself as an AI assistant from Jay Marketing Lab on behalf of Cena. Ask whether now is a good time to talk. Answer only from this brief; collect questions for Cena when details are unknown. At a natural ending, say they can contact Cena if they would like to talk more. Do not claim an appointment is booked.</textarea>
+<button id="importList">Import and preview</button><p id="listError" role="alert"></p>
+<label for="savedLists">Saved lists</label><select id="savedLists"><option value="">Choose a list</option></select><button id="refreshLists">Refresh</button>
+<button id="copyList" disabled>Copy selected list to editor</button>
+<p id="listMode">No list selected.</p><p id="driverState">Practice uses generated voices only. No CRM connection is needed.</p>
+<button id="startList" disabled>Start rehearsal</button><button id="pauseList" disabled>Pause after current rehearsal</button><button id="stopList" disabled class="stop">Stop rehearsal</button>
+<button id="allowNotification">Enable completion notification</button><button id="exportList" disabled>Export rehearsal transcripts and event log</button>
+<p id="listState" role="status" aria-live="polite">Nothing is running.</p>
+<div class="list-scroll"><table><thead><tr><th>Name</th><th>Phone</th><th>Result</th><th>Conversation</th></tr></thead><tbody id="contactRows"></tbody></table></div>
+<pre id="selectedTranscript" hidden></pre><details><summary>List event log</summary><pre id="listEvents">No events yet.</pre></details>
+<p>Rehearsal transcripts stay in the local database for seven days. Download MP3 audio before closing or refreshing. Your fictional names, brief and dialogue are sent to OpenAI during Live AI rehearsal.</p></section>
+<section id="rehearsalPanel" aria-labelledby="rehearsalHeading"><h2 id="rehearsalHeading">Live AI rehearsal</h2>
+<p id="rehearsalStatus" role="status" aria-live="polite">Choose simulated contacts, import and preview, then start the selected list. No CRM connection is needed.</p>
+<ol id="rehearsalTranscript" aria-label="Live rehearsal transcript"></ol>
+<button id="downloadRehearsalTranscript" disabled>Download visible transcript</button>
+<div id="rehearsalRecordings"></div>
+<p>Completed replies are saved with each contact. Replay or download the last 10 rehearsal MP3 recordings here before closing this window. Downloaded audio is a recording of AI-generated fictional dialogue.</p></section>

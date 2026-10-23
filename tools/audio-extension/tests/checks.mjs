@@ -23,6 +23,7 @@ test('panel accepts the installed manifest version and enables supervised contro
   assert.equal(get('callVoice').disabled, true);
   report.armed = true; publish();
   assert.equal(get('callVoice').disabled, false); assert.equal(get('voice').disabled, false);
+  assert.equal(get('callVoice').textContent, 'AI Agents Test Call'); assert.equal(get('callingList').textContent, 'Open calling list');
 });
 function environment() {
   const listeners = new Map(); const messages = []; const originals = { requests: 0 };

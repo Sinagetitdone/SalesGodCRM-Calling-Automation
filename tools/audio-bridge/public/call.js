@@ -1,7 +1,14 @@
 /* Supervised first-call audio. Standard keys and business state stay on the local server. */
 (() => {
   'use strict';
-  const $ = id => document.getElementById(id);
+  // The list worker uses the same audio engine without manual call controls.
+  const detachedControls = new Map();
+  const $ = id => {
+    const element = document.getElementById(id);
+    if (element || document.body?.dataset?.workspace !== 'live') return element;
+    if (!detachedControls.has(id)) detachedControls.set(id, document.createElement('input'));
+    return detachedControls.get(id);
+  };
   const params = new URLSearchParams(location.hash.slice(1));
   let token = params.get('token'); const openerOrigin = params.get('origin');
   const canPair = Boolean(window.opener && /^[a-f0-9-]{36}$/.test(token || '') &&
@@ -17,7 +24,7 @@
     return new Error(result.error || (stage === 'voicemail_preparation' ? 'Voicemail voice preparation failed. Do not start a call.' : 'OpenAI setup failed.'));
   }
   const controls = () => {
-    $('prepare').disabled = !configured || !port || Boolean(run);
+    $('prepare').disabled = !configured || !port || Boolean(run) || Boolean(window.SalesGodRehearsalBusy);
     $('answer').disabled = !run || !run.openaiReady || run.media.state !== 'ready' || !['ready', 'paused', ...answerPhases].includes(report.phase);
     $('pause').disabled = !run || !['starting', 'talking', ...answerPhases].includes(report.phase);
     $('stop').disabled = !run || run.stopping;
@@ -247,7 +254,7 @@
     run.vadTimer = setTimeout(() => { $('error').textContent = 'The speaking controls were not acknowledged. AI is stopped.'; void finish('failed'); }, 6000);
   }
   async function start() {
-    if (!port || !configured || run) return;
+    if (!port || !configured || run || window.SalesGodRehearsalBusy) return;
     const context = new AudioContext({ sampleRate: 48000 });
     const customer = context.createMediaStreamDestination(), ai = context.createMediaStreamDestination();
     const output = context.createGain(); output.gain.value = 0; output.connect(ai);
@@ -476,9 +483,10 @@
       helloTimer = setInterval(hello, 500); hello(); pairTimer = setTimeout(() => clearInterval(helloTimer), 15000);
     },
     prepare: start, stop: finish,
-    status: () => ({ ...report, prepared: Boolean(run?.openaiReady), canPrepare: Boolean(configured && port && !run), stopping: Boolean(run?.stopping), transcriptSaved: report.logsSaved !== false && !run?.logFailed })
+    status: () => ({ ...report, active: Boolean(run), prepared: Boolean(run?.openaiReady), canPrepare: Boolean(configured && port && !run && !window.SalesGodRehearsalBusy), stopping: Boolean(run?.stopping), transcriptSaved: report.logsSaved !== false && !run?.logFailed })
   };
   $('prepare').onclick = () => void start(); $('answer').onclick = () => void confirmAnswer();
+  window.addEventListener('salesgod-rehearsal-state', controls);
   $('sendInstruction').onclick = () => void sendOwnerInstruction();
   $('pause').onclick = () => { if (!run || $('pause').disabled) return; mute(); phase('paused', 'AI paused · phone call remains connected'); void log('ai.paused'); };
   $('stop').onclick = () => void finish();

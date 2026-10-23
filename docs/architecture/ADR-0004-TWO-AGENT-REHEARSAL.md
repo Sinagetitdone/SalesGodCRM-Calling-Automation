@@ -20,6 +20,10 @@ Save completed turns and interrupted partial text in the existing seven-day loca
 
 ## Validation
 
+### Workspace organization, updated in 0.5.1
+
+The owner separated real calling from testing. /campaigns is real-only with an independent page template and a shared headless call engine. /supervised-call contains manual controls and rehearsal setup/output, reached by extension 0.4.1's AI Agents Test Call button. Mode-filtered lists retain original records. A worker mode assertion rejects mismatches before /start; rehearsal UI never opens a campaign control port. An active manual session blocks rehearsal Start, and an active rehearsal blocks manual preparation. Import/reload still cannot dial. Voicemail editing remains with real list settings.
+
 Regression coverage includes API authorization and privacy, bounded settings, separate roles/voices, one connection per role, output drain in either event order, prompt preservation, immediate Stop, sequential persistence, failure without CRM actions and genuine MP3 frame encoding. Browser checks use fictional contacts and real OpenAI sessions; results are documented in Evolution. Actual Mac playback is not established by Windows checks.
 
 Sources: [Realtime conversations](https://developers.openai.com/api/docs/guides/realtime-conversations), [lamejs upstream](https://github.com/zhuker/lamejs).

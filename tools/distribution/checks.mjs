@@ -15,6 +15,8 @@ test('release contains only runtime files, blank credentials and executable Mac 
   assert.equal(new Set(names).size, names.length);
   assert.ok(names.includes('tools/audio-extension/manifest.json'));
   assert.ok(names.includes('tools/audio-bridge/public/campaign-worker.js'));
+  assert.ok(names.includes('tools/audio-bridge/public/campaign.html'));
+  assert.ok(names.includes('tools/audio-bridge/public/rehearsal-form.html'));
   for (const name of ['rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt']) assert.ok(names.includes('tools/audio-bridge/public/' + name));
   assert.ok(names.includes('tools/audio-bridge/rehearsal-routes.mjs'));
   const approvedVendor = new Set(['lame.min.js', 'lame.all.js', 'NOTICE.txt', 'LAME-LICENSE.txt', 'LGPL-3.0.txt', 'GPL-3.0.txt'].map(x => 'tools/audio-bridge/public/vendor/' + x));
@@ -30,6 +32,10 @@ test('release contains only runtime files, blank credentials and executable Mac 
   assert.deepEqual(manifest.dependencies, lock.packages[''].dependencies);
   assert.equal(lock.packages['node_modules/fastify'].version, manifest.dependencies.fastify);
   assert.equal(Object.values(lock.packages).some(p => p.dev), false);
+  const developmentLock = JSON.parse(await readFile(new URL('../../package-lock.json', import.meta.url), 'utf8'));
+  for (const [name, pkg] of Object.entries(lock.packages)) if (name) {
+    for (const field of ['version', 'resolved', 'integrity', 'dependencies']) assert.deepEqual(pkg[field], developmentLock.packages[name]?.[field], `${name}: packaged ${field} must match the tested dependency`);
+  }
 });
 
 test('ZIP extracts every entry byte-for-byte, includes checksums, and records Unix executable attributes', async () => {

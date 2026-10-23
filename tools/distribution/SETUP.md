@@ -64,7 +64,7 @@ The launchers do not require an administrator password. Mac launcher syntax has 
 3. Turn on **Developer mode** in the top-right corner.
 4. Click **Load unpacked**.
 5. Browse into your extracted **SalesGod-Team** folder, then **tools**, then **audio-extension**. Select this folder, which contains `manifest.json`. Do not select the ZIP or the whole SalesGod-Team folder.
-6. Confirm Chrome shows **SalesGod Local Audio Bridge** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
+6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.1** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
 7. Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.
 8. Look for the **SalesGod audio bridge** panel. Continue to Step 5.
 
@@ -74,10 +74,10 @@ The launchers do not require an administrator password. Mac launcher syntax has 
 2. Open `http://127.0.0.1:28431/voice-test` in Chrome.
 3. Click **Test AI voice without a microphone**. This uses a short OpenAI session and may incur API usage. It does not open your physical microphone or place a phone call.
 4. Wait for **AI audio test passed · disconnected**. If the test fails, go to Step 10. Do not start a live list until the voice check works.
-5. Return to the idle CRM. In its extension panel, click **Open calling list**. Keep both pages open. Wait for **CRM controls paired**. Opening the local calling-list address directly does not pair the CRM.
-6. Keep **Simulation only — no phone calls** checked. For the free workflow check, choose **Offline workflow check** in **Simulation type**. For two talking AI agents, choose **Live AI rehearsal**; this uses your OpenAI API credits.
-7. Click **Use simulated contacts**. For Live AI rehearsal, choose a fictional customer personality and conversation length (4, 8 or 12 replies). Review the approved brief in **Call settings**, then click **Import and preview**. Confirm the saved list says **LIVE AI REHEARSAL — no calls** or **OFFLINE SIMULATION**.
-8. Click **Start selected list**. Live AI rehearsal opens two AI sessions per fictional contact: an office assistant and a customer who responds to it. Watch their text appear and listen through your computer speakers/headset. Each speaker finishes before the other starts. No microphone or CRM connection is needed; you can open `http://127.0.0.1:28431/campaigns` directly for this mode. Offline mode uses canned text and no API requests.
+5. Return to the idle CRM. Enable local routing, then click **AI Agents Test Call** in the extension panel. Scroll to **Rehearsal setup**. You can also open `http://127.0.0.1:28431/supervised-call` directly for no-phone rehearsal; manual call controls require opening from the extension.
+6. Choose **Live AI rehearsal** for two speaking agents (uses API credits), or **Offline workflow check** for free canned replies.
+7. Click **Use simulated contacts**. Choose the customer personality, conversation length and timeout, then review the approved brief. Click **Import and preview**. Confirm the saved rehearsal says **LIVE AI REHEARSAL — no calls** or **OFFLINE SIMULATION**.
+8. Click **Start rehearsal**. Watch the live text and listen through your speakers/headset. No microphone or CRM connection is used by this practice workflow. Manual supervised AI preparation is disabled while a rehearsal runs. **Open calling list** is a separate page exclusively for real calling campaigns.
 9. For an additional local audio check, use **Enable local routing** and **Test local audio** in the idle CRM extension panel. **Test WebRTC** checks the local connection too. These tests use synthetic audio. Choose **Disable** afterward if you are finished testing.
 
 ### Replay and save a Live AI rehearsal
@@ -86,9 +86,9 @@ The **Reply timeout in seconds** field defaults to 20 and accepts 10–120. It l
 
 For **real calls**, open **Call settings** and use **Live-call pause before replying**. The default is 250 milliseconds (0.25 seconds), adjustable from 200 to 1000. This controls how much silence ends the customer's turn. Lower values can interrupt a hesitation; raise it if needed. Live AI answers are concise and spoken at 1.1× speed. Voicemail greeting/beep timing is separate and unchanged. Refresh idle controls after updating; these settings apply on the next session, not to a conversation already running.
 
-1. Wait for **Rehearsal completed** and **Finished processing every contact**, or use **Stop current call and pause** to stop the rehearsal immediately. **Pause after current contact** lets the current fictional conversation finish.
+1. Wait for **Rehearsal completed** and **Finished processing every contact**, or use **Stop rehearsal** to stop the rehearsal immediately. **Pause after current rehearsal** lets the current fictional conversation finish.
 2. Under **Live AI rehearsal**, play the recording or choose **Download rehearsal MP3**. Only the last 10 recordings remain in this page, and they disappear when you refresh or close it. Download anything you want to keep first.
-3. Choose **View transcript** beside a contact for the saved dialogue. Use **Export transcripts and event log** for the whole list, or **Download visible transcript** for the currently displayed conversation, including partial text.
+3. Choose **View transcript** beside a contact for the saved dialogue. Use **Export rehearsal transcripts and event log** for the whole rehearsal list, or **Download visible transcript** for the currently displayed conversation, including partial text.
 4. Completed text replies stay in the local database for seven days, just like other list logs. Rehearsal MP3 audio is generated by AI and is not a recording of a real phone call. This feature tests dialogue; it does not test telephone routing, voicemail detection or interruptions. It ends after the chosen reply count or five minutes. On connection failure it pauses with partial results; import a fresh draft to retry a failed fictional contact.
 
 ## Step 6 — Start your normal workday
@@ -114,9 +114,9 @@ first_name,last_name,phone
 5. Set **Calling timezone**, **Start hour**, and **End hour**. For San Diego, use `America/Los_Angeles`. Hours use a 24-hour clock: 9 is 9 AM and 17 is 5 PM. One timezone applies to the whole list.
 6. Review the **Approved conversation brief**. State the approved purpose, what the AI may say, and what information it should collect. The current live AI identifies itself as calling from **Jay Marketing Lab on behalf of Cena**. Other office identities need a configuration/code change before use.
 7. Review the **Voicemail message** and voicemail controls. The default voicemail refers to **Sina**. Confirm that this wording is appropriate for your list.
-8. Choose the mode before importing. For practice, leave **Simulation only — no phone calls** checked and use simulated contacts. Choose **Live AI rehearsal** (paid API usage) or **Offline workflow check** (free). For an authorized real calling list, uncheck Simulation.
-9. Click **Import and preview**. Review names, numbers, settings, and the mode shown for the selected list: **LIVE AI REHEARSAL**, **OFFLINE SIMULATION** or **LIVE CALLING**.
-10. If you need to change the mode, caller, brief, voicemail, or calling hours after import, change the form and import a new draft. Changing the form does not update the previously saved list. Select the correct new draft before continuing.
+8. **Open calling list is for real calls only.** For no-phone practice, return to **AI Agents Test Call** instead.
+9. Click **Import and preview**. Review names, numbers, settings and **LIVE CALLING** before starting. Importing never places a call.
+10. If you need to change the caller, brief, voicemail, or calling hours after import, change the form and import a new draft. Changing the form does not update the previously saved list. Select the correct new draft before continuing.
 11. Before live calling, confirm the CRM microphone is **SalesGod AI Bridge (local audio)**. Keep the CRM speaker on your headset. If the microphone is missing, review the idle CRM's Settings/Refresh devices and repeat the local audio checks. Do not dial to work around a failed setup test.
 12. If you want a desktop completion notification, click **Enable completion notification** and allow Chrome notifications if your company permits them. The page itself shows completion even without notifications.
 13. Click **Start selected list** only when you are ready. On a **LIVE CALLING** list, this starts real calls, one eligible contact at a time. The system prepares AI audio, handles a person or recognized voicemail, saves results, and proceeds through the list.

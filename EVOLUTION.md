@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-23 — Separate real calling lists from AI test controls (0.5.1)
+
+The owner requested Open calling list exclusively for real campaigns, with Live AI rehearsal and manual supervised controls moved to the extension's renamed AI Agents Test Call button. Package 0.5.1 includes extension 0.4.1. /campaigns has its own real-list template, real-only imports and saved-list filter; /supervised-call contains manual controls plus practice-only import, saved rehearsals, live dialogue and MP3 export. Prior records remain intact. A mode check rejects cross-workspace list execution before claiming a worker; rehearsal never pairs to CRM campaign controls. Manual AI preparation and rehearsal cannot run simultaneously in the same test tab.
+
+The real list retains the shared audio engine without rendering manual controls, and keeps voicemail editing inside Call settings. All 143 checks and TypeScript passed, including headless audio preparation, mode separation, saved-list filters, unique DOM IDs and the renamed extension button. Browser inspection confirmed both layouts and previous rehearsal transcript access; a two-contact offline rehearsal completed in the relocated page. No real calls or additional paid AI tests were made for this reorganization. Reload the unpacked extension and refresh idle CRM to apply its new button label.
+
 ## 2026-10-23 — Live rehearsal, MP3 export and faster live-call turns (0.5.0)
 
 Added two independent speaking AI agents for fictional contacts, streamed and saved transcripts, local MP3 replay/download, and a configurable rehearsal reply watchdog (20 seconds by default, 10–120 allowed). Connect both rehearsal peers concurrently; use brief replies and 1.15× rehearsal speech. An eight-reply browser test completed with both voices verified; measured complete turns ranged from 4.4 to 12.6 seconds. These timings include generation and speech, not telephone latency.

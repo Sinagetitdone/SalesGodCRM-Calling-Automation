@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SalesGod Local Audio Bridge",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Local calling-list worker and AI audio bridge. Calling starts only from an authorized list; no key storage.",
   "minimum_chrome_version": "111",
   "content_scripts": [

@@ -1,4 +1,4 @@
-# Calling lists — package 0.5.0 / extension 0.4.0
+# Calling lists — package 0.5.1 / extension 0.4.1
 
 Current update (2026-10-23): live human conversations use 250 ms turn-end silence, configurable under **Call settings → Live-call pause before replying** (200–1000 ms). Short routine answers and 1.1× speech reduce turn length. Voicemail timing stays unchanged. The actual live-call code generated audio in a no-phone WebRTC test; synthetic customer TTS failed, so round-trip telephone latency is not yet measured. No real calls were placed for this update. Reopen idle controls to load it. Live AI rehearsal also adds MP3 download and an editable 20-second complete-turn timeout; that watchdog is separate from live-call VAD. Use **Copy selected list to editor**, change settings and import to save a revised list without altering prior results.
 
@@ -20,7 +20,7 @@ Speech awaiting transcription/classification blocks voicemail completion. After 
 
 ## Try without calling
 
-Run `npm run audio:bridge`, open <http://127.0.0.1:28431/campaigns>, choose **Use simulated contacts**, **Import and preview**, then **Start selected list**. Keep **Simulation only** checked. Choose **Live AI rehearsal** to hear two independent OpenAI agents exchange replies and see streaming dialogue. Select interested, busy or cautious customer behavior and 4, 8 or 12 replies before importing. The office agent follows the approved brief. This mode uses API credits, needs no microphone or CRM pairing, and has no path to the CRM driver. It tests dialogue, not telephone media, voicemail detection or interruption timing.
+Run `npm run audio:bridge`, choose **AI Agents Test Call** in the extension (or open <http://127.0.0.1:28431/supervised-call> for practice), scroll to **Rehearsal setup**, choose **Use simulated contacts**, **Import and preview**, then **Start rehearsal**. **Open calling list** is exclusively for real calls. Choose **Live AI rehearsal** to hear two independent OpenAI agents exchange replies and see streaming dialogue. Select interested, busy or cautious customer behavior and 4, 8 or 12 replies before importing. The office agent follows the approved brief. This mode uses API credits, needs no microphone or CRM pairing, and has no path to the CRM driver. It tests dialogue, not telephone media, voicemail detection or interruption timing.
 
 Completed text replies are saved with the contact. The page offers replay and download for the last 10 rehearsal recordings; audio is in browser memory only and is lost on refresh/close unless downloaded. Stop retains partial text/audio and pauses; failure pauses without retry. Choose **Offline workflow check** for the original canned simulation with no audio or API requests. Existing saved simulation drafts without a mode retain that offline behavior.
 

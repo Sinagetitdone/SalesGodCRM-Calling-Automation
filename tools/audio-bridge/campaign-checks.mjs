@@ -106,7 +106,12 @@ test('campaign API rejects cross-origin/start without authorization and exposes 
     const contact = (await post(`/campaigns-api/${f.id}/next`, { workerId: f.worker })).json().contact;
     const prepared = await post('/session', 'v=0\r\n', { ...sessionHeaders, 'x-campaign-id': f.id, 'x-contact-id': contact.id, 'x-worker-id': f.worker });
     assert.equal(prepared.statusCode, 200); assert.equal(calls, 1);
-    const page = await app.inject({ url: '/campaigns', headers }); assert.equal(page.statusCode, 200); assert.match(page.body, /id="listHeading"/); assert.match(page.body, /Simulation only/);
+    const page = await app.inject({ url: '/campaigns', headers }); assert.equal(page.statusCode, 200); assert.match(page.body, /id="listHeading"/); assert.match(page.body, /Real calls only/);
+    assert.doesNotMatch(page.body, /id="rehearsalPanel"|id="simulation"|id="prepare"|rehearsal.js/);
+    const practice = await app.inject({ url: '/supervised-call', headers });
+    assert.match(practice.body, /id="rehearsalPanel"/); assert.match(practice.body, /id="prepare"/);
+    assert.match(practice.body, /data-workspace="rehearsal"/);
+    for (const html of [page.body, practice.body]) { const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]); assert.equal(ids.length, new Set(ids).size); }
   } finally { await app.close(); f.store.close(); }
 });
 const workerSource = await readFile(new URL('public/campaign-worker.js', import.meta.url), 'utf8');
@@ -114,6 +119,7 @@ function workerFixture(simulation = true, failDial = false, terminal = {}) {
   const f = fixture(simulation), window = {}, states = [], commands = []; let now = 0, session = randomUUID(), status = { canPrepare: true, prepared: true, sessionId: session, phase: 'waiting' }, phone = 'idle';
   vm.runInNewContext(workerSource, { window, crypto: { randomUUID }, setInterval, clearInterval, document: { getElementById: () => ({}) } });
   const api = async (path, body) => {
+    if (path === '/campaigns-api/' + f.id && !body) return f.store.read(f.id);
     const bits = path.split('/').slice(3), op = bits.at(-1), id = bits.length > 1 ? bits[0] : undefined;
     switch (op) {
       case 'start': return f.store.start(f.id, body.workerId);
@@ -143,6 +149,28 @@ test('simulated list finishes sequentially, saves transcripts and notifies witho
     assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['completed', 'voicemail_played']);
     assert.equal(f.store.transcripts(f.id, f.store.read(f.id).contacts[0].id).length, 2); assert.equal(f.states.at(-1), 'finished');
   } finally { f.store.close(); }
+});
+test('workspace mode mismatch cannot start a list or touch the dialer', async () => {
+  for (const simulation of [true, false]) {
+    const f = workerFixture(simulation);
+    try {
+      f.worker.expectedSimulation = !simulation;
+      await assert.rejects(f.worker.run(f.id), /correct workspace/);
+      assert.equal(f.store.read(f.id).state, 'draft'); assert.equal(f.commands.length, 0);
+    } finally { f.store.close(); }
+  }
+});
+test('saved list filters separate real calls and rehearsals without changing prior records', async () => {
+  const f = fixture(true); const live = f.store.create({ name: 'Real draft', csv, settings: { ...settings, simulation: false } });
+  const app = createBridge({ campaignStore: f.store, env: {} });
+  try {
+    const headers = { host: '127.0.0.1:28431' };
+    const real = (await app.inject({ url: '/campaigns-api?mode=live', headers })).json().campaigns;
+    const practice = (await app.inject({ url: '/campaigns-api?mode=rehearsal', headers })).json().campaigns;
+    assert.deepEqual(real.map(c => c.id), [live.id]); assert.deepEqual(practice.map(c => c.id), [f.id]);
+    assert.equal((await app.inject({ url: '/campaigns-api?mode=invalid', headers })).statusCode, 400);
+    assert.equal(f.store.list().length, 2);
+  } finally { await app.close(); f.store.close(); }
 });
 test('AI rehearsal runs sequentially, persists agent replies, and never touches real audio or CRM', async () => {
   const f = workerFixture(); const seen = [];

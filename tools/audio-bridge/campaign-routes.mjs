@@ -16,7 +16,7 @@ export function campaignRoutes(app, { env, store: supplied }) {
   const route = (method, url, body, handler) => app.route({ method, url, schema: { ...(body ? { body } : {}), ...(url.includes(':id') ? { params: object({ id: uuid, ...(url.includes(':contact') ? { contact: uuid } : {}) }) } : {}) }, handler: async (request, reply) => {
     try { return handler(get(), request); } catch { return reply.code(409).send({ error: 'Campaign action could not be completed. Check its status, calling window, worker lease and contact state.' }); }
   } });
-  route('GET', '/campaigns-api', null, s => ({ campaigns: s.list() }));
+  app.get('/campaigns-api', { schema: { querystring: object({ mode: { type: 'string', enum: ['live', 'rehearsal'] } }, []) } }, r => ({ campaigns: get().list(r.query.mode) }));
   route('POST', '/campaigns-api/import', object({ name: { type: 'string', minLength: 1, maxLength: 120 }, csv: { type: 'string', minLength: 1, maxLength: 400000 }, settings: settingsSchema }), (s, r) => s.create(r.body));
   route('GET', '/campaigns-api/:id', null, (s, r) => s.read(r.params.id));
   route('POST', '/campaigns-api/:id/start', object({ ...worker, authorized: { const: true } }), (s, r) => s.start(r.params.id, r.body.workerId));
