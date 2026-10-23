@@ -22,6 +22,7 @@ test('release contains only runtime files, blank credentials and executable Mac 
   for (const name of ['tools/audio-bridge/public/brand/JML-Logo-Full-Dark.svg', 'tools/audio-bridge/public/brand/JML-Logo-J-Dark.svg', 'tools/audio-extension/brand/JML-Logo-Full-Dark.svg']) assert.ok(names.includes(name));
   assert.deepEqual(entries.find(e => e.name === 'tools/audio-bridge/public/brand/JML-Logo-Full-Dark.svg').data, entries.find(e => e.name === 'tools/audio-extension/brand/JML-Logo-Full-Dark.svg').data);
   assert.ok(names.includes('tools/audio-bridge/public/campaign-worker.js'));
+  assert.ok(names.includes('tools/audio-bridge/public/call-recording.js'));
   assert.ok(names.includes('tools/audio-bridge/public/campaign.html'));
   assert.ok(names.includes('tools/audio-bridge/public/rehearsal-form.html'));
   for (const name of ['rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt']) assert.ok(names.includes('tools/audio-bridge/public/' + name));

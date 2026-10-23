@@ -13,7 +13,7 @@ const origin = 'http://127.0.0.1:28431';
 const sessionId = '11111111-1111-4111-8111-111111111111';
 const headers = { host: '127.0.0.1:28431', origin, 'content-type': 'application/json' };
 
-function environment({ headless = false, failJournal = false, voicemail = false, failSpeech = false, speechError = { error: 'Voicemail voice preparation failed. Do not start a call.' } } = {}) {
+function environment({ headless = false, failJournal = false, voicemail = false, failSpeech = false, recordingFinish, speechError = { error: 'Voicemail voice preparation failed. Do not start a call.' } } = {}) {
   const elements = new Map();
   for (const id of ['configuration', 'pairing', 'state', 'media', 'error', 'prepare', 'answer', 'pause', 'stop', 'save', 'savedLog', 'evidence', 'journal', 'voicemailEnabled', 'voicemailMessage', 'voicemailState', 'ownerInstruction', 'sendInstruction', 'instructionStatus']) elements.set(id, { disabled: true, textContent: '' });
   elements.get('voicemailEnabled').checked = voicemail; elements.get('voicemailMessage').value = 'Hi, this is a synthetic voicemail test message.';
@@ -35,6 +35,13 @@ function environment({ headless = false, failJournal = false, voicemail = false,
   }
   const opener = { postMessage() {} };
   const window = { opener, addEventListener(name, fn) { if (!listeners.has(name)) listeners.set(name, []); listeners.get(name).push(fn); } };
+  const recorders = [];
+  window.SalesGodCallRecording = class {
+    constructor(context, outbound) { this.context = context; this.outbound = outbound; this.inbound = []; recorders.push(this); }
+    addStream(stream) { this.inbound.push(stream); }
+    start() { this.started = true; }
+    async finish() { this.finishes = (this.finishes || 0) + 1; return this.started ? (recordingFinish ? recordingFinish() : new Blob(['synthetic-mp3'])) : null; }
+  };
   window[Symbol.for('salesgod.window.rtc.v1')] = { connect(port, options) { const link = { options, sent: [], ready: Promise.resolve(), send(data) { this.sent.push(data); }, close() { this.closed = true; } }; links.push(link); return link; } };
   const sandbox = { window, document: { body: { dataset: { workspace: headless ? 'live' : 'rehearsal' } }, createElement: () => ({ disabled: true, textContent: '' }), getElementById: id => headless && !['voicemailEnabled', 'voicemailMessage', 'state', 'media', 'error', 'configuration'].includes(id) ? null : elements.get(id) },
     location: { origin, hash: '#token=11111111-1111-4111-8111-111111111111&origin=https%3A%2F%2Fwww.salesgodcrm.net' },
@@ -58,7 +65,7 @@ function environment({ headless = false, failJournal = false, voicemail = false,
   vm.runInNewContext(source, sandbox);
   const port = { postMessage() {}, close() {} };
   for (const fn of listeners.get('message')) fn({ source: opener, origin: 'https://www.salesgodcrm.net', data: { source: 'salesgod-voice-link-v1', type: 'paired', token: sessionId }, ports: [port] });
-  return { window, elements, peers, tracks, contexts, requests, links, detectors, api: window.SalesGodCall, setTime(value) { now = value; }, timers,
+  return { window, elements, peers, tracks, contexts, requests, links, detectors, recorders, api: window.SalesGodCall, setTime(value) { now = value; }, timers,
     async fireTimers(delay) { for (const [timer, cb] of [...callbacks]) if (cb.delay === delay && callbacks.has(timer)) { clearTimeout(timer); callbacks.delete(timer); cb.fn(); } await tick(); await tick(); },
     async start() { await tick(); elements.get('prepare').onclick(); await tick(); await tick(); await tick(); },
     async media(bridgeMicrophone = true) { await links[0].options.onMessage({ type: 'call-media', state: 'ready', bridgeMicrophone }); await tick(); },
@@ -68,6 +75,40 @@ function environment({ headless = false, failJournal = false, voicemail = false,
 }
 const awaitVoicemailSource = await readFile(new URL('public/voicemail.js', import.meta.url), 'utf8');
 const vadAck = { type: 'session.updated', session: { audio: { input: { turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true } } } } };
+test('real call records incoming audio before the ASR gate, and concurrent stop waits for one saved MP3', async () => {
+  let release; const pending = new Promise(resolve => { release = resolve; });
+  const env = environment({ recordingFinish: () => pending }), saved = [];
+  try {
+    env.api.configure({ automatic: true, saveRecording: async blob => { saved.push(blob); } });
+    await env.start(); env.api.startRecording();
+    const incoming = { getTracks: () => [] };
+    env.links[0].options.onTrack(incoming);
+    assert.equal(env.recorders[0].outbound, env.links[0].options.stream);
+    assert.equal(env.recorders[0].inbound[0], incoming);
+    assert.equal(env.peers[0].input.enabled, false);
+    const first = env.api.stop(), second = env.api.stop();
+    assert.equal(first, second); assert.equal(env.api.status().audioStopped, true);
+    assert.equal(env.api.status().recordingState, 'saving'); assert.equal(saved.length, 0);
+    assert.equal(env.contexts[0].closed, undefined);
+    const mp3 = new Blob(['synthetic']); release(mp3); await second;
+    assert.deepEqual(saved, [mp3]); assert.equal(env.recorders[0].finishes, 1);
+    assert.equal(env.api.status().recordingState, 'saved'); assert.equal(env.contexts[0].closed, true);
+    assert.ok(env.api.status().events.some(e => e.event === 'recording.saved'));
+  } finally { release(null); await env.cleanup(); }
+});
+test('failed recording uploads are retained as a failure and preparation alone saves no recording', async () => {
+  for (const started of [false, true]) {
+    const env = environment(); let attempts = 0;
+    try {
+      env.api.configure({ saveRecording: async () => { attempts++; throw new Error('Disk unavailable'); } });
+      await env.start(); if (started) env.api.startRecording(); await env.api.stop();
+      assert.equal(attempts, started ? 1 : 0);
+      assert.equal(env.api.status().recordingState, started ? 'failed' : 'not_started');
+      assert.equal(env.api.status().phase, started ? 'failed' : 'stopped');
+      if (started) assert.match(env.api.status().stopReason, /recording could not be saved/);
+    } finally { await env.cleanup(); }
+  }
+});
 test('list audio engine works without manual controls and manual preparation cannot overlap rehearsal', async () => {
   const env = environment({ headless: true });
   try {

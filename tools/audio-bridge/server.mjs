@@ -38,6 +38,7 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     ['/voice-test', 'voice.html', 'text/html; charset=utf-8'],
     ['/voice.js', 'voice.js', 'text/javascript; charset=utf-8'],
     ['/call.js', 'call.js', 'text/javascript; charset=utf-8'],
+    ['/call-recording.js', 'call-recording.js', 'text/javascript; charset=utf-8'],
     ['/voicemail.js', 'voicemail.js', 'text/javascript; charset=utf-8'],
     ['/call-simulator', 'simulator.html', 'text/html; charset=utf-8'],
     ['/simulator.js', 'simulator.js', 'text/javascript; charset=utf-8'],

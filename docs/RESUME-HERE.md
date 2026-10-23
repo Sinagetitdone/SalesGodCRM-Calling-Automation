@@ -1,6 +1,12 @@
-# Resume here — 2026-10-23
+# Resume here — 2026-10-24
 
-## Latest update — package 0.5.6 / extension 0.4.4
+## Latest update — package 0.5.7 / extension 0.4.4
+
+Validation: TypeScript and all 166 automated tests passed (24 app, 109 audio, 25 extension, 1 API, 7 package). The no-call checks cover both audio directions, actual MPEG encoding, single finalization, deferred persistence, phone hangup before encoding finishes, wrong-worker/terminal upload rejection, history download/delete and ZIP exports.
+
+Real calling-list calls now record one continuous MP3 with customer audio, gated AI replies and prepared voicemail. Capture starts before dialing; persistence completes before contact completion/next dispatch. The phone can hang up while local encoding finishes. Previous Conversations plays/downloads the MP3 and includes it in ZIPs. Saving failures pause and retain a temporary download when encoding succeeded. No recording for preparation alone; manual diagnostic calls remain outside list history. Keep browser/bridge open until saving completes; crash-safe chunk persistence is not implemented. Old unrecorded calls cannot be recovered. See ADR-0006. No real calls authorized or made for this change. Browser automation initialization remains unavailable, so no new browser/phone audibility claim. Restart the idle bridge and reopen calling-list/history pages; extension code is unchanged.
+
+## Previous update — package 0.5.6 / extension 0.4.4
 
 The team ZIP now includes SalesGod Bridge.exe (Windows) and SalesGod Bridge.app (Mac) for double-click audio bridge startup. No command typing; a progress console/Terminal opens automatically and must stay open. The whole extracted folder is required. Desktop shortcuts/aliases are supported. Existing scripts still bootstrap Node and configure the local key; startup never calls anyone. Windows launcher dispatch tested with a synthetic child, Mac bundle/syntax validated only (no Mac device available). Unsigned internal applications; company OS controls still apply. Release building now needs the Windows .NET Framework compiler; generated executable is excluded from Git and compiled into the allowlisted ZIP.
 

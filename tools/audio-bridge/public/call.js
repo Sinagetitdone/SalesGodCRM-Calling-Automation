@@ -14,6 +14,7 @@
   const canPair = Boolean(window.opener && /^[a-f0-9-]{36}$/.test(token || '') &&
     ['https://www.salesgodcrm.net', 'https://salesgodcrm.net', location.origin].includes(openerOrigin));
   let port, run, configured = false, helloTimer, pairTimer, callConfig = {};
+  const unsavedRecordings = [];
   let report = { mode: 'supervised-call', phase: 'preparing', dialingEnabled: false, physicalMicrophoneUsed: false, events: [] };
   const answerPhases = ['screening', 'voicemail-waiting', 'voicemail-playing', 'voicemail-complete'];
   const failureCodes = ['unsupported_country_region_territory', 'ip_not_authorized', 'invalid_api_key', 'insufficient_quota', 'rate_limit_exceeded', 'model_not_found', 'access_denied', 'upstream_error'];
@@ -32,7 +33,12 @@
     if ($('liveVoice')) $('liveVoice').disabled = Boolean(run);
     $('sendInstruction').disabled = !run || run.stopping || report.phase !== 'talking' || run.dc.readyState !== 'open' || Boolean(run.instructionPending);
   };
-  function render() { $('evidence').textContent = JSON.stringify(report, null, 2); controls(); window.dispatchEvent?.(new CustomEvent('salesgod-call-state')); }
+  function render() {
+    $('evidence').textContent = JSON.stringify(report, null, 2);
+    const recordingState = document.getElementById('recordingState');
+    if (recordingState) recordingState.textContent = ({ ready: 'Recorder ready · no call started', recording: 'Recording both sides of this call', saving: 'Saving conversation MP3 · keep this window and bridge open', saved: 'Conversation MP3 saved in Previous Conversations', failed: 'Recording could not be saved · review the error below' })[report.recordingState] || 'New calling-list calls are recorded automatically';
+    controls(); window.dispatchEvent?.(new CustomEvent('salesgod-call-state'));
+  }
   function phase(value, label) { report.phase = value; $('state').textContent = label; render(); }
   function log(event) {
     const current = run; if (!current) return Promise.resolve();
@@ -163,13 +169,44 @@
     send({ type: 'output_audio_buffer.clear' });
     send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: null } } } });
   }
-  async function finish(finalPhase = 'stopped', label = 'AI stopped — end the phone call in SalesGodCRM') {
-    const current = run; if (!current || current.stopping) return;
+  function finish(finalPhase = 'stopped', label = 'AI stopped — end the phone call in SalesGodCRM') {
+    const current = run; if (!current) return Promise.resolve();
+    if (current.stopping) return current.finishPromise;
+    current.finishPromise = finishCurrent(current, finalPhase, label); return current.finishPromise;
+  }
+  async function finishCurrent(current, finalPhase, label) {
     current.stopping = true; mute(); current.abort.abort(); clearTimeout(current.limit); clearTimeout(current.connectDeadline);
+    const recording = current.recording?.finish().then(blob => ({ blob }), error => ({ error }));
     clearInterval(current.meterTimer); clearInterval(current.detectorTimer); clearTimeout(current.drainTimer); current.dc.close(); current.pc.close(); current.link?.close();
+    report.audioStopped = true;
     current.renderers.forEach(audio => { audio.pause(); audio.srcObject = null; });
     current.nodes.forEach(node => node.disconnect());
     current.customer.stream.getTracks().forEach(track => track.stop()); current.ai.stream.getTracks().forEach(track => track.stop());
+    if (recording) {
+      report.recordingState = current.recording.started ? 'saving' : 'not_started'; render();
+      let mp3;
+      try {
+        const result = await recording;
+        if (result.error) throw result.error;
+        if (result.blob) {
+          mp3 = result.blob;
+          await current.config.saveRecording(result.blob);
+          report.recordingState = 'saved'; await log('recording.saved');
+        }
+      } catch {
+        report.recordingState = 'failed'; finalPhase = 'failed';
+        label = 'Call recording could not be saved · list stopped for review';
+        $('error').textContent = label; await log('recording.failed');
+        const downloads = document.getElementById('recordingDownloads');
+        if (mp3 && downloads) {
+          const link = document.createElement('a'), url = URL.createObjectURL(mp3);
+          link.href = url; link.download = `conversation-${current.config.contactId}.mp3`;
+          link.textContent = 'Download unsaved call MP3 before closing this window (partial if interrupted)';
+          downloads.append(link); unsavedRecordings.push({ url, link });
+          if (unsavedRecordings.length > 10) { const old = unsavedRecordings.shift(); URL.revokeObjectURL(old.url); old.link.remove(); }
+        }
+      }
+    }
     await current.context.close().catch(() => {});
     await current.transcriptJournal;
     report.stopReason = label;
@@ -277,6 +314,8 @@
     current.connectDeadline = setTimeout(() => { $('error').textContent = 'Audio preparation timed out.'; void finish('failed'); }, 40000);
     function consume(stream, destination, measure = false) {
       if (current.stopping) return;
+      // Tap customer audio BEFORE the transcription track's enabled/mute gate.
+      if (!measure) current.recording?.addStream(stream);
       const source = context.createMediaStreamSource(stream); source.connect(destination); current.nodes.push(source);
       const silent = context.createGain(); silent.gain.value = 0; source.connect(silent).connect(context.destination); current.nodes.push(silent);
       const audio = new Audio(); audio.autoplay = true; audio.volume = 0; audio.srcObject = stream; current.renderers.push(audio); audio.play().catch(() => {});
@@ -295,6 +334,13 @@
       }
     }
     try {
+      if (current.config.saveRecording) {
+        if (typeof window.SalesGodCallRecording !== 'function') throw new Error('Call recorder is unavailable. Restart the updated bridge and reopen the calling list.');
+        current.recording = new window.SalesGodCallRecording(context, ai.stream, () => {
+          report.recordingState = 'failed'; void finish('failed', 'Call audio recording failed');
+        });
+        report.recordingState = 'ready';
+      }
       await context.resume(); await log('session.started'); if (current.stopping || current.logFailed) return;
       if (voicemailEnabled) {
         if (!voicemailMessage || voicemailMessage.length < 10 || voicemailMessage.length > 1000) throw new Error('Enter a voicemail message between 10 and 1000 characters.');
@@ -486,6 +532,10 @@
       helloTimer = setInterval(hello, 500); hello(); pairTimer = setTimeout(() => clearInterval(helloTimer), 15000);
     },
     prepare: start, stop: finish,
+    startRecording() {
+      if (!run?.openaiReady || run.stopping || !run.recording) throw new Error('Call recorder is not ready. No call was started.');
+      run.recording.start(); report.recordingState = 'recording'; void log('recording.started');
+    },
     status: () => ({ ...report, active: Boolean(run), prepared: Boolean(run?.openaiReady), canPrepare: Boolean(configured && port && !run && !window.SalesGodRehearsalBusy), stopping: Boolean(run?.stopping), transcriptSaved: report.logsSaved !== false && !run?.logFailed })
   };
   $('prepare').onclick = () => void start(); $('answer').onclick = () => void confirmAnswer();
@@ -495,6 +545,6 @@
   $('stop').onclick = () => void finish();
   $('save').onclick = () => { const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = 'salesgod-supervised-call.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
   $('savedLog').onclick = async () => { const response = await fetch('/live-log/' + report.sessionId); if (!response.ok) return; $('journal').hidden = false; $('journal').textContent = JSON.stringify(await response.json(), null, 2); };
-  window.addEventListener('pagehide', () => { clearInterval(helloTimer); clearTimeout(pairTimer); port?.postMessage({ type: 'close' }); port?.close(); void finish(); });
+  window.addEventListener('pagehide', () => { clearInterval(helloTimer); clearTimeout(pairTimer); port?.postMessage({ type: 'close' }); port?.close(); void finish(); unsavedRecordings.forEach(item => URL.revokeObjectURL(item.url)); });
   fetch('/status').then(response => response.json()).then(status => { configured = status.keyConfigured; $('configuration').textContent = configured ? `Local key configured · ${status.model} · Voice chosen in call settings` : 'Add the OpenAI key to the local .env file and restart the bridge.'; controls(); }).catch(() => { $('configuration').textContent = 'Local bridge unavailable'; });
 })();

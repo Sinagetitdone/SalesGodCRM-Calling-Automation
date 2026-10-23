@@ -32,6 +32,13 @@
           this.simulation = next.settings.simulation;
           this.current = next.contact; this.onState({ state: 'preparing', contact: this.current });
           const contactPath = '/' + this.current.id; let dispatchAttempted = false, outcome, diagnostic;
+          const saveRecording = async blob => {
+            const response = await fetch('/campaigns-api/' + id + contactPath + '/recording', {
+              method: 'POST', headers: { 'Content-Type': 'audio/mpeg', 'X-Worker-Id': this.workerId }, body: blob,
+              signal: AbortSignal.timeout(20000)
+            });
+            if (!response.ok) throw new Error('Conversation MP3 could not be saved.');
+          };
           this.audioAttempt = false;
           try {
             if (next.settings.simulation) {
@@ -52,7 +59,7 @@
             } else {
               await this.driver('inspect');
               this.audio.configure({ automatic: true, voice: next.settings.voice || 'cedar', responsePauseMs: next.settings.responsePauseMs ?? 250, campaignId: id, contactId: this.current.id, workerId: this.workerId,
-                saveTurn: turn => this.post(contactPath + '/transcript', turn) });
+                saveTurn: turn => this.post(contactPath + '/transcript', turn), saveRecording });
               const token = crypto.randomUUID(); await this.driver('prepare', { token }); this.audio.pair(token);
               await this.until(() => this.audio.status().canPrepare, 15000);
               document.getElementById('voicemailEnabled').checked = true;
@@ -64,6 +71,7 @@
               else {
                 const permit = await this.post(contactPath + '/dispatch', { session: this.audio.status().sessionId });
                 dispatchAttempted = true;
+                this.audio.startRecording();
                 await this.driver('dial', { attempt: this.current.id, phone: permit.phone, caller: next.settings.callerNumber });
                 this.onState({ state: 'calling', contact: this.current });
                 const started = this.now(), deadline = started + 330000; let observedCall = false;
@@ -71,6 +79,12 @@
                   const status = this.audio.status(), phone = await this.driver('status');
                   if (phone.state === 'unknown' || phone.state === 'other_call') throw new Error('Call identity is uncertain.');
                   if (['active', 'dialing'].includes(phone.state)) observedCall = true;
+                  // End the owned phone call promptly; MP3 encoding continues locally.
+                  if (status.audioStopped && status.stopping && ['active', 'dialing'].includes(phone.state)) {
+                    await this.driver('hangup', { attempt: this.current.id });
+                    await this.until(async () => ['ended', 'idle'].includes((await this.driver('status')).state), 12000);
+                    continue;
+                  }
                   if (!observedCall && ['idle', 'ended'].includes(phone.state)) {
                     if (this.now() - started > 10000) throw new Error('Dispatch was not observed; do not retry.');
                     await this.wait(300); continue;
@@ -92,11 +106,13 @@
                 }
               }
               diagnostic = this.diagnostic();
-              await this.audio.stop('stopped', 'List contact finished');
+              const stopped = this.audio.stop('stopped', 'List contact finished');
               if (dispatchAttempted) {
                 await this.driver('hangup', { attempt: this.current.id });
                 await this.until(async () => ['ended', 'idle'].includes((await this.driver('status')).state), 12000);
               }
+              await stopped;
+              if (this.audio.status().recordingState === 'failed') { outcome = 'needs_review'; diagnostic = this.diagnostic(); }
               await this.driver('release', { attempt: this.current.id });
             }
             await this.post(contactPath + '/finish', { outcome, ...(['failed', 'unknown', 'needs_review'].includes(outcome) ? { diagnostic: diagnostic || this.diagnostic() } : {}) });
@@ -106,9 +122,11 @@
             const diagnostic = this.diagnostic(error.message || 'Attempt failed without an error message.');
             if (this.simulation) this.rehearsal?.stop();
             else {
-              await this.audio.stop('failed', 'List paused after an uncertain attempt').catch(() => {});
+              const stopped = this.audio.stop('failed', 'List paused after an uncertain attempt').catch(() => {});
               if (dispatchAttempted) await this.driver('hangup', { attempt: this.current.id }).catch(() => {});
               else await this.driver('release', { attempt: this.current.id }).catch(() => {});
+              await stopped;
+              if (this.audio.status().recordingState === 'failed') diagnostic.message = [diagnostic.message, this.audio.status().stopReason].filter(Boolean).join(' · ').slice(0, 1500);
             }
             await this.post(contactPath + '/finish', { outcome: dispatchAttempted ? 'unknown' : 'failed', diagnostic }).catch(() => {});
             await this.post('/pause').catch(() => {}); this.pauseRequested = true;

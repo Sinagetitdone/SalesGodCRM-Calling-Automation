@@ -16,8 +16,8 @@ const fixture = (simulation = false, date = '2026-10-20T19:00:00Z') => {
   return { store, worker, id: c.id, advance(ms) { now = new Date(now.getTime() + ms); } };
 };
 
-test('history saves full MP3s, protects active records and deletes only the selected conversation', async () => {
-  const f = fixture(true), app = createBridge({ campaignStore: f.store, env: {} });
+for (const simulation of [false, true]) test(`history saves ${simulation ? 'rehearsal' : 'real-call'} MP3s, protects active records and deletes only the selected conversation`, async () => {
+  const f = fixture(simulation), app = createBridge({ campaignStore: f.store, env: {} });
   const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431' };
   try {
     f.store.start(f.id, f.worker); const c = f.store.claim(f.id, f.worker).contact;
@@ -30,6 +30,7 @@ test('history saves full MP3s, protects active records and deletes only the sele
     const remove = () => app.inject({ method: 'POST', url: base + '/delete', headers, payload: { confirmed: true } });
     assert.equal((await remove()).statusCode, 409);
     f.store.finish(f.id, c.id, f.worker, 'failed', { message: 'Rehearsal turn timed out. sk-synthetic-secret' });
+    assert.equal((await upload(f.worker)).statusCode, 409);
     const events = f.store.read(f.id).events;
     assert.match(events.at(-2).event, /timed out/); assert.doesNotMatch(JSON.stringify(events), /sk-synthetic/);
     f.store.archiveAudio(c.id, [{ time: '2026-10-20T19:00:00Z', event: 'session.error', phase: 'failed' }]);
@@ -55,8 +56,8 @@ test('failure before dispatch retains its session and error without authorizing 
   } finally { f.store.close(); }
 });
 
-test('history ZIP contains transcripts, logs and one whole recording without credentials', async () => {
-  const f = fixture(true), app = createBridge({ campaignStore: f.store, env: {} });
+for (const simulation of [false, true]) test(`history ZIP contains ${simulation ? 'rehearsal' : 'real-call'} transcripts, logs and one whole recording without credentials`, async () => {
+  const f = fixture(simulation), app = createBridge({ campaignStore: f.store, env: {} });
   try {
     f.store.start(f.id, f.worker); const c = f.store.claim(f.id, f.worker).contact, session = randomUUID();
     f.store.dispatch(f.id, c.id, f.worker, session);
@@ -234,7 +235,7 @@ function workerFixture(simulation = true, failDial = false, terminal = {}) {
       default: throw new Error('Unexpected API path ' + path);
     }
   };
-  const audio = { configure() { status = { canPrepare: true, prepared: true, sessionId: randomUUID(), phase: 'waiting' }; }, pair() {}, async prepare() {}, status: () => status, async stop() { status = { ...status, phase: 'stopped', humanAnswered: true, stopping: false }; } };
+  const audio = { configure(options) { this.options = options; status = { canPrepare: true, prepared: true, sessionId: randomUUID(), phase: 'waiting' }; }, startRecording() { commands.push('record'); }, pair() {}, async prepare() {}, status: () => status, async stop() { status = { ...status, phase: 'stopped', humanAnswered: true, stopping: false }; } };
   const driver = async (command, data) => {
     commands.push(command);
     if (command === 'dial') { phone = 'active'; if (failDial) throw new Error('Lost acknowledgement'); status = { ...status, phase: 'stopped', humanAnswered: true, conversationOutcome: 'completed', ...terminal }; }
@@ -311,6 +312,40 @@ test('fake live driver hangs up before next dispatch, and lost dispatch acknowle
     await uncertain.worker.run(uncertain.id); assert.equal(uncertain.commands.filter(x => x === 'dial').length, 1);
     assert.deepEqual(uncertain.store.read(uncertain.id).contacts.map(c => c.state), ['unknown', 'pending']); assert.equal(uncertain.store.read(uncertain.id).state, 'paused');
   } finally { uncertain.store.close(); }
+});
+test('real worker starts recording before dialing, and stops the list if MP3 saving fails', async () => {
+  const f = workerFixture(false, false, { recordingState: 'failed', stopReason: 'Call recording could not be saved' });
+  try {
+    await f.worker.run(f.id);
+    assert.equal(typeof f.audio.options.saveRecording, 'function');
+    assert.ok(f.commands.indexOf('record') < f.commands.indexOf('dial'));
+    assert.equal(f.commands.filter(c => c === 'dial').length, 1);
+    assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['needs_review', 'pending']);
+    assert.equal(f.store.read(f.id).state, 'paused');
+  } finally { f.store.close(); }
+});
+test('recorder startup failure prevents the phone side effect', async () => {
+  const f = workerFixture(false);
+  f.audio.startRecording = () => { throw new Error('Recorder unavailable'); };
+  try {
+    await f.worker.run(f.id);
+    assert.equal(f.commands.includes('dial'), false);
+    assert.equal(f.store.read(f.id).contacts[1].state, 'pending');
+  } finally { f.store.close(); }
+});
+test('phone hangup does not wait for encoding, but finishing and next dispatch wait for MP3 saving', async () => {
+  const f = workerFixture(false, false, { audioStopped: true, stopping: true }); let release, stops = 0;
+  const pending = new Promise(resolve => { release = resolve; }), stop = f.audio.stop;
+  f.audio.stop = async () => { if (stops++ === 0) await pending; return stop(); };
+  try {
+    const task = f.worker.run(f.id);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(f.commands.filter(c => c === 'dial').length, 1);
+    assert.ok(f.commands.includes('hangup'));
+    assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['dispatching', 'pending']);
+    release(); await task;
+    assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['completed', 'completed']);
+  } finally { release(); f.store.close(); }
 });
 test('unconfirmed late human pickup overrides voicemail playback and pauses before the next contact', async () => {
   const f = workerFixture(false, false, { voicemailOutcome: 'playback_completed', takeoverPending: true });

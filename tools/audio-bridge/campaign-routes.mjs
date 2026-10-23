@@ -66,7 +66,7 @@ export function campaignRoutes(app, { env, store: supplied, journal }) {
   app.addContentTypeParser('audio/mpeg', { parseAs: 'buffer', bodyLimit: 12000000 }, (_r, body, done) => done(null, body));
   app.post('/campaigns-api/:id/:contact/recording', { bodyLimit: 12000000, schema: { params: object({ id: uuid, contact: uuid }), headers: { type: 'object', properties: { 'x-worker-id': uuid }, required: ['x-worker-id'] } } }, async (r, reply) => {
     try { return get().saveRecording(r.params.id, r.params.contact, r.headers['x-worker-id'], r.body); }
-    catch { return reply.code(409).send({ error: 'The rehearsal recording could not be saved.' }); }
+    catch { return reply.code(409).send({ error: 'The conversation recording could not be saved.' }); }
   });
   app.get('/campaigns-api/:id/:contact/recording', { schema: { params: object({ id: uuid, contact: uuid }) } }, async (r, reply) => {
     try {

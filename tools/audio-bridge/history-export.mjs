@@ -13,7 +13,7 @@ export function historyZip(store, journal, campaignId) {
   const bytes = store.db.prepare('SELECT COALESCE(SUM(length(audio)),0) AS n FROM campaign_recordings').get().n;
   if (!campaignId && (total > 20000 || bytes > 3000000000)) throw new Error('History is too large for one ZIP. Download each list separately.');
   function* files() {
-    yield { name: 'README.txt', data: Buffer.from('SalesGod conversation history\nJSON files contain list settings, contact details, transcripts and recorded events. MP3 files contain both voices from saved rehearsals, including partial recordings. Real phone calls do not have audio recordings. Old unsaved or deleted data cannot be recovered. Exported files are outside the app and remain after deletion in the app.\n') };
+    yield { name: 'README.txt', data: Buffer.from('SalesGod conversation history\nJSON files contain list settings, contact details, transcripts and recorded events. MP3 files contain both voices from saved rehearsals and new real calling-list calls, including voicemail and partial recordings. Older real calls may have no audio. Old unsaved or deleted data cannot be recovered. Exported files are outside the app and remain after deletion in the app.\n') };
     for (const summary of campaigns) {
       let list;
       try { list = store.read(summary.id); } catch { continue; }

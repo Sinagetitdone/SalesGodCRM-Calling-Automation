@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   async function encode(channels, sampleRate) {
-    if (!channels.length || !channels[0].length) throw new Error('The rehearsal recording is empty.');
+    if (!channels.length || !channels[0].length) throw new Error('The audio recording is empty.');
     const encoder = new lamejs.Mp3Encoder(1, sampleRate, 128), parts = [];
     for (let offset = 0; offset < channels[0].length; offset += 1152) {
       const samples = new Int16Array(Math.min(1152, channels[0].length - offset));

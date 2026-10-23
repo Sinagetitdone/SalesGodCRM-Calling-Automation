@@ -2,6 +2,8 @@
 
 Date: 2026-10-20
 
+Update 2026-10-24 (package 0.5.7): the owner now requests audio recording for real calling lists. See ADR-0006 for the two-way MP3 capture and persistence contract. The earlier transcript-only requirement below is superseded. History now persists until owner deletion; only standalone session journals retain seven-day expiry.
+
 Status: Implemented with synthetic checks. The first automatic real call exposed a missed human pickup during voicemail. A takeover fix is regression-tested synthetically and awaits a separately authorized real verification.
 
 The owner requests sequential first-name/last-name/phone lists, transcripts and event logs without recordings, and completion notification. An authorized test exercised voicemail playback and hangup, but the owner reported a person picked up and spoke before the system hung up. Playback telemetry was insufficient to call the test successful. Automatic mode now keeps speech detection/transcription enabled during and briefly after voicemail, interrupts prepared audio on new speech, blocks hangup while classification is pending, and permits a human transition from voicemail phases. Unknown interruptions pause for review; interrupted messages are not replayed. Real takeover and multi-contact live processing remain unverified after the fix.

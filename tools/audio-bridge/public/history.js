@@ -45,6 +45,10 @@
       player.controls = true; player.src = base + '/recording';
       link.href = player.src; link.download = `conversation-${c.id}.mp3`; link.textContent = 'Download conversation MP3 (both voices; partial if interrupted)';
       $('historyAudio').append(player, link);
+    } else {
+      const note = document.createElement('p');
+      note.textContent = active.includes(c.state) ? 'Recording is available after this call finishes saving.' : 'No audio recording was saved for this attempt. Older calls cannot be reconstructed from their transcript.';
+      $('historyAudio').append(note);
     }
     $('exportConversation').disabled = false;
     $('deleteConversation').disabled = list.state === 'running' || list.contacts.some(item => active.includes(item.state));

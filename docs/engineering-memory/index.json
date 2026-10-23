@@ -3,6 +3,12 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-013",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-24-REAL-CALL-RECORDING.md",
+      "tags": ["audio", "calling", "persistence", "testing"]
+    },
+    {
       "id": "LL-2026-012",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-23-CALLING-CONTEXT.md",
