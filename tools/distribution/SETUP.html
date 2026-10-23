@@ -5,7 +5,8 @@
 <nav aria-label="Guide contents"><strong>Jump to a step</strong><ul><li><a href="#section-0">Listening, reviewing and downloading conversations</a></li><li><a href="#section-1">Step 1 — Prepare your computer and extract the ZIP</a></li><li><a href="#section-2">Step 2A — Save your API key on Windows</a></li><li><a href="#section-3">Step 2B — Save your API key on Mac</a></li><li><a href="#section-4">Step 3A — Start the bridge on Windows</a></li><li><a href="#section-5">Step 3B — Start the bridge on Mac</a></li><li><a href="#section-6">Step 4 — Install the Chrome extension</a></li><li><a href="#section-7">Step 5 — Check setup without calling anyone</a></li><li><a href="#section-8">Step 6 — Start your normal workday</a></li><li><a href="#section-9">Step 7 — Import your list and start calling</a></li><li><a href="#section-10">Step 8 — Manual commands if double-click does not work</a></li><li><a href="#section-11">Step 9 — Pause, read logs, and finish safely</a></li><li><a href="#section-12">Step 10 — Understand prompts and fix common problems</a></li><li><a href="#section-13">Step 11 — Install a future update</a></li><li><a href="#section-14">What this version has been checked for</a></li></ul></nav>
 <p>Use this guide in order. Steps 1–5 are for your first installation. For everyday use, go to Step 6. Keep this guide open while you work.</p>
 <p>You will use two parts: the Chrome extension adds controls to SalesGodCRM, and the local bridge runs in a command window on your computer. Both must be running. You do not need Docker, VB-CABLE, or a separate Node.js installation.</p>
-<p>Package <strong>0.5.5</strong> uses the Jay Marketing Lab logo and purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, restart the bridge, reload extension <strong>0.4.4</strong>, and refresh SalesGodCRM only while its dialer is idle.</p>
+<p><strong>Double-click startup:</strong> on Windows, open <strong>SalesGod Bridge.exe</strong>; on Mac, open <strong>SalesGod Bridge.app</strong>. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type <code>npm run audio:bridge</code>. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.</p>
+<p>Package <strong>0.5.6</strong> uses the Jay Marketing Lab logo and purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, restart the bridge, reload extension <strong>0.4.4</strong>, and refresh SalesGodCRM only while its dialer is idle.</p>
 <p>Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.</p>
 <h2 id="section-0">Listening, reviewing and downloading conversations</h2>
 <ol start="1">
@@ -24,7 +25,7 @@
 <li>If your organization uses a VPN or proxy, connect it now. Hiddify is not required. Use your organization's approved connection.</li>
 <li>Download the original SalesGod Team ZIP supplied by your colleague.</li>
 <li>On Windows, right-click the ZIP, choose <strong>Extract All</strong>, choose a permanent local folder such as Documents, and click <strong>Extract</strong>. On Mac, double-click the ZIP and move the extracted folder to Documents.</li>
-<li>Open the extracted <strong>SalesGod-Team</strong> folder. You should see <strong>SETUP.html</strong>, <strong>Start Windows.cmd</strong>, <strong>Start Mac.command</strong>, and a <strong>tools</strong> folder. Run the files here, outside the ZIP.</li>
+<li>Open the extracted <strong>SalesGod-Team</strong> folder. You should see <strong>SalesGod Bridge.exe</strong>, <strong>SalesGod Bridge.app</strong>, <strong>SETUP.html</strong>, fallback Start scripts, and a <strong>tools</strong> folder. Run the files here, outside the ZIP.</li>
 <li>Double-click <strong>SETUP.html</strong> to open this guide in your browser. Keep all extracted files together. Use a private local folder rather than a shared or synced team folder: your key and conversation logs will be stored here.</li>
 </ol>
 <h2 id="section-2">Step 2A — Save your API key on Windows</h2>
@@ -48,7 +49,7 @@
 </ol>
 <h2 id="section-4">Step 3A — Start the bridge on Windows</h2>
 <ol start="1">
-<li>Double-click <strong>Start Windows.cmd</strong> in the extracted folder.</li>
+<li>Double-click <strong>SalesGod Bridge.exe</strong> in the extracted folder. <strong>Start Windows.cmd</strong> remains an alternative double-click launcher.</li>
 <li>Leave the command window open. You may see automatic Node setup, <strong>Installing required libraries from npm</strong>, download progress, or a list of installed packages. First launch needs internet access and can take longer. Wait; no commands or API key need to be typed here.</li>
 <li>Look for <strong>Bridge API requests use the configured HTTP/HTTPS proxy; localhost stays local.</strong> or <strong>Bridge API requests use the direct connection.</strong> Either can be correct for your network.</li>
 <li>Wait for the ready message shown below. The extra words after the address are normal.</li>
@@ -60,7 +61,7 @@
 </ol>
 <h2 id="section-5">Step 3B — Start the bridge on Mac</h2>
 <ol start="1">
-<li>Double-click <strong>Start Mac.command</strong> in the extracted folder. If needed, use the manual Terminal commands in Step 8.</li>
+<li>Double-click <strong>SalesGod Bridge.app</strong> in the extracted folder. It opens Terminal and starts <strong>Start Mac.command</strong> automatically. You can also double-click <strong>Start Mac.command</strong> directly.</li>
 <li>Leave Terminal open while software downloads or libraries install. You may see <strong>Preparing a private Node.js 24 runtime from nodejs.org</strong> or <strong>Installing required libraries from npm</strong>. Wait for setup to finish.</li>
 <li>Wait until Terminal shows <strong>Local audio bridge: http://127.0.0.1:28431</strong>. It may also show the direct/proxy connection message described in Step 3A.</li>
 <li>Keep Terminal open for the entire calling session. You can minimize it. Starting the bridge never places a call.</li>
@@ -102,7 +103,7 @@
 <h2 id="section-8">Step 6 — Start your normal workday</h2>
 <ol start="1">
 <li>Connect your approved VPN or proxy if your network requires one.</li>
-<li>Open the extracted SalesGod-Team folder and double-click <strong>Start Windows.cmd</strong> or <strong>Start Mac.command</strong>. If its bridge window is already running, use that window instead of opening a second copy.</li>
+<li>Open the extracted SalesGod-Team folder and double-click <strong>SalesGod Bridge.exe</strong> (Windows) or <strong>SalesGod Bridge.app</strong> (Mac). If its bridge window is already running, use that window instead of opening a second copy.</li>
 <li>Wait for <strong>Local audio bridge: http://127.0.0.1:28431</strong>. Leave the command window open.</li>
 <li>Open your SalesGodCRM Chrome profile and log in. Check that no call is active. Refresh the idle dashboard if the extension panel is missing.</li>
 <li>In the extension panel, click <strong>Open calling list</strong>. Wait for <strong>CRM controls paired</strong> and keep both pages open.</li>
@@ -115,7 +116,7 @@
 <li>Choose <strong>Voice for real calls and voicemail</strong>: Cedar, Ash, Echo, Ballad or Marin. Cedar is the default and requests a confident, young-adult masculine delivery. Perceived age is approximate; listen in rehearsal before deciding. The voice is fixed when a session starts.</li>
 <li>In <strong>Background: who the AI represents</strong>, enter your company, represented person's name, business description and approved contact details. This field is optional and accepts up to <strong>20,000 characters</strong>.</li>
 <li>In <strong>Guide the live conversation</strong>, enter your detailed objectives, approved facts, questions, objections and closing instructions. This field requires <strong>6,000–20,000 characters</strong>, excluding leading/trailing spaces. The counter shows your current length. Shorter instructions cannot be saved as this guide.</li>
-<li>Click <strong>Save for future calls</strong> and wait for the saved confirmation. This stores the background, guide and voice on this computer, surviving bridge restarts and the seven-day transcript cleanup. It does not share settings with a colleague or start calls. Context is sent to OpenAI when a call is prepared.</li>
+<li>Click <strong>Save for future calls</strong> and wait for the saved confirmation. This stores the background, guide and voice on this computer, surviving bridge restarts. It does not share settings with a colleague or start calls. Context is sent to OpenAI when a call is prepared.</li>
 <li>On future visits, saved context loads automatically. <strong>Load saved context</strong> replaces the editor with the saved defaults. New imports copy the current editor values into the list. Defaults do not silently change lists already imported.</li>
 <li>To update an existing draft or paused list, select it under <strong>Saved lists</strong>, then click <strong>Apply to selected list</strong>. This applies the editor's context and voice to its remaining calls only while no attempt is active. To inspect a list's original context, use <strong>Copy selected list to editor</strong>. Saving defaults and applying to a list are separate actions.</li>
 </ol>

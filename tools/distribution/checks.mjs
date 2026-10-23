@@ -14,6 +14,11 @@ test('release contains only runtime files, blank credentials and executable Mac 
   const entries = await packageEntries(), names = entries.map(e => e.name);
   assert.equal(new Set(names).size, names.length);
   assert.ok(names.includes('tools/audio-extension/manifest.json'));
+  assert.equal(entries.find(e => e.name === 'SalesGod Bridge.exe').data.subarray(0, 2).toString(), 'MZ');
+  const macApp = entries.find(e => e.name === 'SalesGod Bridge.app/Contents/MacOS/SalesGodBridge');
+  assert.equal(macApp.mode & 0o777, 0o755); assert.equal(macApp.data.includes(13), false);
+  assert.match(macApp.data.toString(), /exec \/usr\/bin\/open -a Terminal/);
+  assert.match(entries.find(e => e.name.endsWith('/Info.plist')).data.toString(), /<string>SalesGodBridge<\/string>/);
   for (const name of ['tools/audio-bridge/public/brand/JML-Logo-Full-Dark.svg', 'tools/audio-bridge/public/brand/JML-Logo-J-Dark.svg', 'tools/audio-extension/brand/JML-Logo-Full-Dark.svg']) assert.ok(names.includes(name));
   assert.deepEqual(entries.find(e => e.name === 'tools/audio-bridge/public/brand/JML-Logo-Full-Dark.svg').data, entries.find(e => e.name === 'tools/audio-extension/brand/JML-Logo-Full-Dark.svg').data);
   assert.ok(names.includes('tools/audio-bridge/public/campaign-worker.js'));
@@ -38,6 +43,25 @@ test('release contains only runtime files, blank credentials and executable Mac 
   const developmentLock = JSON.parse(await readFile(new URL('../../package-lock.json', import.meta.url), 'utf8'));
   for (const [name, pkg] of Object.entries(lock.packages)) if (name) {
     for (const field of ['version', 'resolved', 'integrity', 'dependencies']) assert.deepEqual(pkg[field], developmentLock.packages[name]?.[field], `${name}: packaged ${field} must match the tested dependency`);
+  }
+});
+
+test('Windows executable launches from its own folder without commands, preserves child exit code and rejects incomplete extraction', { skip: process.platform !== 'win32' }, async () => {
+  const entries = await packageEntries(), folder = await mkdtemp(join(tmpdir(), 'salesgod desktop & space '));
+  try {
+    const exe = join(folder, 'SalesGod Bridge.exe');
+    await writeFile(exe, entries.find(e => e.name === 'SalesGod Bridge.exe').data);
+    const missing = spawnSync(exe, ['--check'], { encoding: 'utf8', windowsHide: true });
+    assert.equal(missing.status, 1); assert.match(missing.stderr, /Extract the entire/);
+    // Test the actual .exe with a synthetic child, never the real bridge or CRM.
+    await writeFile(join(folder, 'Start Windows.cmd'), '@echo off\r\necho SYNTHETIC_BRIDGE_STARTED\r\nexit /b 7\r\n');
+    const check = spawnSync(exe, ['--check'], { encoding: 'utf8', windowsHide: true });
+    assert.equal(check.status, 0); assert.doesNotMatch(check.stdout, /SYNTHETIC_BRIDGE_STARTED/);
+    const launch = spawnSync(exe, [], { cwd: tmpdir(), encoding: 'utf8', windowsHide: true, timeout: 10000 });
+    assert.equal(launch.status, 7, launch.stderr); assert.match(launch.stdout, /SYNTHETIC_BRIDGE_STARTED/);
+  } finally {
+    assert.equal(folder.startsWith(join(tmpdir(), 'salesgod desktop & space ')), true);
+    await rm(folder, { recursive: true, force: true });
   }
 });
 

@@ -1,5 +1,11 @@
 # Evolution
 
+## 2026-10-24 — Double-click audio bridge applications (0.5.6)
+
+Added SalesGod Bridge.exe and SalesGod Bridge.app to the clean team ZIP. They invoke the existing start scripts, including automatic checked Node bootstrap and locked dependency installation; neither invokes audio:check or starts a call. Windows uses a compiled AnyCPU .NET launcher with a fixed command and installation directory supplied separately, no elevation or interpolated shell paths. Mac opens the existing .command in Terminal through a quoted bundle-relative path. Progress stays visible and the existing stop procedure remains. Keep the extracted folder together and use a shortcut/alias for desktop access.
+
+Windows compilation and synthetic process dispatch passed, including a different working directory, spaces/ampersands in the installation path, child exit-code forwarding and missing-package diagnostics. Package checks cover PE signature, Mac bundle executable permissions, plist mapping and archive integrity. Mac application execution and OS signing approval remain unverified; the apps are unsigned internal launchers. No phone or AI session was started.
+
 ## 2026-10-24 — Logo-free draggable tile (0.5.5 / extension 0.4.4)
 
 Removed the logo from the extension panel and expanded dragging from the heading to the panel's background and text. Buttons, links, inputs, disclosure summaries and selectable log output are excluded so they remain usable. Keyboard movement applies only when the panel itself is focused. Saved position and viewport clamping remain. The 25 extension checks passed, including body drag and control exclusion. Browser preview was unavailable because the browser-control runtime could not initialize; no call or paid AI session was made.

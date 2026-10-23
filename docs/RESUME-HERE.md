@@ -1,6 +1,10 @@
 # Resume here — 2026-10-23
 
-## Latest update — package 0.5.5 / extension 0.4.4
+## Latest update — package 0.5.6 / extension 0.4.4
+
+The team ZIP now includes SalesGod Bridge.exe (Windows) and SalesGod Bridge.app (Mac) for double-click audio bridge startup. No command typing; a progress console/Terminal opens automatically and must stay open. The whole extracted folder is required. Desktop shortcuts/aliases are supported. Existing scripts still bootstrap Node and configure the local key; startup never calls anyone. Windows launcher dispatch tested with a synthetic child, Mac bundle/syntax validated only (no Mac device available). Unsigned internal applications; company OS controls still apply. Release building now needs the Windows .NET Framework compiler; generated executable is excluded from Git and compiled into the allowlisted ZIP.
+
+## Previous update — package 0.5.5 / extension 0.4.4
 
 The extension logo is removed. Drag any panel background/text area to reposition it; interactive controls and log selection stay usable. Keyboard arrows/Home move the panel when it is focused. All 25 extension checks passed. Browser-control initialization failed during this small update, so the new layout was not visually rechecked. Reload extension 0.4.4 and refresh idle CRM. No calling behavior changed.
 

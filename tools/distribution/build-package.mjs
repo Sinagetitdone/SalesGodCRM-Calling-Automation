@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { deflateRawSync } from 'node:zlib';
 import { buildSetupGuide } from './build-setup-guide.mjs';
+import { desktopEntries } from './build-desktop.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const bridgeFiles = ['server.mjs', 'start.mjs', 'openai-errors.mjs', 'voice-settings.mjs', 'history-export.mjs', 'session-journal.mjs', 'campaign-store.mjs', 'campaign-routes.mjs', 'rehearsal-routes.mjs'];
@@ -33,6 +34,7 @@ export async function packageEntries(sourceRoot = root) {
     return { name, data, mode: name.endsWith('.command') ? 0o100755 : 0o100644 };
   }));
   // Generate the blank template; never derive it from the owner's environment.
+  entries.push(...await desktopEntries());
   entries.push({ name: '.env.example', data: Buffer.from('OPENAI_API_KEY=\nOPENAI_REALTIME_MODEL=gpt-realtime-2.1\n'), mode: 0o100600 });
   const checksums = entries.map(entry => createHash('sha256').update(entry.data).digest('hex') + '  ' + entry.name).join('\n') + '\n';
   entries.push({ name: 'CONTENTS.sha256', data: Buffer.from(checksums), mode: 0o100644 });

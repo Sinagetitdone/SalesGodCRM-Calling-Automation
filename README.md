@@ -6,6 +6,8 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **0.5.6** includes **SalesGod Bridge.exe** for Windows and **SalesGod Bridge.app** for Mac. Double-click to start the audio bridge; automatic Node setup is retained and no command typing is needed. Keep the full extracted folder together. The progress window stays open while running. These are unsigned internal launchers; Windows process dispatch is tested, while Mac execution needs a Mac verification.
+
 - Package **0.5.5** / extension **0.4.4** adds **Previous Conversations** for review, deletion and JSON/MP3/ZIP downloads. Failed and pending rows show their recorded log in the transcript area. Drag the extension panel background or text to move it; its position is remembered. Rehearsal provides live listening, a speaker test and sound resume/volume controls, plus one saved MP3 for each complete or interrupted two-agent conversation.
 
 - Package **0.5.3** adds reusable real-call background and a **6,000–20,000-character** conversation guide, saved locally until replaced. New lists snapshot these defaults; apply context to an existing idle list explicitly. Real calls, prepared voicemail, manual supervised calls and each rehearsal agent offer **Cedar, Ash, Echo, Ballad and Marin**. Cedar is the new real-call default with a confident young-adult masculine delivery direction; perceived age is not guaranteed. Existing rehearsals retain their original fallback voices.
