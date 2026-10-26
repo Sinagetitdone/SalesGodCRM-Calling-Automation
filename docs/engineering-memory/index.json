@@ -3,6 +3,17 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-015",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-26-CONSERVATIVE-CLEANUP.md",
+      "tags": [
+        "architecture",
+        "testing",
+        "calling",
+        "integration"
+      ]
+    },
+    {
       "id": "LL-2026-014",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-26-TRANSCRIPT-EVIDENCE.md",

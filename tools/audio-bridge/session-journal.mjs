@@ -1,6 +1,10 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { diagnosticDetail } from './diagnostics.mjs';
+
+// Preserve the existing import path for journal consumers.
+export { diagnosticDetail } from './diagnostics.mjs';
 
 export const journalEvents = ['session.started', 'openai.ready', 'dialer.media_ready', 'owner.answer_confirmed', 'answer.human_detected', 'owner.instruction_sent', 'owner.instruction_accepted', 'owner.instruction_unconfirmed',
   'transcript.audio_completed', 'transcript.audio_failed', 'call_screening.prompt_detected', 'call_screening.hold_detected', 'call_screening.missing_introduction', 'call_screening.repeat_ignored', 'call_screening.gate_requested', 'call_screening.playback_started', 'call_screening.playback_completed',
@@ -9,7 +13,6 @@ export const journalEvents = ['session.started', 'openai.ready', 'dialer.media_r
   'ai.response_completed', 'ai.response_cancelled', 'ai.response_failed', 'ai.interrupted', 'ai.paused', 'session.stopped', 'session.error', 'bridge.disconnected', 'dialer.media_ended',
   'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.silence_fallback', 'voicemail.playback_started', 'voicemail.playback_completed', 'voicemail.incomplete', 'voicemail.timeout', 'voicemail.unavailable', 'voicemail.recognition_failed', 'voicemail.human_takeover', 'voicemail.takeover_unconfirmed'];
 export const phases = ['preparing', 'waiting', 'ready', 'starting', 'talking', 'paused', 'stopping', 'stopped', 'failed', 'screening', 'call-screening-prompt', 'call-screening-speaking', 'call-screening-waiting', 'voicemail-waiting', 'voicemail-playing', 'voicemail-complete'];
-export const diagnosticDetail = value => String(value || '').replace(/sk-[A-Za-z0-9_-]+/g, '[redacted]').replace(/Bearer\s+\S+/gi, 'Bearer [redacted]').slice(0, 1500);
 export class SessionJournal {
   constructor(path) {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });

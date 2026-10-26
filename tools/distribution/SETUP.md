@@ -6,7 +6,7 @@ You will use two parts: the Chrome extension adds controls to SalesGodCRM, and t
 
 **Double-click startup:** on Windows, open **SalesGod Bridge.exe**; on Mac, open **SalesGod Bridge.app**. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type `npm run audio:bridge`. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.
 
-Package **0.6.0** uses the Jay Marketing Lab purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. For this update, restart the idle bridge and reopen the calling and history pages. Extension **0.4.5** is unchanged; reload it only when updating from an older extension.
+Package **0.6.1** uses the Jay Marketing Lab purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. For this update, restart the idle bridge and reopen the calling and history pages. Extension **0.4.5** is unchanged; reload it only when updating from an older extension.
 
 ## New settings: screening, file uploads and accurate call records
 

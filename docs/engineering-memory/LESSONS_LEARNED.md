@@ -19,3 +19,5 @@ See [browser audio proof](lessons/LESSON-2026-10-19-browser-audio-proof.md): dis
 ## 2026-10-19: SQLite request isolation
 
 See [SQLite request isolation](lessons/LESSON-2026-10-19-sqlite-request-isolation.md): do not await inside a shared DatabaseSync transaction; reject call-ID reuse across different idempotency keys before writing.
+
+- Conservative cleanup: preserve outcome precedence and public imports; validate newly extracted modules in the distributable ZIP. See [the maintenance lesson](lessons/LESSON-2026-10-26-CONSERVATIVE-CLEANUP.md).

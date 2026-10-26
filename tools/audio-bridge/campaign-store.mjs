@@ -3,46 +3,15 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { callVoices, defaultCallVoice, normalizeVoice } from './voice-settings.mjs';
+import { diagnosticDetail } from './diagnostics.mjs';
+import { phone, parseContacts } from './contact-import.mjs';
+
+// Keep callers of the original store exports compatible.
+export { phone, parseContacts } from './contact-import.mjs';
 
 export const outcomes = ['completed', 'voicemail_played', 'no_answer', 'blocked', 'failed', 'unknown', 'needs_review', 'opt_out', 'cancelled'];
 const activeStates = ['preparing', 'dispatching', 'connected'];
-export function phone(value) {
-  const raw = String(value).trim();
-  if (!/^[+\d\s().-]+$/.test(raw)) throw new Error('Use a phone number without extensions.');
-  let digits = raw.replace(/\D/g, '');
-  if (!raw.startsWith('+') && digits.length === 10) digits = '1' + digits;
-  if (!/^[1-9]\d{7,14}$/.test(digits)) throw new Error('Include a valid country code.');
-  return '+' + digits;
-}
-export function parseContacts(csv) {
-  if (typeof csv !== 'string' || csv.length > 400000) throw new Error('CSV exceeds the import limit.');
-  const rows = []; let row = [], field = '', quoted = false;
-  csv = csv.replace(/^\uFEFF/, '');
-  for (let i = 0; i <= csv.length; i++) {
-    const c = csv[i];
-    if (c === '"') {
-      if (quoted && csv[i + 1] === '"') { field += '"'; i++; } else quoted = !quoted;
-    } else if (!quoted && (c === ',' || c === '\n' || c === undefined)) {
-      row.push(field.trim()); field = '';
-      if (c !== ',') { if (row.some(Boolean)) rows.push(row); row = []; }
-    } else if (c !== '\r') field += c ?? '';
-  }
-  if (quoted) throw new Error('CSV contains an unclosed quote.');
-  const columns = rows.shift()?.map(x => x.toLowerCase().replace(/[ _-]/g, ''));
-  if (!columns || ['firstname', 'lastname', 'phone'].some(x => !columns.includes(x))) throw new Error('CSV needs first_name,last_name,phone headers.');
-  if (!rows.length || rows.length > 1000) throw new Error('Import between 1 and 1000 contacts.');
-  const seen = new Set(), contacts = []; let duplicates = 0;
-  for (const [index, values] of rows.entries()) {
-    const get = key => values[columns.indexOf(key)]?.trim() || '';
-    if (values.length !== columns.length) throw new Error(`Row ${index + 2}: wrong column count.`);
-    const first = get('firstname'), last = get('lastname');
-    if (!first || first.length > 80 || last.length > 80 || /[\x00-\x1f]/.test(first + last)) throw new Error(`Row ${index + 2}: invalid name.`);
-    let number; try { number = phone(get('phone')); } catch { throw new Error(`Row ${index + 2}: invalid phone number.`); }
-    if (seen.has(number)) { duplicates++; continue; } seen.add(number);
-    contacts.push({ firstName: first, lastName: last, phone: number });
-  }
-  return { contacts, duplicates };
-}
+
 export function withinWindow(settings, now = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: settings.timeZone, hour: '2-digit', hourCycle: 'h23' }).formatToParts(now);
   const hour = Number(parts.find(x => x.type === 'hour').value);
@@ -225,7 +194,7 @@ export class CampaignStore {
       if (diagnostic.message) {
         // Only application errors, never upstream response bodies. Defense in
         // depth for accidentally included credentials; follows conversation retention.
-        const message = String(diagnostic.message).replace(/sk-[a-zA-Z0-9_-]+/g, '[redacted]').replace(/Bearer\s+\S+/gi, 'Bearer [redacted]').slice(0, 1500);
+        const message = diagnosticDetail(diagnostic.message);
         this.event(id, contactId, 'failure_detail: ' + message);
       }
       this.db.prepare('UPDATE campaign_contacts SET state=?,ended=? WHERE id=?').run(outcome, this.stamp(), contactId); this.event(id, contactId, outcome);

@@ -125,6 +125,18 @@ test('CSV handles quoted names, BOM and duplicate normalized numbers; malformed 
   assert.equal(parsed.contacts[0].firstName, 'Alex, A'); assert.equal(parsed.duplicates, 1);
   for (const bad of ['first_name,phone\nA,+12025550101', 'first_name,last_name,phone\n"Unclosed,x,3', 'first_name,last_name,phone\nA,B,not-a-number', 'first_name,last_name,phone\nA,B,+12025550101,extra']) assert.throws(() => parseContacts(bad));
 });
+
+test('CSV import preserves escaped quotes, international numbers and its existing boundary limits', () => {
+  const header = 'first_name,last_name,phone\n';
+  const parsed = parseContacts(header + '"Alex ""A""",,+442079460000\n');
+  assert.deepEqual(parsed.contacts, [{ firstName: 'Alex "A"', lastName: '', phone: '+442079460000' }]);
+  assert.equal(parseContacts(header + 'A'.repeat(80) + ',Example,+12025550101').contacts.length, 1);
+  assert.throws(() => parseContacts(header + 'A'.repeat(81) + ',Example,+12025550101'), /Row 2: invalid name/);
+  const rows = Array.from({ length: 1000 }, (_, i) => `Alex,Example,+1202555${String(i).padStart(4, '0')}`);
+  assert.equal(parseContacts(header + rows.join('\n')).contacts.length, 1000);
+  assert.throws(() => parseContacts(header + [...rows, 'Alex,Example,+12025551000'].join('\n')), /1 and 1000/);
+  assert.throws(() => parseContacts('x'.repeat(400001)), /CSV exceeds/);
+});
 test('Previous Conversations retains review transcript, reason and complete events even if one detail request fails', async () => {
   const source = await readFile(new URL('public/history.js', import.meta.url), 'utf8');
   for (const unavailable of [null, 'transcript', 'events']) {
@@ -249,6 +261,30 @@ test('campaign API rejects cross-origin/start without authorization and exposes 
   } finally { await app.close(); f.store.close(); }
 });
 const workerSource = await readFile(new URL('public/campaign-worker.js', import.meta.url), 'utf8');
+
+test('stopped call outcomes retain evidence priority for voicemail, opt-out, partial speech and uncertain pickup', () => {
+  const window = {};
+  vm.runInNewContext(workerSource, { window });
+  const decide = window.SalesGodCampaignWorker.prototype.stoppedCallOutcome;
+  const cases = [
+    ['late pickup needs review', { takeoverPending: true, voicemailOutcome: 'playback_completed' }, 'ended', 'needs_review'],
+    ['partial voicemail needs review', { voicemailOutcome: 'incomplete', conversationOutcome: 'completed' }, 'ended', 'needs_review'],
+    ['explicit voicemail review wins', { voicemailOutcome: 'needs_review', conversationOutcome: 'opt_out' }, 'ended', 'needs_review'],
+    ['completed voicemail', { voicemailOutcome: 'playback_completed' }, 'active', 'voicemail_played'],
+    ['opt-out survives time limit', { conversationOutcome: 'opt_out', stopReason: 'Time limit' }, 'active', 'opt_out'],
+    ['time limit needs review', { conversationOutcome: 'completed', stopReason: 'Time limit' }, 'ended', 'needs_review'],
+    ['missing transcript needs review', { conversationOutcome: 'completed', transcriptSaved: false }, 'ended', 'needs_review'],
+    ['natural completion', { conversationOutcome: 'completed' }, 'active', 'completed'],
+    ['active call without completion evidence', { humanAnswered: true }, 'active', 'needs_review'],
+    ['confirmed human after hangup', { humanAnswered: true }, 'ended', 'completed'],
+    ['unclassified speech after hangup', { customerTurns: 1 }, 'idle', 'needs_review'],
+    ['no answer after hangup', { customerTurns: 0 }, 'ended', 'no_answer'],
+    ['idle without answer', {}, 'idle', 'no_answer'],
+  ];
+  for (const [label, status, phoneState, expected] of cases) {
+    assert.equal(decide(status, phoneState), expected, label);
+  }
+});
 function workerFixture(simulation = true, failDial = false, terminal = {}) {
   const f = fixture(simulation), window = {}, states = [], commands = []; let now = 0, session = randomUUID(), status = { canPrepare: true, prepared: true, sessionId: session, phase: 'waiting' }, phone = 'idle';
   vm.runInNewContext(workerSource, { window, crypto: { randomUUID }, setInterval, clearInterval, document: { getElementById: () => ({}) } });

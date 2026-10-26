@@ -1,6 +1,12 @@
 # Resume here — 2026-10-26
 
-## Latest update — package 0.6.0 / extension 0.4.5
+## Latest maintenance update — package 0.6.1 / extension 0.4.5
+
+Conservative code cleanup: separate contact import and diagnostics helpers, readable stopped-call outcome decisions, named unchanged deadlines, a single voice preset registry, consolidated document limits, and packaged-import validation. No database, audio timing, voice behavior or extension changes. Corrected stale setup text about recording/retention.
+
+Full change list, validation and limitations: [CODE-CLEANUP-0.6.1.md](CODE-CLEANUP-0.6.1.md). All 192 automated tests passed. No-call browser offline/live rehearsals, saved MP3/JSON/ZIP downloads, local audio and WebRTC checks passed. No telephone calls placed. Reopen local pages to load the changed worker; no extension reload required.
+
+## Previous feature update — package 0.6.0 / extension 0.4.5
 
 Guidance verification: the actual Realtime model was tested via the production `/session` construction with two 6,500-character synthetic guides, in-memory contacts and text-only replies. Guide A produced Alex / Tuesday 2 PM / “lilac window”; Guide B produced Jordan / Thursday 11 AM / “amber field”. Both passed; no microphone, CRM or telephone action. Real guidance already reached the session; existing lists still require Apply after editing defaults. A new status explains selected-list versus editor differences. Added separate optional 6,000–20,000-character rehearsal office guidance with idle-list Apply, full prompt injection into the office role, and precedence over conflicting short-brief details. The previous manual next-reply box does not control the rehearsal. Diagnostic script `guidance-browser-check.mjs` is excluded from distribution and uses live API credits only on explicit Run.
 

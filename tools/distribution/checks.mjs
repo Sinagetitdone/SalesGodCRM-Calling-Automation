@@ -4,7 +4,7 @@ import { inflateRawSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, writeFile, rm, mkdir, copyFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import net from 'node:net';
 import { spawnSync } from 'node:child_process';
 import { packageEntries, zip } from './build-package.mjs';
@@ -28,6 +28,14 @@ test('release contains only runtime files, blank credentials and executable Mac 
   for (const name of ['rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt']) assert.ok(names.includes('tools/audio-bridge/public/' + name));
   assert.ok(names.includes('tools/audio-bridge/rehearsal-routes.mjs'));
   assert.ok(names.includes('tools/audio-bridge/voice-settings.mjs'));
+  for (const helper of ['contact-import.mjs', 'diagnostics.mjs']) assert.ok(names.includes('tools/audio-bridge/' + helper));
+  // Refactoring a runtime file must not leave its new relative imports out of the ZIP.
+  for (const entry of entries.filter(e => e.name.endsWith('.mjs'))) {
+    for (const [, relative] of entry.data.toString().matchAll(/(?:import|export)\s[^;]*?\sfrom\s+['"](\.[^'"]+)['"]/g)) {
+      const dependency = posix.normalize(posix.join(posix.dirname(entry.name), relative));
+      assert.ok(names.includes(dependency), `${entry.name} imports missing packaged file ${dependency}`);
+    }
+  }
   const approvedVendor = new Set(['lame.min.js', 'lame.all.js', 'NOTICE.txt', 'LAME-LICENSE.txt', 'LGPL-3.0.txt', 'GPL-3.0.txt'].map(x => 'tools/audio-bridge/public/vendor/' + x));
   for (const name of names) if (!approvedVendor.has(name)) assert.doesNotMatch(name, /(?:^|\/)(?:\.env$|\.runtime|data|node_modules|\.git|vendor|releases)(?:\/|$)|\.(?:png|db|log|local\.json)$/);
   assert.equal(entries.find(e => e.name === '.env.example').data.toString(), 'OPENAI_API_KEY=\nOPENAI_REALTIME_MODEL=gpt-realtime-2.1\n');

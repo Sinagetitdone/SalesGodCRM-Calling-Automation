@@ -8,6 +8,17 @@ import { CampaignStore } from './campaign-store.mjs';
 import { createBridge } from './server.mjs';
 import { callVoices, apiVoice, speakingStyle } from './voice-settings.mjs';
 
+test('voice preset order, base voices and legacy fallback remain compatible', () => {
+  assert.deepEqual(callVoices, ['marin', 'coral', 'sage', 'shimmer', 'marin_confident']);
+  assert.deepEqual(callVoices.map(apiVoice), ['marin', 'coral', 'sage', 'shimmer', 'marin']);
+  assert.match(speakingStyle('marin'), /calm, warm and relaxed/);
+  assert.match(speakingStyle('marin_confident'), /purposeful cadence/);
+  for (const oldVoice of ['cedar', 'ash', 'constructor', undefined]) {
+    assert.equal(apiVoice(oldVoice), 'marin');
+    assert.equal(speakingStyle(oldVoice), speakingStyle('marin'));
+  }
+});
+
 const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431', 'content-type': 'application/json' };
 const settings = { simulation: false, callerNumber: '+12025550100', timeZone: 'UTC', startHour: 0, endHour: 24, brief: 'Approved synthetic brief.', voicemailMessage: 'Synthetic voicemail remains unchanged.' };
 const draft = { name: 'Synthetic profile test', csv: 'first_name,last_name,phone\nAlex,Example,+12025550101', settings };

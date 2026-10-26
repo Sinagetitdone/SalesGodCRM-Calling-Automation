@@ -1,5 +1,5 @@
 import { openAIFailure } from './openai-errors.mjs';
-import { diagnosticDetail } from './session-journal.mjs';
+import { diagnosticDetail } from './diagnostics.mjs';
 
 export function audioTranscriptRoutes(app, { env, fetchImpl, campaigns }) {
   let busy = false;

@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBridge } from './server.mjs';
+import { diagnosticDetail } from './diagnostics.mjs';
+
+test('diagnostics preserve useful causes while redacting credentials and retaining the existing size limit', () => {
+  assert.equal(diagnosticDetail('HTTP 403: connection rejected; Bearer synthetic-token; sk-synthetic_key'), 'HTTP 403: connection rejected; Bearer [redacted] [redacted]');
+  assert.equal(diagnosticDetail('Connection timed out after 20 seconds.'), 'Connection timed out after 20 seconds.');
+  assert.equal(diagnosticDetail('x'.repeat(1501)), 'x'.repeat(1500));
+  assert.equal(diagnosticDetail(undefined), '');
+});
 
 const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431', 'content-type': 'application/sdp' };
 test('local status reports missing key without revealing credentials', async () => {
