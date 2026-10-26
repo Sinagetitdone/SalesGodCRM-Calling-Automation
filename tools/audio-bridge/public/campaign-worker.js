@@ -9,7 +9,7 @@
     async post(suffix, body = {}) { return this.api('/campaigns-api/' + this.id + suffix, { workerId: this.workerId, ...body }); }
     diagnostic(message) {
       const status = this.simulation || !this.audioAttempt ? {} : this.audio.status();
-      const detail = message || (this.simulation ? this.rehearsal?.lastError : status.stopReason);
+      const detail = message || (this.simulation ? this.rehearsal?.lastError : status.reviewReason || status.stopReason);
       return { ...(status.sessionId ? { session: status.sessionId } : {}), ...(detail || status.failure ? { message: [detail, status.failure && JSON.stringify(status.failure)].filter(Boolean).join(' · ').slice(0, 1500) } : {}) };
     }
     async pause() { this.pauseRequested = true; if (this.running) await this.post('/pause'); }

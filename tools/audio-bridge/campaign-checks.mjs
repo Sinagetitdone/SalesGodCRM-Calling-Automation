@@ -81,7 +81,7 @@ for (const simulation of [false, true]) test(`history ZIP contains ${simulation 
   } finally { await app.close(); f.store.close(); }
 });
 
-test('real and rehearsal transcript panels show exact failed/pending logs and retain completed transcripts', async () => {
+test('real and rehearsal review panels show saved conversation and all logs together', async () => {
   const source = await readFile(new URL('public/campaign.js', import.meta.url), 'utf8');
   for (const practice of [false, true]) {
     const nodes = new Map(), requests = [];
@@ -96,22 +96,26 @@ test('real and rehearsal transcript panels show exact failed/pending logs and re
         requests.push(path); let data = {};
         if (path.startsWith('/campaigns-api?')) data = { campaigns: [campaign] };
         else if (path === '/calling-profile') data = { background: '', guidance: '' };
-        else if (path.endsWith('/transcript')) data = { turns: [{ speaker: 'assistant', text: 'Completed speech' }] };
-        else if (path.endsWith('/events')) data = { events: [{ time: '2026-10-23T12:00:01Z', event: 'session.error', phase: 'failed' }] };
+        else if (path.endsWith('/transcript')) data = { turns: [{ speaker: 'assistant', text: 'Completed speech' }, { speaker: 'customer', text: 'Customer partial reply', time: '2026-10-23T12:00:01Z' }] };
+        else if (path.endsWith('/events')) data = { events: Array.from({ length: 125 }, (_, sequence) => ({ sequence, time: '2026-10-23T12:00:01Z', event: 'session.error', phase: 'failed' })) };
         else data = campaign;
         return { ok: true, json: async () => data };
       } });
     await new Promise(resolve => setImmediate(resolve));
-    for (const state of ['pending', 'failed', 'completed']) {
+    for (const state of ['pending', 'failed', 'needs_review', 'unknown', 'completed']) {
       contact.state = state; contact.session = state === 'pending' ? null : 'session';
       if (state === 'failed') campaign.events.push({ contact: 'contact', time: '2026-10-23T12:00:02Z', event: 'failure_detail: Rehearsal connection timed out.' });
       get('savedLists').value = 'list'; await get('savedLists').onchange();
       const button = get('contactRows').children[0].children[3].children[0];
-      assert.equal(button.textContent, state === 'completed' ? 'View transcript' : 'View log');
+      assert.equal(button.textContent, state === 'completed' ? 'View transcript' : state === 'pending' ? 'View log' : 'View full details');
       button.onclick(); await new Promise(resolve => setImmediate(resolve));
       const text = get('selectedTranscript').textContent;
       if (state === 'pending') assert.match(text, /imported[\s\S]*has not been attempted/);
-      if (state === 'failed') { assert.match(text, /session.error · phase=failed/); assert.match(text, /Rehearsal connection timed out/); assert.doesNotMatch(text, /Completed speech/); }
+      if (['failed', 'needs_review', 'unknown'].includes(state)) {
+        assert.match(text, /session.error · phase=failed/); assert.match(text, /Rehearsal connection timed out/);
+        assert.match(text, /assistant: Completed speech/); assert.match(text, /2026-10-23T12:00:01Z customer: Customer partial reply/);
+        assert.match(text, /sequence=124/); assert.match(text, /Contact ID: contact/);
+      }
       if (state === 'completed') assert.match(text, /assistant: Completed speech/);
     }
   }
@@ -120,6 +124,33 @@ test('CSV handles quoted names, BOM and duplicate normalized numbers; malformed 
   const parsed = parseContacts('\uFEFFfirst_name,last_name,phone\r\n"Alex, A",Example,(202) 555-0101\r\nAlex,Example,+12025550101');
   assert.equal(parsed.contacts[0].firstName, 'Alex, A'); assert.equal(parsed.duplicates, 1);
   for (const bad of ['first_name,phone\nA,+12025550101', 'first_name,last_name,phone\n"Unclosed,x,3', 'first_name,last_name,phone\nA,B,not-a-number', 'first_name,last_name,phone\nA,B,+12025550101,extra']) assert.throws(() => parseContacts(bad));
+});
+test('Previous Conversations retains review transcript, reason and complete events even if one detail request fails', async () => {
+  const source = await readFile(new URL('public/history.js', import.meta.url), 'utf8');
+  for (const unavailable of [null, 'transcript', 'events']) {
+    const nodes = new Map(), node = () => ({ children: [], value: '', append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; } });
+    const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
+    const contact = { id: 'contact', state: 'needs_review', firstName: 'Synthetic', lastName: 'Example', session: 'session', hasRecording: 1 };
+    const list = { id: 'list', name: 'Synthetic', created: '2026-10-26', state: 'paused', settings: { simulation: false }, contacts: [contact], events: [{ contact: 'contact', time: '2026-10-26T12:00:00Z', event: 'failure_detail: Audio connection lost.' }] };
+    vm.runInNewContext(source, { document: { getElementById: get, createElement: node }, Option: class {},
+      fetch: async path => {
+        if (unavailable && path.endsWith('/' + unavailable)) throw new Error('Synthetic load failure');
+        const data = path === '/conversation-history' ? { campaigns: [list] } : path.endsWith('/transcript') ? { turns: [{ speaker: 'assistant', text: 'Office introduction' }, { speaker: 'customer', text: 'Partial customer reply', time: '2026-10-26T12:00:01Z' }] }
+          : path.endsWith('/events') ? { events: Array.from({ length: 125 }, (_, sequence) => ({ sequence, time: '2026-10-26T12:00:02Z', event: 'bridge.disconnected', phase: 'failed' })) } : list;
+        return { ok: true, json: async () => data };
+      }
+    });
+    await new Promise(resolve => setImmediate(resolve)); get('historyList').value = 'list'; get('historyList').onchange();
+    await new Promise(resolve => setImmediate(resolve)); get('historyContacts').children[0].onclick();
+    await new Promise(resolve => setImmediate(resolve));
+    const text = get('historyText').textContent;
+    assert.match(text, /Audio connection lost/); assert.match(text, /Status: needs_review/);
+    if (unavailable !== 'transcript') { assert.match(text, /Office introduction/); assert.match(text, /customer: Partial customer reply/); }
+    if (unavailable !== 'events') assert.match(text, /sequence=124/);
+    if (unavailable) assert.match(text, /Loading errors[\s\S]*Synthetic load failure/);
+    assert.equal(get('historyAudio').children[0].src, '/campaigns-api/list/contact/recording');
+    assert.equal(get('exportConversation').disabled, false);
+  }
 });
 test('only the authorized worker can claim; dispatch is once and only one active attempt exists', () => {
   const f = fixture(); try {
@@ -231,7 +262,7 @@ function workerFixture(simulation = true, failDial = false, terminal = {}) {
       case 'next': return f.store.claim(f.id, body.workerId);
       case 'dispatch': return f.store.dispatch(f.id, id, body.workerId, body.session);
       case 'transcript': return f.store.transcript(f.id, id, body.workerId, body);
-      case 'finish': return f.store.finish(f.id, id, body.workerId, body.outcome);
+      case 'finish': return f.store.finish(f.id, id, body.workerId, body.outcome, body.diagnostic);
       default: throw new Error('Unexpected API path ' + path);
     }
   };
@@ -331,6 +362,15 @@ test('recorder startup failure prevents the phone side effect', async () => {
     await f.worker.run(f.id);
     assert.equal(f.commands.includes('dial'), false);
     assert.equal(f.store.read(f.id).contacts[1].state, 'pending');
+  } finally { f.store.close(); }
+});
+test('needs-review preserves the specific pause reason before generic audio cleanup', async () => {
+  const f = workerFixture(false, false, { phase: 'paused', reviewReason: 'Speech after voicemail could not be confirmed · review required' });
+  try {
+    await f.worker.run(f.id);
+    const list = f.store.read(f.id);
+    assert.equal(list.contacts[0].state, 'needs_review');
+    assert.ok(list.events.some(e => e.event.includes('failure_detail: Speech after voicemail could not be confirmed')));
   } finally { f.store.close(); }
 });
 test('phone hangup does not wait for encoding, but finishing and next dispatch wait for MP3 saving', async () => {

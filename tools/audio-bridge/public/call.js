@@ -39,7 +39,12 @@
     if (recordingState) recordingState.textContent = ({ ready: 'Recorder ready · no call started', recording: 'Recording both sides of this call', saving: 'Saving conversation MP3 · keep this window and bridge open', saved: 'Conversation MP3 saved in Previous Conversations', failed: 'Recording could not be saved · review the error below' })[report.recordingState] || 'New calling-list calls are recorded automatically';
     controls(); window.dispatchEvent?.(new CustomEvent('salesgod-call-state'));
   }
-  function phase(value, label) { report.phase = value; $('state').textContent = label; render(); }
+  function phase(value, label) {
+    report.phase = value;
+    if (['paused', 'failed'].includes(value)) report.reviewReason = label;
+    else if (['starting', 'talking'].includes(value)) delete report.reviewReason;
+    $('state').textContent = label; render();
+  }
   function log(event) {
     const current = run; if (!current) return Promise.resolve();
     report.events.push({ time: new Date().toISOString(), event }); if (report.events.length > 100) report.events.shift(); render();

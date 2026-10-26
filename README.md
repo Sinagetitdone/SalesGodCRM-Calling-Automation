@@ -6,6 +6,8 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **0.5.9** shows full saved conversation, timestamps, review/failure details and archived event logs together for **Needs review**, **Failed** and **Unknown** attempts. Choose **View full details** in a list, or select the contact in **Previous Conversations**. Missing historical details are identified explicitly.
+
 - Package **0.5.8** / extension **0.4.5** renames the setup button to **AI Voice Startup** and aligns all main panel buttons in equal-width pairs. **AI Agents Test Call** and **Open calling list** span full rows. Reload the extension and refresh idle CRM to apply the new layout.
 
 - Package **0.5.7** automatically records new real calling-list calls as one MP3 containing customer audio, AI replies and voicemail. **Previous Conversations** supports playback, individual MP3 download and ZIP export. Keep the calling window and bridge open until saving finishes; failures pause the list. Earlier unrecorded calls cannot be recovered. Use a one-contact real list for a saved single call; manual diagnostics remain separate.

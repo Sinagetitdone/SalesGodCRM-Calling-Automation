@@ -1,6 +1,10 @@
 # Resume here — 2026-10-26
 
-## Latest update — package 0.5.8 / extension 0.4.5
+## Latest update — package 0.5.9 / extension 0.4.5
+
+Needs review, Failed and Unknown rows now offer View full details in real and rehearsal lists. Their panels and Previous Conversations show saved transcript (including partial replies), timestamps, call/session metadata, recording availability, persisted failure details and the full archived event log together. History preserves available sections and MP3 access when one detail request fails; exported JSON includes retrieval errors. List JSON export now reads archived contact audio events instead of the expiring standalone journal. Future review failures preserve their specific pause reason before generic cleanup. Old missing audio/text/error details cannot be reconstructed. Reopen idle calling/history pages; no extension reload is needed. No calls were made.
+
+## Previous update — package 0.5.8 / extension 0.4.5
 
 Panel setup button is now AI Voice Startup. All main buttons use an equal two-column grid; AI Agents Test Call and Open calling list span full rows, while Previous Conversations and Disable share equal width and height. Inline CRM styles and local preview styles match. Local Chrome preview was visually checked without arming audio or placing calls. Reload extension 0.4.5 and refresh CRM only while idle. Audio and recording behavior is unchanged.
 

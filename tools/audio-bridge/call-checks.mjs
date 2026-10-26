@@ -471,6 +471,7 @@ test('unconfirmed voicemail interruption requires review instead of being report
     env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'noise', transcript: 'Unclear speech.' }); env.classify('unknown'); await env.fireTimers(8000);
     assert.equal(env.peers[0].connectionState, 'connected'); await env.fireTimers(30000);
     assert.equal(env.api.status().phase, 'paused'); assert.equal(env.api.status().voicemailOutcome, 'needs_review');
+    assert.match(env.api.status().reviewReason, /Speech after voicemail could not be confirmed/);
     assert.equal(env.api.status().events.some(e => e.event === 'voicemail.playback_completed'), false);
   } finally { await env.cleanup(); }
 });
