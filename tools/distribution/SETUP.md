@@ -6,13 +6,15 @@ You will use two parts: the Chrome extension adds controls to SalesGodCRM, and t
 
 **Double-click startup:** on Windows, open **SalesGod Bridge.exe**; on Mac, open **SalesGod Bridge.app**. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type `npm run audio:bridge`. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.
 
-Package **0.5.7** uses the Jay Marketing Lab logo and purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, restart the bridge, reload extension **0.4.4**, and refresh SalesGodCRM only while its dialer is idle.
+Package **0.5.8** uses the Jay Marketing Lab logo and purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, restart the bridge, reload extension **0.4.5**, and refresh SalesGodCRM only while its dialer is idle.
 
 Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.
 
+In extension 0.4.5, **Open AI voice setup** is renamed **AI Voice Startup**. Buttons now align in equal-width pairs, with **AI Agents Test Call** and **Open calling list** each filling a row. Their actions are unchanged.
+
 ## Listening, reviewing and downloading conversations
 
-**Real calls (new in 0.5.7):** use **Open calling list** and start your real list as usual. Recording starts automatically before dialing and includes both voices, voicemail and greetings. Watch the recording status at the bottom of the page. Wait for **Conversation MP3 saved in Previous Conversations** or the finished-contact result. Then open **Previous Conversations**, choose the list and contact, press Play to listen, or **Download conversation MP3** to save the whole call. For a single saved call, import a one-contact real list; manual diagnostic sessions are not added to history.
+**Real calls (new in 0.5.8):** use **Open calling list** and start your real list as usual. Recording starts automatically before dialing and includes both voices, voicemail and greetings. Watch the recording status at the bottom of the page. Wait for **Conversation MP3 saved in Previous Conversations** or the finished-contact result. Then open **Previous Conversations**, choose the list and contact, press Play to listen, or **Download conversation MP3** to save the whole call. For a single saved call, import a one-contact real list; manual diagnostic sessions are not added to history.
 
 Keep the calling window and bridge open until saving completes. Closing Chrome, restarting the bridge or a computer crash before saving can lose the recording. Interrupted calls may have a partial MP3. If saving fails, the list pauses; if encoding completed, use **Download unsaved call MP3 before closing this window** on the calling page. Older unrecorded calls cannot be recovered. No new extension permissions or API key are required.
 
@@ -85,7 +87,7 @@ The launchers do not require an administrator password. Mac launcher syntax has 
 3. Turn on **Developer mode** in the top-right corner.
 4. Click **Load unpacked**.
 5. Browse into your extracted **SalesGod-Team** folder, then **tools**, then **audio-extension**. Select this folder, which contains `manifest.json`. Do not select the ZIP or the whole SalesGod-Team folder.
-6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.4** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
+6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.5** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
 7. Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.
 8. Look for the **SalesGod audio bridge** panel. Continue to Step 5.
 

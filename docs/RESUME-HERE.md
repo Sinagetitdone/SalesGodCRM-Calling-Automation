@@ -1,6 +1,10 @@
-# Resume here — 2026-10-24
+# Resume here — 2026-10-26
 
-## Latest update — package 0.5.7 / extension 0.4.4
+## Latest update — package 0.5.8 / extension 0.4.5
+
+Panel setup button is now AI Voice Startup. All main buttons use an equal two-column grid; AI Agents Test Call and Open calling list span full rows, while Previous Conversations and Disable share equal width and height. Inline CRM styles and local preview styles match. Local Chrome preview was visually checked without arming audio or placing calls. Reload extension 0.4.5 and refresh CRM only while idle. Audio and recording behavior is unchanged.
+
+## Previous update — package 0.5.7 / extension 0.4.4
 
 Validation: TypeScript and all 166 automated tests passed (24 app, 109 audio, 25 extension, 1 API, 7 package). The no-call checks cover both audio directions, actual MPEG encoding, single finalization, deferred persistence, phone hangup before encoding finishes, wrong-worker/terminal upload rejection, history download/delete and ZIP exports.
 

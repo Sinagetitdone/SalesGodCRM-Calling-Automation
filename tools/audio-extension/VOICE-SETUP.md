@@ -8,7 +8,7 @@ This is supervised setup, not a working telephone caller. No calls are placed, n
 
 1. Run `npm run audio:bridge` from the repository. Only this loopback server reads the ignored `.env` file.
 2. Reload **SalesGod Local Audio Bridge** in `chrome://extensions`, then refresh the idle CRM page. Do not refresh an ongoing call.
-3. Keep the number field empty. Enable local routing, then choose **Open AI voice setup**.
+3. Keep the number field empty. Enable local routing, then choose **AI Voice Startup**.
 4. In the new local window, choose **Test paired routing without OpenAI**. Synthetic customer audio travels to the local page; a second tone returns to the generated microphone's audio graph. Both signal peaks and both RTP packet directions are required to pass. No API request is made.
 5. Reopen voice setup for **Test paired AI connection**. This requires a valid key. The local server exchanges SDP with OpenAI; the browser sends audio over WebRTC. One explicit AI introduction is requested, measured in both audio graphs, and allowed to finish before disconnecting. Automatic turn detection is disabled.
 6. Restore the CRM's original microphone setting and disable local routing when finished. Reports may be saved from the setup window.

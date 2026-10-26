@@ -15,7 +15,11 @@ button{font:600 12px/1.4 "DM Sans",Inter,"Segoe UI",Arial,sans-serif;border:1px 
 button:hover:not(:disabled){box-shadow:inset 0 0 0 1px currentColor}
 button:disabled{background:#efedf1;border-color:#dedbe2;color:#79727f;cursor:not-allowed}
 button.stop{background:#fff;border-color:#625d68;color:#423c48}
-#callingList{display:block;width:100%;background:var(--jml-lime);color:var(--jml-purple);border-color:var(--jml-purple);padding:11px}
+#body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#body>button{width:100%;min-width:0;margin:0;padding:11px;overflow-wrap:anywhere}
+#body>:not(button),#callVoice,#callingList{grid-column:1/-1}
+#body>p{margin:4px 0}#body>p:empty{display:none}
+#callingList{background:var(--jml-lime);color:var(--jml-purple);border-color:var(--jml-purple)}
 #state{padding:10px 12px;background:#f2eef7;border-left:3px solid var(--jml-purple);font-size:12px}
 pre{user-select:text;cursor:text;font:11px/1.5 "JetBrains Mono",Consolas,monospace;white-space:pre-wrap;max-height:100px;overflow:auto;background:#f4f2f6;padding:10px}
 details{margin-top:14px;border-top:1px solid #dedbe2;padding-top:10px}summary{cursor:pointer;color:var(--jml-purple);font-size:12px}
@@ -59,7 +63,7 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(keepVisible).observe(host);
   root.querySelector('small').textContent = 'Audio setup · Calling lists require Start';
   const voiceButton = document.createElement('button'); voiceButton.id = 'voice'; voiceButton.disabled = true;
-  voiceButton.textContent = 'Open AI voice setup'; $('stop').before(voiceButton);
+  voiceButton.textContent = 'AI Voice Startup'; $('stop').before(voiceButton);
   const callButton = document.createElement('button'); callButton.id = 'callVoice'; callButton.disabled = true;
   callButton.textContent = 'AI Agents Test Call'; voiceButton.after(callButton);
   const listButton = document.createElement('button'); listButton.id = 'callingList'; listButton.textContent = 'Open calling list'; callButton.after(listButton);
@@ -78,11 +82,11 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
     const waiter = pending.get(event.data.requestId);
     if (waiter) { clearTimeout(waiter.timer); pending.delete(event.data.requestId); event.data.error ? waiter.reject(new Error(event.data.error)) : waiter.resolve(event.data.status); }
     report = event.data.status;
-    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4'].includes(report.version)) return;
+    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5'].includes(report.version)) return;
     $('state').textContent = report.testing ? 'Testing synthetic audio locally…' : report.armed ? 'Local routing enabled · OpenAI disconnected' : 'Local routing disabled · OpenAI disconnected';
     $('arm').disabled = report.armed || report.testing;
-    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4'].includes(report.version) || report.voiceState !== 'disconnected';
-    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4'].includes(report.version);
+    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5'].includes(report.version) || report.voiceState !== 'disconnected';
+    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5'].includes(report.version);
     if (report.voiceState && report.voiceState !== 'disconnected') $('state').textContent = `Local routing enabled · Voice setup ${report.voiceState} · Check setup window for OpenAI status`;
     $('test').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
     $('rtc').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
