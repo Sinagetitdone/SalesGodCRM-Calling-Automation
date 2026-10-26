@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { callVoices, defaultCallVoice } from './voice-settings.mjs';
+import { callVoices, defaultCallVoice, normalizeVoice } from './voice-settings.mjs';
 
 export const outcomes = ['completed', 'voicemail_played', 'no_answer', 'blocked', 'failed', 'unknown', 'needs_review', 'opt_out', 'cancelled'];
 const activeStates = ['preparing', 'dispatching', 'connected'];
@@ -58,24 +58,28 @@ export class CampaignStore {
       CREATE TABLE IF NOT EXISTS campaign_events(id INTEGER PRIMARY KEY,campaign TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,contact TEXT,event TEXT NOT NULL,time TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS campaign_transcripts(contact TEXT NOT NULL REFERENCES campaign_contacts(id) ON DELETE CASCADE,item TEXT NOT NULL,speaker TEXT NOT NULL,text TEXT NOT NULL,time TEXT NOT NULL,PRIMARY KEY(contact,item,speaker));
       CREATE TABLE IF NOT EXISTS campaign_recordings(contact TEXT PRIMARY KEY REFERENCES campaign_contacts(id) ON DELETE CASCADE,audio BLOB NOT NULL);
+      CREATE TABLE IF NOT EXISTS campaign_audio_transcripts(contact TEXT PRIMARY KEY REFERENCES campaign_contacts(id) ON DELETE CASCADE,state TEXT NOT NULL,turns TEXT NOT NULL DEFAULT '[]',error TEXT NOT NULL DEFAULT '');
       CREATE TABLE IF NOT EXISTS campaign_audio_archive(contact TEXT PRIMARY KEY REFERENCES campaign_contacts(id) ON DELETE CASCADE,events TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS campaign_suppressions(phone TEXT PRIMARY KEY,created TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS calling_profile(id INTEGER PRIMARY KEY CHECK(id=1),background TEXT NOT NULL,guidance TEXT NOT NULL,updated TEXT NOT NULL);`);
     if (!this.db.prepare('PRAGMA table_info(calling_profile)').all().some(column => column.name === 'voice')) this.db.exec("ALTER TABLE calling_profile ADD COLUMN voice TEXT NOT NULL DEFAULT 'cedar'");
+    if (!this.db.prepare('PRAGMA table_info(calling_profile)').all().some(column => column.name === 'screeningIntroduction')) this.db.exec("ALTER TABLE calling_profile ADD COLUMN screeningIntroduction TEXT NOT NULL DEFAULT ''");
     this.recover(); this.prune();
   }
   stamp() { return this.now().toISOString(); }
   callingProfile() {
-    return this.db.prepare('SELECT background,guidance,voice,updated FROM calling_profile WHERE id=1').get() ?? { background: '', guidance: '', voice: defaultCallVoice, updated: null };
+    const profile = this.db.prepare('SELECT background,guidance,voice,screeningIntroduction,updated FROM calling_profile WHERE id=1').get() ?? { background: '', guidance: '', voice: defaultCallVoice, screeningIntroduction: '', updated: null };
+    return { ...profile, voice: normalizeVoice(profile.voice) };
   }
-  validateProfile({ background = '', guidance, voice = defaultCallVoice }) {
+  validateProfile({ background = '', guidance, voice = defaultCallVoice, screeningIntroduction = '' }) {
     if (!callVoices.includes(voice)) throw new Error('Unsupported calling voice.');
     if (typeof background !== 'string' || background.trim().length > 20000 || typeof guidance !== 'string' || guidance.trim().length < 6000 || guidance.trim().length > 20000) throw new Error('Calling guidance must contain 6,000–20,000 characters; background allows up to 20,000.');
-    return { background: background.trim(), guidance: guidance.trim(), voice };
+    if (typeof screeningIntroduction !== 'string' || (screeningIntroduction.trim() && (screeningIntroduction.trim().length < 10 || screeningIntroduction.trim().length > 300))) throw new Error('Call-screening introduction must be empty or 10–300 characters.');
+    return { background: background.trim(), guidance: guidance.trim(), voice, screeningIntroduction: screeningIntroduction.trim() };
   }
   saveCallingProfile(profile) {
-    const { background, guidance, voice } = this.validateProfile(profile);
-    this.db.prepare('INSERT INTO calling_profile(id,background,guidance,updated,voice) VALUES(1,?,?,?,?) ON CONFLICT(id) DO UPDATE SET background=excluded.background,guidance=excluded.guidance,updated=excluded.updated,voice=excluded.voice').run(background, guidance, this.stamp(), voice);
+    const { background, guidance, voice, screeningIntroduction } = this.validateProfile(profile);
+    this.db.prepare('INSERT INTO calling_profile(id,background,guidance,updated,voice,screeningIntroduction) VALUES(1,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET background=excluded.background,guidance=excluded.guidance,updated=excluded.updated,voice=excluded.voice,screeningIntroduction=excluded.screeningIntroduction').run(background, guidance, this.stamp(), voice, screeningIntroduction);
     return this.callingProfile();
   }
   applyCallingProfile(id, profile) {
@@ -87,6 +91,13 @@ export class CampaignStore {
       this.event(id, null, 'calling_guidance_updated');
       return this.read(id);
     });
+  }
+  applyRehearsalGuidance(id, guidance) {
+    if (typeof guidance !== 'string' || (guidance.trim() && (guidance.trim().length < 6000 || guidance.trim().length > 20000))) throw new Error('Rehearsal guidance must be empty or 6,000–20,000 characters.');
+    const c = this.read(id);
+    if (!c.settings.simulation || !['draft', 'paused'].includes(c.state) || c.contacts.some(row => activeStates.includes(row.state))) throw new Error('Only an idle rehearsal can be updated.');
+    this.db.prepare('UPDATE campaigns SET settings=? WHERE id=?').run(JSON.stringify({ ...c.settings, guidance: guidance.trim() }), id);
+    this.event(id, null, 'rehearsal_guidance_updated'); return this.read(id);
   }
   event(campaign, contact, event) { this.db.prepare('INSERT INTO campaign_events(campaign,contact,event,time) VALUES(?,?,?,?)').run(campaign, contact ?? null, event, this.stamp()); }
   transaction(fn) { this.db.exec('BEGIN IMMEDIATE'); try { const value = fn(); this.db.exec('COMMIT'); return value; } catch (error) { this.db.exec('ROLLBACK'); throw error; } }
@@ -115,6 +126,7 @@ export class CampaignStore {
     return contact.session;
   }
   recover() {
+    this.db.prepare("UPDATE campaign_audio_transcripts SET state='failed',error='Bridge restarted before audio transcription completed. Live draft retained.' WHERE state='processing'").run();
     this.transaction(() => {
       for (const c of this.db.prepare("SELECT id FROM campaigns WHERE state IN ('running','paused') AND worker IS NOT NULL").all()) {
         this.db.prepare("UPDATE campaign_contacts SET state='unknown',ended=? WHERE campaign=? AND state IN ('preparing','dispatching','connected')").run(this.stamp(), c.id);
@@ -123,10 +135,11 @@ export class CampaignStore {
     });
   }
   create({ name, csv, settings }) {
+    if (settings.simulation && settings.guidance !== undefined && (typeof settings.guidance !== 'string' || settings.guidance.trim().length < 6000 || settings.guidance.trim().length > 20000)) throw new Error('Rehearsal guidance must contain 6,000–20,000 characters.');
     for (const value of [settings.voice, settings.customerVoice]) if (value !== undefined && !callVoices.includes(value)) throw new Error('Unsupported voice.');
     if (!settings.simulation) {
       const defaults = this.callingProfile();
-      settings = { ...(defaults.guidance ? { background: defaults.background, guidance: defaults.guidance, voice: defaults.voice } : {}), ...settings };
+      settings = { ...(defaults.guidance ? { background: defaults.background, guidance: defaults.guidance, voice: defaults.voice, screeningIntroduction: defaults.screeningIntroduction } : {}), ...settings };
       if (settings.guidance !== undefined) settings = { ...settings, ...this.validateProfile(settings) };
     }
     const parsed = parseContacts(csv);
@@ -228,7 +241,27 @@ export class CampaignStore {
     if (this.db.prepare('SELECT COUNT(*) AS count FROM campaign_transcripts WHERE contact=?').get(contactId).count >= 500) throw new Error('Transcript limit reached.');
     this.db.prepare('INSERT INTO campaign_transcripts VALUES(?,?,?,?,?)').run(contactId, item, speaker, text, this.stamp()); return { saved: true };
   }
-  transcripts(id, contactId) { if (!this.db.prepare('SELECT id FROM campaign_contacts WHERE campaign=? AND id=?').get(id, contactId)) throw new Error('Contact not found.'); return this.db.prepare('SELECT item,speaker,text,time FROM campaign_transcripts WHERE contact=? ORDER BY rowid').all(contactId); }
+  liveTranscripts(id, contactId) { if (!this.db.prepare('SELECT id FROM campaign_contacts WHERE campaign=? AND id=?').get(id, contactId)) throw new Error('Contact not found.'); return this.db.prepare('SELECT item,speaker,text,time FROM campaign_transcripts WHERE contact=? ORDER BY rowid').all(contactId); }
+  transcriptInfo(id, contactId) {
+    const liveDraft = this.liveTranscripts(id, contactId);
+    const saved = this.db.prepare('SELECT state,turns,error FROM campaign_audio_transcripts WHERE contact=?').get(contactId);
+    return { source: saved?.state === 'complete' ? 'recorded_audio' : 'live_draft', state: saved?.state || 'not_processed', error: saved?.error || '', turns: saved?.state === 'complete' ? JSON.parse(saved.turns) : liveDraft, liveDraft };
+  }
+  transcripts(id, contactId) { return this.transcriptInfo(id, contactId).turns; }
+  beginAudioTranscript(id, contactId, worker, session) {
+    const { row, campaign } = this.contact(id, contactId, worker);
+    if (row.session !== session || !this.recording(id, contactId)) throw new Error('Save this call recording before transcribing it.');
+    if (JSON.parse(campaign.settings).simulation) throw new Error('Recorded speaker transcription is for real calls.');
+    const prior = this.db.prepare('SELECT state FROM campaign_audio_transcripts WHERE contact=?').get(contactId);
+    if (prior) return prior.state;
+    this.db.prepare("INSERT INTO campaign_audio_transcripts(contact,state) VALUES(?,'processing')").run(contactId);
+    this.event(id, contactId, 'audio_transcript.started'); return 'started';
+  }
+  finishAudioTranscript(id, contactId, turns, error = '') {
+    this.liveTranscripts(id, contactId); // The owner may have deleted an idle conversation during processing.
+    this.db.prepare('UPDATE campaign_audio_transcripts SET state=?,turns=?,error=? WHERE contact=?').run(error ? 'failed' : 'complete', JSON.stringify(turns), error, contactId);
+    this.event(id, contactId, error ? 'audio_transcript.failed: ' + error : 'audio_transcript.completed');
+  }
   suppress(number) { this.db.prepare('INSERT OR IGNORE INTO campaign_suppressions VALUES(?,?)').run(phone(number), this.stamp()); }
   expire() {
     for (const c of this.db.prepare("SELECT id FROM campaigns WHERE state IN ('running','paused') AND worker IS NOT NULL AND heartbeat < ?").all(new Date(this.now().getTime() - 30000).toISOString())) {

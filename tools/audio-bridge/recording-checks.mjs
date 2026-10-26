@@ -49,3 +49,18 @@ test('recorder error cannot produce a falsely successful MP3', async () => {
   await assert.rejects(recording.finish(), /recording failed/);
   assert.equal(failures, 1); assert.equal(f.conversions.length, 0);
 });
+test('final transcription sees only each recorded speaker, including the interrupted part of an AI reply', async () => {
+  const f = fixture(), heard = [];
+  f.window.SalesGodAudioTranscript = { async fromRecording(blob, context, speaker) {
+    const samples = JSON.parse(await blob.text()); heard.push({ speaker, samples });
+    return [{ speaker, start: 0, end: 2, audio: 'synthetic' }];
+  } };
+  let ai = 0, customer = 0;
+  const recording = new f.window.SalesGodCallRecording(f.context, { value: () => ai }, () => {}, true);
+  recording.addStream({ value: () => customer }); recording.start();
+  ai = 0.6; for (const r of f.captures) r.sample();
+  customer = 0.7; ai = 0; for (const r of f.captures) r.sample();
+  await recording.finish(); const turns = await recording.transcriptSegments();
+  assert.deepEqual(heard, [{ speaker: 'assistant', samples: [0.6, 0] }, { speaker: 'customer', samples: [0, 0.7] }]);
+  assert.equal(turns.length, 2); assert.ok(recording.legs.every(l => !l.parts.length));
+});

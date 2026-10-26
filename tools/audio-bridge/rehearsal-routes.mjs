@@ -1,5 +1,5 @@
 import { openAIFailure } from './openai-errors.mjs';
-import { speakingStyle } from './voice-settings.mjs';
+import { speakingStyle, normalizeVoice, apiVoice } from './voice-settings.mjs';
 
 // Separate from /session: rehearsal can only open two output-only AI peers for
 // an already-started simulation attempt. It never returns a telephone permit.
@@ -32,13 +32,16 @@ export function rehearsalRoutes(app, { env, fetchImpl, campaigns }) {
     let instructions = base + (role === 'assistant'
       ? 'You are an AI assistant from Jay Marketing Lab on behalf of Cena. Clearly introduce yourself as an AI assistant. Follow only this approved brief: ' + JSON.stringify(settings.brief) + '. Do not invent products, prices, promises or appointments. If details are missing, offer to pass questions to Cena. At the closing, say the person can contact Cena if they want to talk more, unless they requested no further contact.'
       : 'You play the fictional customer ' + JSON.stringify(context.row.first_name + ' ' + context.row.last_name) + '. ' + persona + ' You are not the office assistant. Do not repeat their introduction.');
-    const voice = role === 'assistant' ? settings.voice || 'marin' : settings.customerVoice || 'cedar';
-    if (role === 'assistant') instructions += ' ' + speakingStyle(voice);
+    const voice = normalizeVoice(role === 'assistant' ? settings.voice || 'marin' : settings.customerVoice || 'coral');
+    if (role === 'assistant' && settings.guidance) {
+      instructions = base + 'You are the office AI assistant. Clearly identify yourself as an AI assistant. Use the organization, representative, approved facts and conversation goals in this detailed guide: ' + JSON.stringify(settings.guidance) + '. Supplementary short brief: ' + JSON.stringify(settings.brief) + '. If these disagree, the detailed guide takes priority. If identity details are absent, use Jay Marketing Lab on behalf of Cena. Do not invent missing facts or claim appointments are booked. At the close, invite the person to contact the represented office if they want to talk more, unless they requested no further contact.';
+    }
+    instructions += ' ' + speakingStyle(voice);
     try {
       const form = new FormData(); form.set('sdp', request.body);
       form.set('session', JSON.stringify({ type: 'realtime', model: env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2.1',
         instructions, output_modalities: ['audio'], max_output_tokens: 600,
-        audio: { input: { turn_detection: null }, output: { voice, speed: 1.15 } }, tools: [] }));
+        audio: { input: { turn_detection: null }, output: { voice: apiVoice(voice), speed: 1.15 } }, tools: [] }));
       const response = await fetchImpl('https://api.openai.com/v1/realtime/calls', {
         method: 'POST', headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: form, signal: AbortSignal.timeout(30000),
       });

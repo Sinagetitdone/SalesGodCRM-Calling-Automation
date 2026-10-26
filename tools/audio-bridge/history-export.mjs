@@ -20,7 +20,8 @@ export function historyZip(store, journal, campaignId) {
       yield { name: `${list.id}/list.json`, data: Buffer.from(JSON.stringify(list, null, 2)) };
       for (const contact of list.contacts) {
         const saved = store.archivedAudio(contact.id);
-        const report = { contact, transcript: store.transcripts(list.id, contact.id), events: list.events.filter(e => !e.contact || e.contact === contact.id), audioEvents: saved.length ? saved : contact.session ? journal().read(contact.session) : [] };
+        const info = store.transcriptInfo(list.id, contact.id);
+        const report = { contact, transcript: info.turns, transcriptSource: info.source, transcriptState: info.state, transcriptError: info.error, liveDraft: info.liveDraft, events: list.events.filter(e => !e.contact || e.contact === contact.id), audioEvents: saved.length ? saved : contact.session ? journal().read(contact.session) : [] };
         yield { name: `${list.id}/${contact.id}.json`, data: Buffer.from(JSON.stringify(report, null, 2)) };
         const audio = store.recording(list.id, contact.id);
         if (audio) yield { name: `${list.id}/${contact.id}.mp3`, data: Buffer.from(audio) };

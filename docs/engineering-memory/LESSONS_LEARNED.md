@@ -1,5 +1,9 @@
 # Lessons Learned
 
+## 2026-10-26: Recorded audio and transcript evidence
+
+See [transcript evidence](lessons/LESSON-2026-10-26-TRANSCRIPT-EVIDENCE.md): generated words can outlive interrupted playback; final transcripts must follow captured audio, with explicit source labels and retained recordings. Screening and bounded document extraction lessons are included.
+
 ## LL-2026-001 — Do not infer provider contracts
 
 Context: The supplied SalesGodCRM integration value is a webhook URL plus a credential.

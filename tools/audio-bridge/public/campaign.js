@@ -1,6 +1,8 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  const selectedVoice = (voice, fallback = 'marin') => ['marin', 'coral', 'sage', 'shimmer', 'marin_confident'].includes(voice) ? voice : fallback;
+  const transcriptText = data => (data.source === 'recorded_audio' ? 'Transcript from recorded audio · automatic transcription; check the MP3 for exact wording.' : 'Live draft · not checked against the recording; generated AI text may include unspoken words.') + (data.error ? '\nTranscription issue: ' + data.error : '') + '\n\n' + (data.turns.map(t => `${Number.isFinite(t.start) ? '[' + t.start.toFixed(1) + 's] ' : t.time ? t.time + ' ' : ''}${t.speaker}: ${t.text}`).join('\n\n') || 'No speech transcript saved.');
   const practice = document.body.dataset.workspace === 'rehearsal';
   const readAgentSettings = () => ({ turnSeconds: Number($('turnSeconds').value) });
   document.title = practice ? 'AI Agents Test Call · SalesGod' : 'Real calling lists · SalesGod';
@@ -22,7 +24,7 @@
       let row = visibleTurns.get(update.index);
       if (!row) { const element = document.createElement('li'); element.dataset.role = update.role; $('rehearsalTranscript').append(element); row = { element, role: update.role }; visibleTurns.set(update.index, row); }
       row.text = update.text; row.saved = Boolean(update.saved);
-      row.element.textContent = `${update.role === 'assistant' ? 'Office AI · ' + (selected?.settings.voice || 'marin') : 'Fictional customer · ' + (selected?.settings.customerVoice || 'cedar')}${row.saved ? ' · saved · ' + update.seconds.toFixed(1) + 's including speech' : ''}\n${update.text || 'Thinking…'}`;
+      row.element.textContent = `${update.role === 'assistant' ? 'Office AI · ' + (selected?.settings.voice || 'marin') : 'Fictional customer · ' + (selected?.settings.customerVoice || 'marin')}${row.saved ? ' · saved · ' + update.seconds.toFixed(1) + 's including speech' : ''}\n${update.text || 'Thinking…'}`;
       $('rehearsalStatus').textContent = `${update.role === 'assistant' ? 'Office AI' : 'Customer AI'} ${update.type === 'turn' ? 'finished speaking' : 'is speaking'} · reply ${update.index + 1}`;
       $('downloadRehearsalTranscript').disabled = false;
       $('rehearsalTranscript').scrollTop = $('rehearsalTranscript').scrollHeight;
@@ -56,12 +58,27 @@
   function profileCounts() {
     $('backgroundCount').textContent = `${$('callingBackground').value.trim().length.toLocaleString()} / 20,000 characters · optional`;
     $('guidanceCount').textContent = `${$('conversationGuide').value.trim().length.toLocaleString()} / 20,000 characters · minimum 6,000`;
+    guidanceUsage();
+  }
+  function guidanceUsage() {
+    if (practice || !$('guideUsage')) return;
+    const guide = selected?.settings.guidance || '';
+    $('guideUsage').textContent = !selected ? 'No list selected. Save defaults for future imports, then select a list to check its guide.'
+      : !guide ? 'This selected list has no long guide; it uses only its short brief. Use Apply to selected list to add the guide above.'
+      : `This list uses its saved ${guide.length.toLocaleString()}-character guide. ` + (guide === $('conversationGuide').value.trim() ? 'It matches the editor.' : 'The editor differs. Changes will not affect this list until you click Apply to selected list.');
+  }
+  function readRehearsalGuide() {
+    const guide = $('rehearsalGuidance')?.value.trim() || '';
+    if (guide && (guide.length < 6000 || guide.length > 20000)) throw new Error('Rehearsal guidance requires 6,000–20,000 characters, or leave it blank.');
+    return guide;
   }
   function readProfile() {
     if (!profileLoaded) throw new Error('Load the saved calling context before continuing.');
     const background = $('callingBackground').value.trim(), guidance = $('conversationGuide').value.trim();
     if (background.length > 20000 || guidance.length < 6000 || guidance.length > 20000) throw new Error('Conversation guide requires 6,000–20,000 characters. Background allows up to 20,000. Leading and trailing spaces do not count.');
-    return { background, guidance, voice: $('callingVoice').value };
+    const screeningIntroduction = $('screeningIntroduction').value.trim();
+    if (screeningIntroduction && (screeningIntroduction.length < 10 || screeningIntroduction.length > 300)) throw new Error('Call-screening introduction requires 10–300 characters, or leave it blank.');
+    return { background, guidance, voice: $('callingVoice').value, screeningIntroduction };
   }
   async function loadCallingProfile() {
     if (profileBusy) return;
@@ -70,7 +87,8 @@
       const profile = await api('/calling-profile');
       $('listError').textContent = '';
       $('callingBackground').value = profile.background; $('conversationGuide').value = profile.guidance;
-      $('callingVoice').value = profile.voice || 'cedar';
+      $('callingVoice').value = selectedVoice(profile.voice);
+      $('screeningIntroduction').value = profile.screeningIntroduction || '';
       profileLoaded = true; profileCounts();
       $('callingProfileStatus').textContent = profile.updated ? 'Saved context loaded. New lists use this copy; existing lists keep their own settings.' : 'No saved context yet. Enter a background and a 6,000–20,000-character guide, then save for future calls.';
     } catch (e) { $('callingProfileStatus').textContent = 'Could not load saved context. Use Load saved context to retry.'; throw e; }
@@ -115,7 +133,7 @@
           conversation = `Call details\nContact ID: ${contact.id}\nSession: ${contact.session || 'Not started'}\nCall attempted: ${contact.dispatched || 'Not recorded'}\nEnded: ${contact.ended || 'Not recorded'}\nMP3: ${contact.hasRecording ? 'Saved in Previous Conversations' : 'No recording saved'}\n\nReview / failure details\n${reasons.join('\n') || 'No separate failure explanation was saved. Review the recorded events below.'}\n\nSaved conversation (may be partial)\n`;
           try {
             const data = await api(`/campaigns-api/${campaign.id}/${contact.id}/transcript`);
-            conversation += data.turns.map(t => `${t.time ? t.time + ' ' : ''}${t.speaker}: ${t.text}`).join('\n\n') || 'No conversation transcript was saved.';
+            conversation += transcriptText(data);
           } catch (e) { conversation += 'Transcript unavailable: ' + e.message; }
           conversation += '\n\n';
         }
@@ -125,19 +143,21 @@
           catch (e) { audioError = '\nAudio log unavailable: ' + e.message; }
         }
         events.sort((a, b) => a.time.localeCompare(b.time));
-        content = conversation + 'Recorded event log\n' + (events.map(e => `${e.time} [${e.source}] ${e.event}${e.phase ? ' · phase=' + e.phase : ''}${Number.isInteger(e.sequence) ? ' · sequence=' + e.sequence : ''}`).join('\n') || 'No events were saved.');
+        content = conversation + 'Recorded event log\n' + (events.map(e => `${e.time} [${e.source}] ${e.event}${e.phase ? ' · phase=' + e.phase : ''}${Number.isInteger(e.sequence) ? ' · sequence=' + e.sequence : ''}${e.detail ? ' · ' + e.detail : ''}`).join('\n') || 'No events were saved.');
         if (contact.state === 'pending') content += '\nPending: this contact has not been attempted.';
         else if (!events.some(e => e.event.startsWith('failure_detail:')) && contact.state === 'failed') content += '\nNo detailed error message was saved for this older attempt.';
         content += audioError;
       } else {
         const data = await api(`/campaigns-api/${campaign.id}/${contact.id}/transcript`);
-        content = data.turns.map(t => `${t.speaker}: ${t.text}`).join('\n\n') || 'No conversation transcript saved.';
+        content = transcriptText(data);
       }
     } catch (e) { content = 'Could not load conversation details: ' + e.message; }
     if (request === detailRequest && selected?.id === campaign.id && detailContact === contact.id) $('selectedTranscript').textContent = heading + content;
   }
   function render() {
     const running = starting || Boolean(worker?.running);
+    guidanceUsage();
+    if (practice && $('applyRehearsalGuidance')) $('applyRehearsalGuidance').disabled = running || !selected || !['draft', 'paused'].includes(selected.state) || selected.contacts.some(c => ['preparing', 'dispatching', 'connected'].includes(c.state));
     $('startList').disabled = !selected || selected.settings.simulation !== practice || running || (practice && window.SalesGodCall.status().active) || !['draft', 'paused'].includes(selected.state) || (!practice && !control);
     $('pauseList').disabled = $('stopList').disabled = !running;
     $('importList').disabled = $('savedLists').disabled = running;
@@ -152,11 +172,12 @@
       $('loadCallingProfile').disabled = profileBusy;
       $('callingBackground').disabled = $('conversationGuide').disabled = profileBusy || !profileLoaded;
       $('callingVoice').disabled = profileBusy || !profileLoaded;
+      $('screeningIntroduction').disabled = profileBusy || !profileLoaded;
       $('applyCallingProfile').disabled = profileBusy || !profileLoaded || running || !selected || !['draft', 'paused'].includes(selected.state) || selected.contacts.some(c => ['preparing', 'dispatching', 'connected'].includes(c.state));
     }
     if (!selected) return;
     $('listMode').textContent = `${selected.name} · ${selected.settings.simulation ? selected.settings.simulationMode === 'agents' ? 'LIVE AI REHEARSAL — no calls · uses OpenAI credits' : 'OFFLINE SIMULATION — no calls or API usage' : 'LIVE CALLING'} · ${selected.state} · ${selected.contacts.length} contacts`;
-    if (!practice) $('listMode').textContent += (selected.settings.guidance ? ` · Saved guide: ${selected.settings.guidance.length.toLocaleString()} characters` : ' · Original brief only; apply saved context to add your new guide') + ` · Voice: ${selected.settings.voice || 'cedar'}`;
+    if (!practice) $('listMode').textContent += (selected.settings.guidance ? ` · Saved guide: ${selected.settings.guidance.length.toLocaleString()} characters` : ' · Original brief only; apply saved context to add your new guide') + ` · Voice: ${selected.settings.voice || 'marin'}`;
     $('contactRows').replaceChildren();
     for (const c of selected.contacts) {
       const tr = document.createElement('tr');
@@ -193,11 +214,12 @@
     const csvCell = value => '"' + String(value).replaceAll('"', '""') + '"';
     $('contactCsv').value = 'first_name,last_name,phone\n' + selected.contacts.map(c => [c.firstName, c.lastName, c.phone].map(csvCell).join(',')).join('\n');
     for (const [id, value] of Object.entries({ simulationMode: s.simulationMode || 'offline', rehearsalPersona: s.rehearsalPersona || 'interested', rehearsalTurns: s.rehearsalTurns || 8, callerNumber: s.callerNumber, listTimeZone: s.timeZone, startHour: s.startHour, endHour: s.endHour, callBrief: s.brief, ...(!practice ? { voicemailMessage: s.voicemailMessage } : {}) })) if ($(id)) $(id).value = value;
-    if (practice) { $('turnSeconds').value = s.rehearsalConfig?.turnSeconds ?? 20; $('rehearsalVoice').value = s.voice || 'marin'; $('customerVoice').value = s.customerVoice || 'cedar'; }
+    if (practice) { $('turnSeconds').value = s.rehearsalConfig?.turnSeconds ?? 20; $('rehearsalVoice').value = selectedVoice(s.voice); $('customerVoice').value = selectedVoice(s.customerVoice, 'coral'); if ($('rehearsalGuidance')) $('rehearsalGuidance').value = s.guidance || ''; }
     else {
       $('responsePauseMs').value = s.responsePauseMs ?? 250;
       $('callingBackground').value = s.background || ''; $('conversationGuide').value = s.guidance || ''; profileCounts();
-      $('callingVoice').value = s.voice || 'cedar';
+      $('callingVoice').value = selectedVoice(s.voice);
+      $('screeningIntroduction').value = s.screeningIntroduction || '';
       $('callingProfileStatus').textContent = 'Copied this list’s context to the editor. This has not replaced your saved defaults.';
     }
     $('listName').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -207,7 +229,8 @@
     try {
       $('listError').textContent = '';
       const simulation = practice;
-      const profile = practice ? { voice: $('rehearsalVoice').value, customerVoice: $('customerVoice').value } : readProfile();
+      const rehearsalGuide = practice ? readRehearsalGuide() : '';
+      const profile = practice ? { voice: $('rehearsalVoice').value, customerVoice: $('customerVoice').value, ...(rehearsalGuide ? { guidance: rehearsalGuide } : {}) } : readProfile();
       if (!practice && !$('responsePauseMs').reportValidity()) return;
       if (simulation && $('simulationMode').value === 'agents') {
         if (!$('turnSeconds').reportValidity()) return;
@@ -240,9 +263,16 @@
   }
   window.addEventListener('pagehide', () => { rehearsal?.stop(); void rehearsal?.close(); recordings.forEach(r => URL.revokeObjectURL(r.url)); });
   window.addEventListener('salesgod-call-state', render);
+  if (practice && $('applyRehearsalGuidance')) $('applyRehearsalGuidance').onclick = async () => {
+    try {
+      if (!selected || $('applyRehearsalGuidance').disabled) return;
+      selected = await api(`/campaigns-api/${selected.id}/rehearsal-guidance`, { guidance: readRehearsalGuide() });
+      $('rehearsalGuideStatus').textContent = 'Guide saved for this rehearsal. It will be used when the next office AI session starts.'; render();
+    } catch (e) { error(e); }
+  };
   window.addEventListener('beforeunload', event => { if (worker.running) { event.preventDefault(); event.returnValue = ''; } });
   if (!practice) {
-    for (const id of ['callingBackground', 'conversationGuide', 'callingVoice']) $(id).oninput = () => { profileCounts(); $('callingProfileStatus').textContent = 'Editor changed. Save for future calls or apply to an idle selected list. Existing lists have not changed.'; };
+    for (const id of ['callingBackground', 'conversationGuide', 'callingVoice', 'screeningIntroduction']) $(id).oninput = () => { profileCounts(); $('callingProfileStatus').textContent = 'Editor changed. Save for future calls or apply to an idle selected list. Existing lists have not changed.'; };
     $('loadCallingProfile').onclick = () => void loadCallingProfile().catch(error);
     $('saveCallingProfile').onclick = async () => {
       if (profileBusy) return;

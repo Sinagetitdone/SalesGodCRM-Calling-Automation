@@ -1,18 +1,22 @@
 import Fastify from 'fastify';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { SessionJournal, journalEvents, phases } from './session-journal.mjs';
+import { SessionJournal, journalEvents, phases, diagnosticDetail } from './session-journal.mjs';
 import { campaignRoutes } from './campaign-routes.mjs';
 import { openAIFailure } from './openai-errors.mjs';
 import { rehearsalRoutes } from './rehearsal-routes.mjs';
-import { callVoices, defaultCallVoice, speakingStyle } from './voice-settings.mjs';
+import { callVoices, defaultCallVoice, speakingStyle, apiVoice } from './voice-settings.mjs';
+import { textImportRoutes } from './text-import.mjs';
+import { audioTranscriptRoutes } from './audio-transcript-routes.mjs';
 
 export function createBridge({ env = process.env, fetchImpl = fetch, journal: suppliedJournal, campaignStore } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 512 * 1024, ajv: { customOptions: { removeAdditional: false } } });
+  textImportRoutes(app);
   const host = '127.0.0.1:28431';
   const origin = `http://${host}`;
   const campaigns = campaignRoutes(app, { env, store: campaignStore, journal: () => getJournal() });
   rehearsalRoutes(app, { env, fetchImpl, campaigns });
+  audioTranscriptRoutes(app, { env, fetchImpl, campaigns });
   let connecting = false;
   let journal = suppliedJournal;
   const simulationSpeech = new Map();
@@ -38,7 +42,9 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     ['/voice-test', 'voice.html', 'text/html; charset=utf-8'],
     ['/voice.js', 'voice.js', 'text/javascript; charset=utf-8'],
     ['/call.js', 'call.js', 'text/javascript; charset=utf-8'],
+    ['/text-import.js', 'text-import.js', 'text/javascript; charset=utf-8'],
     ['/call-recording.js', 'call-recording.js', 'text/javascript; charset=utf-8'],
+    ['/audio-transcript.js', 'audio-transcript.js', 'text/javascript; charset=utf-8'],
     ['/voicemail.js', 'voicemail.js', 'text/javascript; charset=utf-8'],
     ['/call-simulator', 'simulator.html', 'text/html; charset=utf-8'],
     ['/simulator.js', 'simulator.js', 'text/javascript; charset=utf-8'],
@@ -81,9 +87,10 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     required: ['sessionId', 'sequence', 'event', 'phase'], properties: {
       sessionId: { type: 'string', pattern: idPattern }, sequence: { type: 'integer', minimum: 0, maximum: 2000 },
       event: { type: 'string', enum: journalEvents }, phase: { type: 'string', enum: phases },
+      detail: { type: 'string', maxLength: 1500 },
     } } } }, async (request, reply) => {
     try { getJournal().append(request.body); return { saved: true }; }
-    catch { return reply.code(409).send({ error: 'The local session log could not be saved in sequence.' }); }
+    catch (error) { return reply.code(409).send({ error: diagnosticDetail('The local session log could not be saved: ' + error.message) }); }
   });
   app.get('/live-log/:id', { schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', pattern: idPattern } } } } }, async request => ({ events: getJournal().read(request.params.id) }));
   let speechBusy = false;
@@ -95,8 +102,8 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     try {
       const response = await fetchImpl('https://api.openai.com/v1/audio/speech', { method: 'POST',
         headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: request.body.voice || defaultCallVoice, response_format: 'wav', input: request.body.message,
-          instructions: 'Read the supplied voicemail message exactly, clearly and naturally. Do not add any words. ' + speakingStyle(request.body.voice || defaultCallVoice) }), signal: AbortSignal.timeout(30000) });
+        body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: apiVoice(request.body.voice), response_format: 'wav', input: request.body.message,
+          instructions: 'Read the supplied message exactly, clearly and naturally. Do not add any words. ' + speakingStyle(request.body.voice || defaultCallVoice) }), signal: AbortSignal.timeout(30000) });
       if (!response.ok) return reply.code(502).send(await openAIFailure(response));
       const audio = Buffer.from(await response.arrayBuffer());
       if (audio.length > 12 * 1024 * 1024) throw new Error('Speech too large');
@@ -148,7 +155,7 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
         instructions: live
           ? 'You are an AI assistant calling from Jay Marketing Lab on behalf of Cena. Clearly identify yourself as an AI assistant, name Jay Marketing Lab and Cena, and ask whether now is a good time to talk. Hold a natural real-time conversation: listen, answer the actual question, ask one relevant question at a time, and let the person interrupt. Do not treat this as an audio test, ask for audio-test keywords, or end merely because the person can hear you. Continue until the conversation reaches a natural ending or the person asks to stop. At a natural ending, say: You can contact Cena if you would like to talk more. Then thank them and say goodbye. Do not invent a contact number or promise a callback. If they ask not to be called, acknowledge that request without adding a promotional invitation. The owner has not supplied a specific business purpose, offer, product details or sales script. If asked for an unknown detail, say you do not have it; do not invent a reason for the call. Do not conduct sales without an approved brief, invent business facts, pricing or policies, make commitments, request private information, or pretend to be a human or Cena. If the listener asks to stop or not be called, politely acknowledge and stop speaking. Do not speak over a voicemail greeting. The application handles voicemail using the unchanged owner-approved prepared message after greeting and beep detection. Do not improvise voicemail messages. You have no tools and cannot dial or hang up. The owner controls the phone.'
           : 'You are an AI assistant in an audio setup test. Clearly identify yourself as an AI assistant. Help the owner verify hearing and speaking. Do not conduct sales conversations, make commitments, or invent business facts. No calls are authorized in this setup test.',
-        audio: { input: { turn_detection: null, ...(automatic ? { transcription: { model: 'gpt-4o-mini-transcribe', language: 'en' } } : {}) }, output: { voice } },
+        audio: { input: { turn_detection: null, ...(automatic ? { transcription: { model: 'gpt-4o-mini-transcribe', language: 'en' } } : {}) }, output: { voice: apiVoice(voice) } },
       };
       if (live) {
         session.instructions += ' ' + speakingStyle(voice);

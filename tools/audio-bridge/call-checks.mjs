@@ -39,6 +39,7 @@ function environment({ headless = false, failJournal = false, voicemail = false,
   window.SalesGodCallRecording = class {
     constructor(context, outbound) { this.context = context; this.outbound = outbound; this.inbound = []; recorders.push(this); }
     addStream(stream) { this.inbound.push(stream); }
+    async transcriptSegments() { return [{ speaker: 'customer', start: 0, end: 1, audio: '//sAAQ==' }]; }
     start() { this.started = true; }
     async finish() { this.finishes = (this.finishes || 0) + 1; return this.started ? (recordingFinish ? recordingFinish() : new Blob(['synthetic-mp3'])) : null; }
   };
@@ -106,6 +107,22 @@ test('failed recording uploads are retained as a failure and preparation alone s
       assert.equal(env.api.status().recordingState, started ? 'failed' : 'not_started');
       assert.equal(env.api.status().phase, started ? 'failed' : 'stopped');
       if (started) assert.match(env.api.status().stopReason, /recording could not be saved/);
+    } finally { await env.cleanup(); }
+  }
+});
+test('hangup and MP3 saving precede final transcription; failure preserves the recording and its exact cause', async () => {
+  for (const fail of [false, true]) {
+    const env = environment(), actions = [];
+    try {
+      env.api.configure({ saveRecording: async () => actions.push('mp3'), saveAudioTranscript: async body => {
+        actions.push('transcribe'); assert.equal(env.api.status().audioStopped, true); assert.equal(env.api.status().transcriptState, 'processing');
+        assert.equal(body.segments[0].speaker, 'customer'); assert.equal(env.contexts[0].closed, undefined);
+        if (fail) throw new Error('Transcription quota exhausted (HTTP 429)');
+      } });
+      await env.start(); env.api.startRecording(); await env.api.stop();
+      assert.deepEqual(actions, ['mp3', 'transcribe']); assert.equal(env.api.status().recordingState, 'saved');
+      assert.equal(env.api.status().transcriptState, fail ? 'failed' : 'complete');
+      if (fail) { assert.equal(env.api.status().phase, 'failed'); assert.match(env.api.status().stopReason, /quota exhausted \(HTTP 429\)/); }
     } finally { await env.cleanup(); }
   }
 });
@@ -283,6 +300,101 @@ async function beep(env) {
   env.setTime(100); env.detectors[0].samples(values, 48000); env.setTime(400); env.detectors[0].samples(values, 48000);
   env.setTime(550); env.detectors[0].samples(new Float32Array(2048), 48000); await tick(); await tick();
 }
+const screeningText = 'Hi, this is Alex, an AI assistant calling for Example Office about an appointment.';
+async function screenedCall(introduction = screeningText) {
+  const env = environment({ voicemail: true }), turns = [];
+  env.api.configure({ automatic: true, screeningIntroduction: introduction, saveTurn: async turn => turns.push(turn) });
+  await tick(); await env.api.prepare(); await env.media();
+  const dc = env.peers[0].channel; dc.message(listenAck); await tick();
+  return Object.assign(env, { dc, turns, async say(text, id = 'screen') {
+    dc.message({ type: 'input_audio_buffer.speech_started', item_id: id });
+    dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: id });
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: id, transcript: text }); await tick();
+  }, async introduction() {
+    await this.say("Please leave your name and reason for calling. I'll see if this person is available.");
+    await this.fireTimers(600); await this.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); await tick();
+    return this.contexts[0].sources[0];
+  } });
+}
+test('screening introduction plays once through the verified gate and waits for a human', async () => {
+  const env = await screenedCall();
+  try {
+    const intro = await env.introduction(); assert.equal(intro.started, true);
+    assert.equal(env.api.status().phase, 'call-screening-speaking');
+    assert.equal(env.api.status().voicemailOutcome, 'not_started');
+    intro.onended(); await tick(); env.dc.message(listenAck); await tick();
+    assert.equal(env.api.status().phase, 'call-screening-waiting');
+    await env.say('Thank you. Please hold while I check if they are available.', 'hold');
+    await env.say('Please state your name and reason for calling.', 'repeat'); await env.fireTimers(600);
+    assert.equal(env.contexts[0].sources.length, 1);
+    await env.say('Hello, can you hear me?', 'person');
+    assert.equal(env.api.status().phase, 'starting');
+    await env.links[0].options.onMessage({ type: 'gate-state', open: true }); env.dc.message(vadAck); await tick(); await tick();
+    assert.equal(env.api.status().phase, 'talking');
+    assert.ok(env.turns.some(t => t.speaker === 'assistant' && t.text.includes(screeningText)));
+    assert.ok(env.turns.some(t => t.item === 'person' && t.text.includes('hear me')));
+  } finally { await env.cleanup(); }
+});
+test('screening can progress to a fresh mailbox greeting and play the full voicemail', async () => {
+  const env = await screenedCall();
+  try {
+    const intro = await env.introduction(); intro.onended(); await tick(); env.dc.message(listenAck); await tick();
+    await env.say('Please leave your message at the tone.', 'mailbox');
+    assert.equal(env.api.status().phase, 'voicemail-waiting');
+    await beep({ ...env, detectors: [env.detectors.at(-1)] });
+    await env.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); await tick();
+    assert.equal(env.contexts[0].sources.length, 2); assert.equal(env.contexts[0].sources[1].started, true);
+    assert.equal(env.api.status().phase, 'voicemail-playing');
+    assert.ok(env.turns.some(t => t.item === 'mailbox'));
+  } finally { await env.cleanup(); }
+});
+test('a human interrupting the screening introduction stops it and enters live conversation', async () => {
+  const env = await screenedCall();
+  try {
+    const intro = await env.introduction(); await env.say('Hello, can you hear me?', 'interrupt');
+    assert.equal(intro.stopped, true); assert.equal(env.api.status().phase, 'starting');
+    assert.equal(env.api.status().humanAnswered, true);
+  } finally { await env.cleanup(); }
+});
+test('screening without an introduction pauses with an explicit saved reason', async () => {
+  const env = await screenedCall('');
+  try {
+    await env.say('Please say your name and reason for calling.'); await env.fireTimers(600);
+    assert.equal(env.api.status().phase, 'paused'); assert.match(env.api.status().reviewReason, /no call-screening introduction/);
+    assert.equal(env.contexts[0].sources.length, 0);
+    const event = env.requests.filter(r => r.url === '/live-log').map(r => JSON.parse(r.options.body)).find(e => e.event === 'call_screening.missing_introduction');
+    assert.match(event.detail, /no call-screening introduction/);
+  } finally { await env.cleanup(); }
+});
+test('screening waits again if speech resumes before gate acknowledgement and bounds both waits', async () => {
+  for (const gate of [false, true]) {
+    const env = await screenedCall();
+    try {
+      await env.say('Please state your name and reason for calling.');
+      await env.fireTimers(600);
+      if (!gate) {
+        env.dc.message({ type: 'input_audio_buffer.speech_started' });
+        await env.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick();
+        assert.equal(env.contexts[0].sources.length, 0); assert.equal(env.api.status().phase, 'call-screening-prompt');
+        await env.fireTimers(20000); assert.match(env.api.status().stopReason, /did not become quiet within 20 seconds/);
+      } else { await env.fireTimers(6000); assert.match(env.api.status().stopReason, /acknowledgement timed out after 6 seconds/); }
+      assert.equal(env.api.status().phase, 'failed');
+    } finally { await env.cleanup(); }
+  }
+});
+test('API failures preserve the exact safe reason, code and stage in the final report and journal', async () => {
+  const env = environment();
+  try {
+    await env.start();
+    env.peers[0].channel.message({ type: 'response.done', response: { status: 'failed', status_details: { error: { code: 'insufficient_quota', message: 'Project quota exhausted. sk-syntheticSecret' } } } });
+    await tick(); await tick(); await tick();
+    assert.equal(env.api.status().failure.stage, 'ai_response');
+    assert.match(env.api.status().stopReason, /insufficient_quota.*Project quota exhausted/);
+    assert.doesNotMatch(JSON.stringify(env.api.status()), /sk-syntheticSecret/);
+    const body = env.requests.filter(r => r.url === '/live-log').map(r => JSON.parse(r.options.body)).find(e => e.event === 'session.stopped');
+    assert.match(body.detail, /Project quota exhausted/);
+  } finally { await env.cleanup(); }
+});
 async function automaticMailbox(greeting = 'Please leave a message after the beep.') {
   const env = environment({ voicemail: true }), turns = [];
   env.api.configure({ automatic: true, saveTurn: async turn => turns.push(turn) });
@@ -410,7 +522,8 @@ test('a human can supersede a recognized voicemail greeting before the beep', as
     env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'person', transcript: 'Hello? I just picked up. Who is this?' });
     env.classify('human'); await env.fireTimers(1000); await env.liveGate();
     assert.equal(env.api.status().phase, 'talking'); assert.equal(env.contexts[0].sources.length, 0);
-    assert.equal(env.turns.length, 1); assert.match(env.turns[0].text, /picked up/);
+    assert.equal(env.turns.length, 2); assert.match(env.turns.find(t => t.item === 'person').text, /picked up/);
+    assert.match(env.turns.find(t => t.item === 'recorded-greeting').text, /leave a message/);
   } finally { await env.cleanup(); }
 });
 test('speech during automatic voicemail stops playback, waits for human confirmation and keeps the same call alive', async () => {
@@ -428,7 +541,7 @@ test('speech during automatic voicemail stops playback, waits for human confirma
     env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'person' }); await env.fireTimers(1000); await env.liveGate();
     assert.equal(env.api.status().phase, 'talking'); assert.equal(env.api.status().voicemailOutcome, 'human_takeover');
     await env.fireTimers(30000); assert.equal(env.api.status().phase, 'talking'); assert.equal(env.peers[0].connectionState, 'connected');
-    assert.match(env.turns[0].text, /Can we talk/);
+    assert.match(env.turns.find(t => t.item === 'person').text, /Can we talk/);
     assert.ok(env.api.status().events.some(e => e.event === 'voicemail.human_takeover'));
     assert.equal(env.api.status().events.some(e => e.event === 'voicemail.playback_completed'), false);
   } finally { await env.cleanup(); }
@@ -627,7 +740,7 @@ test('voicemail synthesis validates input, preserves owner text, exposes no upst
     const message = 'Hi, this is a synthetic AI test message.';
     const response = await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message } });
     assert.equal(response.statusCode, 200); assert.match(response.headers['content-type'], /audio\/wav/);
-    assert.equal(JSON.parse(requests[0].options.body).input, message); assert.equal(JSON.parse(requests[0].options.body).voice, 'cedar');
+    assert.equal(JSON.parse(requests[0].options.body).input, message); assert.equal(JSON.parse(requests[0].options.body).voice, 'marin');
     fail = true;
     const failed = await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message } });
     assert.equal(failed.statusCode, 502); assert.doesNotMatch(failed.body, /private upstream|synthetic-private-key/);

@@ -3,6 +3,17 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-014",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-26-TRANSCRIPT-EVIDENCE.md",
+      "tags": [
+        "audio",
+        "calling",
+        "persistence",
+        "testing"
+      ]
+    },
+    {
       "id": "LL-2026-013",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-24-REAL-CALL-RECORDING.md",

@@ -41,13 +41,14 @@
     if (turnResult.status === 'rejected') retrievalErrors.push('Transcript unavailable: ' + turnResult.reason.message);
     if (audioResult.status === 'rejected') retrievalErrors.push('Audio log unavailable: ' + audioResult.reason.message);
     const events = [...list.events.filter(e => !e.contact || e.contact === c.id).map(e => ({ ...e, source: e.contact ? 'Contact' : 'List' })), ...audio.events.map(e => ({ ...e, source: 'Audio' }))].sort((a, b) => a.time.localeCompare(b.time));
-    report = { list: list.name, contact: c, transcript: turns.turns, events, ...(retrievalErrors.length ? { retrievalErrors } : {}) };
-    const log = events.map(e => `${e.time} [${e.source}] ${e.event}${e.phase ? ' · phase=' + e.phase : ''}${Number.isInteger(e.sequence) ? ' · sequence=' + e.sequence : ''}`).join('\n');
+    report = { list: list.name, contact: c, transcript: turns.turns, transcriptSource: turns.source || 'live_draft', transcriptState: turns.state, transcriptError: turns.error, liveDraft: turns.liveDraft, events, ...(retrievalErrors.length ? { retrievalErrors } : {}) };
+    const log = events.map(e => `${e.time} [${e.source}] ${e.event}${e.phase ? ' · phase=' + e.phase : ''}${Number.isInteger(e.sequence) ? ' · sequence=' + e.sequence : ''}${e.detail ? ' · ' + e.detail : ''}`).join('\n');
     const review = ['needs_review', 'failed', 'unknown'].includes(c.state);
     const diagnostic = ['pending', ...active].includes(c.state);
     const reasons = events.filter(e => e.event.startsWith('failure_detail:')).map(e => `${e.time} ${e.event.slice('failure_detail:'.length).trim()}`);
     const details = review ? `Call details\nStatus: ${c.state}\nContact ID: ${c.id}\nSession: ${c.session || 'Not started'}\nCall attempted: ${c.dispatched || 'Not recorded'}\nEnded: ${c.ended || 'Not recorded'}\nMP3: ${c.hasRecording ? 'Saved — play or download below' : 'No recording saved'}\n\nReview / failure details\n${reasons.join('\n') || 'No separate failure explanation was saved. Review the recorded events below.'}\n\n` : '';
-    const conversation = (review ? 'Saved conversation (may be partial)' : 'Transcript') + '\n' + (turnResult.status === 'rejected' ? 'Transcript could not be loaded; see the error below.' : turns.turns.map(t => `${t.time ? t.time + ' ' : ''}${t.speaker}: ${t.text}`).join('\n\n') || 'No transcript saved.') + '\n\n';
+    const transcriptLabel = turns.source === 'recorded_audio' ? 'Transcript from recorded audio · automatic transcription; check the MP3 for exact wording.' : 'Live draft · not checked against the recording; generated AI text may include unspoken words.';
+    const conversation = transcriptLabel + (turns.error ? '\nTranscription issue: ' + turns.error : '') + '\n' + (turnResult.status === 'rejected' ? 'Transcript could not be loaded; see the error below.' : turns.turns.map(t => `${Number.isFinite(t.start) ? '[' + t.start.toFixed(1) + 's] ' : t.time ? t.time + ' ' : ''}${t.speaker}: ${t.text}`).join('\n\n') || 'No transcript saved.') + '\n\n';
     $('historyText').textContent = details + (diagnostic ? '' : conversation) + 'Recorded event log\n' + (log || 'No events were saved.') + (c.state === 'pending' ? '\nPending: this contact has not been attempted.' : '') + (retrievalErrors.length ? '\n\nLoading errors\n' + retrievalErrors.join('\n') : '');
     if (c.hasRecording) {
       const player = document.createElement('audio'), link = document.createElement('a');

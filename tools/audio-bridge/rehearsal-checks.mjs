@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { CampaignStore } from './campaign-store.mjs';
 import { createBridge } from './server.mjs';
-import { callVoices } from './voice-settings.mjs';
+import { callVoices, apiVoice, speakingStyle } from './voice-settings.mjs';
 
 const settings = { simulation: true, simulationMode: 'agents', rehearsalTurns: 4, rehearsalPersona: 'busy', timeZone: 'UTC', startHour: 0, endHour: 24, callerNumber: '+12025550100', brief: 'Introduce the office and collect questions for Cena.', voicemailMessage: 'Synthetic voicemail only.' };
 function fixture(overrides = {}) {
@@ -22,16 +22,40 @@ test('each rehearsal role uses its selected voice from all five options', async 
     const app = createBridge({ campaignStore: f.store, env: { OPENAI_API_KEY: 'synthetic-key' }, fetchImpl: async (_url, options) => { sessions.push(JSON.parse(options.body.get('session'))); return new Response('v=0\r\n'); } });
     try {
       for (const role of ['assistant', 'customer']) assert.equal((await app.inject({ method: 'POST', url: '/rehearsal-session', headers: { ...f.headers, 'x-rehearsal-role': role }, payload: 'v=0\r\n' })).statusCode, 200);
-      assert.deepEqual(sessions.map(s => s.audio.output.voice), [voice, customerVoice]);
+      assert.deepEqual(sessions.map(s => s.audio.output.voice), [apiVoice(voice), apiVoice(customerVoice)]);
+      assert.ok(sessions[0].instructions.includes(speakingStyle(voice))); assert.ok(sessions[1].instructions.includes(speakingStyle(customerVoice)));
     } finally { await app.close(); f.store.close(); }
   }
+});
+test('the rehearsal office agent receives the whole long guide with priority over the short brief, without giving it to the customer', async () => {
+  const guidance = 'Represent Example Office and offer Tuesday at 2 PM. '.padEnd(6000, '.');
+  const f = fixture({ guidance }), sessions = [];
+  const app = createBridge({ campaignStore: f.store, env: { OPENAI_API_KEY: 'synthetic' }, fetchImpl: async (_url, options) => { sessions.push(JSON.parse(options.body.get('session'))); return new Response('v=0\r\n'); } });
+  try {
+    for (const role of ['assistant', 'customer']) assert.equal((await app.inject({ method: 'POST', url: '/rehearsal-session', headers: { ...f.headers, 'x-rehearsal-role': role }, payload: 'v=0\r\n' })).statusCode, 200);
+    assert.ok(sessions[0].instructions.includes(JSON.stringify(guidance))); assert.match(sessions[0].instructions, /detailed guide takes priority/);
+    assert.ok(!sessions[1].instructions.includes(guidance)); assert.match(sessions[1].instructions, /fictional customer/);
+  } finally { await app.close(); f.store.close(); }
+});
+test('rehearsal guide updates validate text and cannot alter an active session or a real list', () => {
+  const store = new CampaignStore(':memory:');
+  const draft = { name: 'Guidance update', csv: 'first_name,last_name,phone\nAlex,Example,+12025550101', settings };
+  try {
+    const c = store.create(draft), guide = 'g'.repeat(6000);
+    assert.throws(() => store.applyRehearsalGuidance(c.id, 'short'), /6,000/);
+    assert.equal(store.applyRehearsalGuidance(c.id, guide).settings.guidance, guide);
+    const worker = randomUUID(); store.start(c.id, worker); assert.throws(() => store.applyRehearsalGuidance(c.id, ''), /idle rehearsal/);
+    const real = store.create({ ...draft, settings: { ...settings, simulation: false } });
+    assert.throws(() => store.applyRehearsalGuidance(real.id, guide), /idle rehearsal/);
+  } finally { store.close(); }
 });
 test('rehearsal uses two distinct voices, isolated roles and no phone number or tools', async () => {
   const f = fixture(), sessions = [];
   const app = createBridge({ campaignStore: f.store, env: { OPENAI_API_KEY: 'synthetic-key' }, fetchImpl: async (_url, options) => { sessions.push(JSON.parse(options.body.get('session'))); return new Response('v=0\r\n'); } });
   try {
     for (const role of ['assistant', 'customer']) assert.equal((await app.inject({ method: 'POST', url: '/rehearsal-session', headers: { ...f.headers, 'x-rehearsal-role': role }, payload: 'v=0\r\n' })).statusCode, 200);
-    assert.deepEqual(sessions.map(s => s.audio.output.voice), ['marin', 'cedar']);
+    assert.deepEqual(sessions.map(s => s.audio.output.voice), ['marin', 'coral']);
+    for (const session of sessions) assert.match(session.instructions, /feminine-sounding/);
     for (const s of sessions) { assert.equal(s.max_output_tokens, 600); assert.equal(s.audio.output.speed, 1.15); assert.equal(s.audio.input.turn_detection, null); assert.deepEqual(s.tools, []); assert.doesNotMatch(s.instructions, /12025550101|synthetic-key/); }
     assert.match(sessions[0].instructions, /approved brief/); assert.match(sessions[1].instructions, /fictional customer/);
     assert.equal((await app.inject({ method: 'POST', url: '/rehearsal-session', headers: f.headers, payload: 'v=0' })).statusCode, 409);

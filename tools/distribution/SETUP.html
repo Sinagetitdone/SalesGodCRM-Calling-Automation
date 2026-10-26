@@ -2,15 +2,28 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SalesGod Team — Step-by-step guide</title>
 <style>body{font:17px/1.65 system-ui,sans-serif;color:#173c34;background:#f2f6f3;margin:0}main{max-width:880px;margin:32px auto;background:white;padding:40px;border-radius:18px}h1{font-size:36px;line-height:1.2}h2{border-top:1px solid #d7e5de;padding-top:28px;margin-top:38px;font-size:25px;scroll-margin-top:20px}h3{font-size:20px;margin-top:30px}li{margin:14px 0;padding-left:5px}code{background:#edf3f0;border-radius:4px;padding:2px 5px;overflow-wrap:anywhere}pre{background:#173c34;color:white;padding:18px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}pre code{background:transparent;color:inherit;padding:0}a{color:#166454}p{overflow-wrap:anywhere}nav{background:#edf3f0;padding:20px;border-radius:10px}nav ul{padding-left:20px}nav li{margin:6px 0}nav a{text-decoration:none}@media(max-width:600px){main{margin:0;padding:20px;border-radius:0}h1{font-size:29px}}@media print{body{background:white}main{margin:0;padding:0;max-width:none}nav{display:none}h2,h3{break-after:avoid}pre{border:1px solid #ccc;background:white;color:black}a{color:inherit}}</style></head>
 <body><main><h1>SalesGod Team: step-by-step setup and calling guide</h1>
-<nav aria-label="Guide contents"><strong>Jump to a step</strong><ul><li><a href="#section-0">Listening, reviewing and downloading conversations</a></li><li><a href="#section-1">Step 1 — Prepare your computer and extract the ZIP</a></li><li><a href="#section-2">Step 2A — Save your API key on Windows</a></li><li><a href="#section-3">Step 2B — Save your API key on Mac</a></li><li><a href="#section-4">Step 3A — Start the bridge on Windows</a></li><li><a href="#section-5">Step 3B — Start the bridge on Mac</a></li><li><a href="#section-6">Step 4 — Install the Chrome extension</a></li><li><a href="#section-7">Step 5 — Check setup without calling anyone</a></li><li><a href="#section-8">Step 6 — Start your normal workday</a></li><li><a href="#section-9">Step 7 — Import your list and start calling</a></li><li><a href="#section-10">Step 8 — Manual commands if double-click does not work</a></li><li><a href="#section-11">Step 9 — Pause, read logs, and finish safely</a></li><li><a href="#section-12">Step 10 — Understand prompts and fix common problems</a></li><li><a href="#section-13">Step 11 — Install a future update</a></li><li><a href="#section-14">What this version has been checked for</a></li></ul></nav>
+<nav aria-label="Guide contents"><strong>Jump to a step</strong><ul><li><a href="#section-0">New settings: screening, file uploads and accurate call records</a></li><li><a href="#section-1">Listening, reviewing and downloading conversations</a></li><li><a href="#section-2">Step 1 — Prepare your computer and extract the ZIP</a></li><li><a href="#section-3">Step 2A — Save your API key on Windows</a></li><li><a href="#section-4">Step 2B — Save your API key on Mac</a></li><li><a href="#section-5">Step 3A — Start the bridge on Windows</a></li><li><a href="#section-6">Step 3B — Start the bridge on Mac</a></li><li><a href="#section-7">Step 4 — Install the Chrome extension</a></li><li><a href="#section-8">Step 5 — Check setup without calling anyone</a></li><li><a href="#section-9">Step 6 — Start your normal workday</a></li><li><a href="#section-10">Step 7 — Import your list and start calling</a></li><li><a href="#section-11">Step 8 — Manual commands if double-click does not work</a></li><li><a href="#section-12">Step 9 — Pause, read logs, and finish safely</a></li><li><a href="#section-13">Step 10 — Understand prompts and fix common problems</a></li><li><a href="#section-14">Step 11 — Install a future update</a></li><li><a href="#section-15">What this version has been checked for</a></li></ul></nav>
 <p>Use this guide in order. Steps 1–5 are for your first installation. For everyday use, go to Step 6. Keep this guide open while you work.</p>
 <p>You will use two parts: the Chrome extension adds controls to SalesGodCRM, and the local bridge runs in a command window on your computer. Both must be running. You do not need Docker, VB-CABLE, or a separate Node.js installation.</p>
 <p><strong>Double-click startup:</strong> on Windows, open <strong>SalesGod Bridge.exe</strong>; on Mac, open <strong>SalesGod Bridge.app</strong>. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type <code>npm run audio:bridge</code>. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.</p>
-<p>Package <strong>0.5.9</strong> uses the Jay Marketing Lab logo and purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. After updating, restart the bridge, reload extension <strong>0.4.5</strong>, and refresh SalesGodCRM only while its dialer is idle.</p>
+<p>Package <strong>0.6.0</strong> uses the Jay Marketing Lab purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. For this update, restart the idle bridge and reopen the calling and history pages. Extension <strong>0.4.5</strong> is unchanged; reload it only when updating from an older extension.</p>
+<h2 id="section-0">New settings: screening, file uploads and accurate call records</h2>
+<p><strong>Voice choices:</strong> Marin Calm, Coral Warm, Sage Measured, Shimmer Bright and Marin Confident. These use feminine-sounding delivery directions; perceived gender can vary. The two Marin options use one underlying voice with different styles. Choose independently for the office and customer rehearsal agents. The real-call selection also controls voicemail and the screening introduction. Earlier male selections use Marin when a new call is prepared; no active call's voice changes midway through a session.</p>
+<p><strong>Make sure guidance is applied:</strong> typing or uploading into the editor alone does not change a saved list. For real calls, use <strong>Save for future calls</strong> for new imports and <strong>Apply to selected list</strong> for an existing idle list. The new guide-status message says whether the editor matches the selected list. In AI Agents Test Call, use <strong>Guide the rehearsal office AI</strong> (optional; 6,000–20,000 characters when provided), then import or <strong>Apply guide to selected rehearsal</strong>. This long guide overrides conflicting short-brief details for the office AI; the fictional customer keeps its own persona. The separate <strong>Send next-reply instruction</strong> control is for an already-live supervised conversation, not the two-agent rehearsal.</p>
+<ol start="1">
+<li>Start <strong>SalesGod Bridge.exe</strong> on Windows or <strong>SalesGod Bridge.app</strong> on Mac. Leave its window open. In the CRM extension, choose <strong>Open calling list</strong>.</li>
+<li>In the saved calling context, fill <strong>Call-screening introduction</strong> with 10–300 characters, or leave it blank. This is a short answer for a screening assistant that asks for your name and reason for calling. Example: “Hi, this is Alex, an AI assistant calling on behalf of Example Office about an appointment.” Use your actual approved identity and reason. Keep the full voicemail in its separate box.</li>
+<li>Click <strong>Save for future calls</strong>. To update a list you already imported, select an idle real list and click <strong>Apply to selected list</strong>. Saving defaults does not change existing lists or an active call.</li>
+<li>To load text from a document, use the file picker beside its text box. Supported files: TXT, Markdown (.md), Word (.docx), and PDF; up to 5 MB and 100 PDF pages. Text is extracted locally. Scanned PDFs need OCR first. The existing box's character limit still applies. Long files are rejected, never silently cut off. Review the loaded text, then use the normal Save, Import or Send button. Upload alone does not save settings, send instructions or start calls.</li>
+<li>On a real call, the system listens for a screening request, gives the short introduction once, then waits for a person or a later voicemail greeting. With no introduction configured, a detected screening request pauses for review. Normal voicemail still waits for its recording window. Ambiguous speech is not a guaranteed human answer.</li>
+<li>When the call ends, keep the bridge and calling page open. The system first saves the complete MP3, then transcribes separate recordings of the AI and customer. This uses the local OpenAI key and adds transcription API usage after the call, without delaying live replies. Wait for the contact result before closing. The next call waits for this processing to finish.</li>
+<li>Open <strong>Previous Conversations</strong>, select the list and contact. New successful transcriptions say <strong>Transcript from recorded audio</strong> and include elapsed-time markers and speaker labels. They use captured audio rather than the AI's planned reply. Speech recognition can still make mistakes or normalize wording such as “four P M” to “4 p.m.”; listen to the MP3 for the exact sound. Older records and failed transcriptions are explicitly labeled <strong>Live draft</strong>. They are not automatically rewritten. JSON and ZIP exports retain the draft separately for review.</li>
+<li>If something fails, open its full details. The log includes the reported cause, stage, timeout duration, HTTP status or error code when available. A recording/transcription error preserves available audio and text and pauses for review. An older record without a saved cause says so instead of inventing one.</li>
+</ol>
 <p>Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.</p>
 <p>In extension 0.4.5, <strong>Open AI voice setup</strong> is renamed <strong>AI Voice Startup</strong>. Buttons now align in equal-width pairs, with <strong>AI Agents Test Call</strong> and <strong>Open calling list</strong> each filling a row. Their actions are unchanged.</p>
-<h2 id="section-0">Listening, reviewing and downloading conversations</h2>
-<p><strong>Real calls (new in 0.5.9):</strong> use <strong>Open calling list</strong> and start your real list as usual. Recording starts automatically before dialing and includes both voices, voicemail and greetings. Watch the recording status at the bottom of the page. Wait for <strong>Conversation MP3 saved in Previous Conversations</strong> or the finished-contact result. Then open <strong>Previous Conversations</strong>, choose the list and contact, press Play to listen, or <strong>Download conversation MP3</strong> to save the whole call. For a single saved call, import a one-contact real list; manual diagnostic sessions are not added to history.</p>
+<h2 id="section-1">Listening, reviewing and downloading conversations</h2>
+<p><strong>Real calls:</strong> use <strong>Open calling list</strong> and start your real list as usual. Recording starts automatically before dialing and includes both voices, voicemail and greetings. Watch the recording status at the bottom of the page. Wait for the finished-contact result, including recorded-audio transcription. Then open <strong>Previous Conversations</strong>, choose the list and contact, press Play to listen, or <strong>Download conversation MP3</strong> to save the whole call. For a single saved call, import a one-contact real list; manual diagnostic sessions are not added to history.</p>
 <p>Keep the calling window and bridge open until saving completes. Closing Chrome, restarting the bridge or a computer crash before saving can lose the recording. Interrupted calls may have a partial MP3. If saving fails, the list pauses; if encoding completed, use <strong>Download unsaved call MP3 before closing this window</strong> on the calling page. Older unrecorded calls cannot be recovered. No new extension permissions or API key are required.</p>
 <ol start="1">
 <li>To move the extension, drag any background or text area of the extension panel to the part of the page you prefer. Its position is remembered on that site. You can also focus the panel and use arrow keys; Home returns it to the default corner. There is no separate drag button.</li>
@@ -22,7 +35,7 @@
 <li>Records remain on this computer until you delete them. To delete one, choose <strong>Delete this conversation</strong>, review the warning, then <strong>Permanently delete</strong>. Active lists and conversations cannot be deleted. Downloaded copies remain outside the app. Opt-out suppression remains in force.</li>
 <li>New rehearsal MP3s are saved automatically. If saving fails, download the visible MP3 before closing or refreshing. Earlier browser-only recordings and data already cleared by older versions cannot be recovered. Back up the installation's private <code>data</code> folder if needed; do not include it or <code>.env</code> in a shared installation ZIP.</li>
 </ol>
-<h2 id="section-1">Step 1 — Prepare your computer and extract the ZIP</h2>
+<h2 id="section-2">Step 1 — Prepare your computer and extract the ZIP</h2>
 <ol start="1">
 <li>Have Google Chrome installed, your own SalesGodCRM login ready, and a company-approved OpenAI API key available. A ChatGPT login alone does not supply API access.</li>
 <li>If your organization uses a VPN or proxy, connect it now. Hiddify is not required. Use your organization's approved connection.</li>
@@ -31,7 +44,7 @@
 <li>Open the extracted <strong>SalesGod-Team</strong> folder. You should see <strong>SalesGod Bridge.exe</strong>, <strong>SalesGod Bridge.app</strong>, <strong>SETUP.html</strong>, fallback Start scripts, and a <strong>tools</strong> folder. Run the files here, outside the ZIP.</li>
 <li>Double-click <strong>SETUP.html</strong> to open this guide in your browser. Keep all extracted files together. Use a private local folder rather than a shared or synced team folder: your key and conversation logs will be stored here.</li>
 </ol>
-<h2 id="section-2">Step 2A — Save your API key on Windows</h2>
+<h2 id="section-3">Step 2A — Save your API key on Windows</h2>
 <ol start="1">
 <li>In the extracted folder, double-click <strong>Configure OpenAI Windows.cmd</strong>.</li>
 <li>A command window may appear. If it says <strong>Preparing a private Node.js 24 runtime from nodejs.org</strong>, wait. The launcher downloads and checks the required software automatically. You do not need to type any commands into this window.</li>
@@ -41,7 +54,7 @@
 <li>Continue to Step 3A.</li>
 </ol>
 <p>Never paste the API key into a command prompt, Chrome extension, chat, GitHub, or a screenshot. Use only your local <code>.env</code> file.</p>
-<h2 id="section-3">Step 2B — Save your API key on Mac</h2>
+<h2 id="section-4">Step 2B — Save your API key on Mac</h2>
 <ol start="1">
 <li>In the extracted folder, double-click <strong>Configure OpenAI Mac.command</strong>.</li>
 <li>Terminal may open and display <strong>Preparing a private Node.js 24 runtime from nodejs.org</strong>. Wait for automatic setup; no separate Node.js installation is needed.</li>
@@ -50,7 +63,7 @@
 <li>If double-clicking the file does not work, use the Mac manual commands in Step 8. If macOS or your organization blocks the software, ask IT to review it. Do not disable security protections.</li>
 <li>Continue to Step 3B.</li>
 </ol>
-<h2 id="section-4">Step 3A — Start the bridge on Windows</h2>
+<h2 id="section-5">Step 3A — Start the bridge on Windows</h2>
 <ol start="1">
 <li>Double-click <strong>SalesGod Bridge.exe</strong> in the extracted folder. <strong>Start Windows.cmd</strong> remains an alternative double-click launcher.</li>
 <li>Leave the command window open. You may see automatic Node setup, <strong>Installing required libraries from npm</strong>, download progress, or a list of installed packages. First launch needs internet access and can take longer. Wait; no commands or API key need to be typed here.</li>
@@ -62,7 +75,7 @@
 <li>Keep this window open for the entire calling session. A window waiting at this message is working; it is not frozen. You can minimize it.</li>
 <li>Continue to Step 4. Starting the bridge never places a call.</li>
 </ol>
-<h2 id="section-5">Step 3B — Start the bridge on Mac</h2>
+<h2 id="section-6">Step 3B — Start the bridge on Mac</h2>
 <ol start="1">
 <li>Double-click <strong>SalesGod Bridge.app</strong> in the extracted folder. It opens Terminal and starts <strong>Start Mac.command</strong> automatically. You can also double-click <strong>Start Mac.command</strong> directly.</li>
 <li>Leave Terminal open while software downloads or libraries install. You may see <strong>Preparing a private Node.js 24 runtime from nodejs.org</strong> or <strong>Installing required libraries from npm</strong>. Wait for setup to finish.</li>
@@ -71,7 +84,7 @@
 <li>Continue to Step 4.</li>
 </ol>
 <p>The launchers do not require an administrator password. Mac launcher syntax has been checked, but actual Mac startup and telephone audio still need testing on a Mac.</p>
-<h2 id="section-6">Step 4 — Install the Chrome extension</h2>
+<h2 id="section-7">Step 4 — Install the Chrome extension</h2>
 <ol start="1">
 <li>Open the Chrome profile you use for SalesGodCRM. A different Chrome profile has separate extensions and logins.</li>
 <li>Type <code>chrome://extensions</code> in Chrome's address bar and press Enter.</li>
@@ -82,7 +95,7 @@
 <li>Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.</li>
 <li>Look for the <strong>SalesGod audio bridge</strong> panel. Continue to Step 5.</li>
 </ol>
-<h2 id="section-7">Step 5 — Check setup without calling anyone</h2>
+<h2 id="section-8">Step 5 — Check setup without calling anyone</h2>
 <ol start="1">
 <li>Confirm the bridge command window is still open and shows the ready message.</li>
 <li>Open <code>http://127.0.0.1:28431/voice-test</code> in Chrome.</li>
@@ -90,7 +103,7 @@
 <li>Wait for <strong>AI audio test passed · disconnected</strong>. If the test fails, go to Step 10. Do not start a live list until the voice check works.</li>
 <li>Return to the idle CRM. Enable local routing, then click <strong>AI Agents Test Call</strong> in the extension panel. Scroll to <strong>Rehearsal setup</strong>. You can also open <code>http://127.0.0.1:28431/supervised-call</code> directly for no-phone rehearsal; manual call controls require opening from the extension.</li>
 <li>Choose <strong>Live AI rehearsal</strong> for two speaking agents (uses API credits), or <strong>Offline workflow check</strong> for free canned replies.</li>
-<li>Click <strong>Use simulated contacts</strong>. Choose <strong>Office AI voice</strong> and <strong>Simulated customer voice</strong> from Cedar, Ash, Echo, Ballad and Marin. Choose different voices if you want to distinguish the speakers. Choose the customer personality, conversation length and timeout, then review the approved brief. Click <strong>Import and preview</strong> to save these choices with the rehearsal. Confirm it says <strong>LIVE AI REHEARSAL — no calls</strong> or <strong>OFFLINE SIMULATION</strong>. Copy an old rehearsal to the editor and reimport to change its voices.</li>
+<li>Click <strong>Use simulated contacts</strong>. Choose <strong>Office AI voice</strong> and <strong>Simulated customer voice</strong> from Marin Calm, Coral Warm, Sage Measured, Shimmer Bright and Marin Confident. The two Marin choices share a base voice; choose different underlying voices to distinguish speakers. Choose the customer personality, conversation length and timeout, then review the approved brief and optional long rehearsal guide. Click <strong>Import and preview</strong> to save these choices with the rehearsal. Confirm it says <strong>LIVE AI REHEARSAL — no calls</strong> or <strong>OFFLINE SIMULATION</strong>. Copy an old rehearsal to the editor and reimport to change its voices; use <strong>Apply guide to selected rehearsal</strong> to change just its guide while idle.</li>
 <li>Click <strong>Start rehearsal</strong>. Watch the live text and listen through your speakers/headset. No microphone or CRM connection is used by this practice workflow. Manual supervised AI preparation is disabled while a rehearsal runs. <strong>Open calling list</strong> is a separate page exclusively for real calling campaigns.</li>
 <li>For an additional local audio check, use <strong>Enable local routing</strong> and <strong>Test local audio</strong> in the idle CRM extension panel. <strong>Test WebRTC</strong> checks the local connection too. These tests use synthetic audio. Choose <strong>Disable</strong> afterward if you are finished testing.</li>
 </ol>
@@ -103,7 +116,7 @@
 <li>Choose <strong>View transcript</strong> beside a contact for the saved dialogue. Use <strong>Export rehearsal transcripts and event log</strong> for the whole rehearsal list, or <strong>Download visible transcript</strong> for the currently displayed conversation, including partial text.</li>
 <li>Completed text replies, logs and new MP3s stay in the local database until you delete them. Rehearsal MP3 audio is generated by AI and is not a recording of a real phone call. This feature tests dialogue; it does not test telephone routing, voicemail detection or interruptions. It ends after the chosen reply count or five minutes. On connection failure it pauses with partial results; import a fresh draft to retry a failed fictional contact.</li>
 </ol>
-<h2 id="section-8">Step 6 — Start your normal workday</h2>
+<h2 id="section-9">Step 6 — Start your normal workday</h2>
 <ol start="1">
 <li>Connect your approved VPN or proxy if your network requires one.</li>
 <li>Open the extracted SalesGod-Team folder and double-click <strong>SalesGod Bridge.exe</strong> (Windows) or <strong>SalesGod Bridge.app</strong> (Mac). If its bridge window is already running, use that window instead of opening a second copy.</li>
@@ -112,11 +125,11 @@
 <li>In the extension panel, click <strong>Open calling list</strong>. Wait for <strong>CRM controls paired</strong> and keep both pages open.</li>
 <li>Continue to Step 7. If you changed the key, VPN, or proxy settings, restart the bridge while no call or list is active and repeat the no-call voice test first.</li>
 </ol>
-<h2 id="section-9">Step 7 — Import your list and start calling</h2>
+<h2 id="section-10">Step 7 — Import your list and start calling</h2>
 <h3>Save your background, guide and voice once</h3>
 <ol start="1">
 <li>At the top of <strong>Open calling list</strong>, find <strong>Saved calling context</strong>.</li>
-<li>Choose <strong>Voice for real calls and voicemail</strong>: Cedar, Ash, Echo, Ballad or Marin. Cedar is the default and requests a confident, young-adult masculine delivery. Perceived age is approximate; listen in rehearsal before deciding. The voice is fixed when a session starts.</li>
+<li>Choose <strong>Voice for real calls and voicemail</strong>: Marin Calm, Coral Warm, Sage Measured, Shimmer Bright or Marin Confident. Marin Calm is the default. These request feminine-sounding delivery; the two Marin options share a base voice with different styles. Listen in rehearsal before deciding. The selection also controls the screening introduction and is fixed when a session starts.</li>
 <li>In <strong>Background: who the AI represents</strong>, enter your company, represented person's name, business description and approved contact details. This field is optional and accepts up to <strong>20,000 characters</strong>.</li>
 <li>In <strong>Guide the live conversation</strong>, enter your detailed objectives, approved facts, questions, objections and closing instructions. This field requires <strong>6,000–20,000 characters</strong>, excluding leading/trailing spaces. The counter shows your current length. Shorter instructions cannot be saved as this guide.</li>
 <li>Click <strong>Save for future calls</strong> and wait for the saved confirmation. This stores the background, guide and voice on this computer, surviving bridge restarts. It does not share settings with a colleague or start calls. Context is sent to OpenAI when a call is prepared.</li>
@@ -145,7 +158,7 @@
 <li>Leave the bridge window, CRM page, and calling-list page open. Do not refresh them while a call is active. Calling-window and suppression checks remain active. If the page says it is waiting for the calling window, keep it open and review the approved hours.</li>
 <li>Wait for <strong>Finished processing every contact. Review the results below.</strong> This means processing is finished; it does not mean every person answered. If the list pauses with an uncertain result, review the CRM before taking another action. Uncertain attempts are not automatically redialed.</li>
 </ol>
-<h2 id="section-10">Step 8 — Manual commands if double-click does not work</h2>
+<h2 id="section-11">Step 8 — Manual commands if double-click does not work</h2>
 <p>Run only the commands for your operating system. Do not type the <code>C:\...&gt;</code> or <code>%</code> prompt shown by your computer. Do not put your API key in a command.</p>
 <h3>Windows: Command Prompt</h3>
 <ol start="1">
@@ -175,7 +188,7 @@
 <ol start="5">
 <li>Wait for the bridge ready message. These commands include automatic Node setup. Leave Terminal open while working.</li>
 </ol>
-<h2 id="section-11">Step 9 — Pause, read logs, and finish safely</h2>
+<h2 id="section-12">Step 9 — Pause, read logs, and finish safely</h2>
 <ol start="1">
 <li>To finish the current call and then pause, click <strong>Pause after current contact</strong>.</li>
 <li>To stop the system's current call and pause, click <strong>Stop current call and pause</strong>. Check that the CRM phone actually ended. If the system cannot identify its owned call, inspect the CRM manually.</li>
@@ -185,7 +198,7 @@
 <li>When no list or phone call is active, click the bridge's command/Terminal window and press <strong>Ctrl+C</strong>. On Mac, use <strong>Control+C</strong>, not Command+C. If Windows asks <strong>Terminate batch job (Y/N)?</strong>, type <code>Y</code> and press Enter.</li>
 <li>Once the command returns to a prompt or the launcher exits, close its window. Next time, repeat Step 6. Closing the bridge during a call interrupts the AI and may leave the CRM phone connected; inspect the phone if that happens.</li>
 </ol>
-<h2 id="section-12">Step 10 — Understand prompts and fix common problems</h2>
+<h2 id="section-13">Step 10 — Understand prompts and fix common problems</h2>
 <h3>The command window is open but nothing else happens</h3>
 <p>If you see the bridge address, it is ready. The launcher does not automatically open Chrome. Leave the window open and continue to Step 4 or Step 6. No typing is needed at the ready message.</p>
 <h3>“Preparing a private Node.js 24 runtime” or “Installing required libraries from npm”</h3>
@@ -212,7 +225,7 @@
 <p>Confirm the bridge is running and no CRM call is active. Check extension status, enable local routing, review CRM audio devices, and repeat the idle local audio checks. Ask your administrator if it still fails; do not change Chrome privacy flags or firewall rules to force it through. The standalone OpenAI test does not verify telephone media.</p>
 <h3>You need help from your team lead</h3>
 <p>Send the exact error text, whether you are on Windows or Mac, your package version, and the step that failed. A screenshot of the error or the safe voice-test report can help. Exclude API keys, proxy credentials, contact details, and conversation transcripts from screenshots.</p>
-<h2 id="section-13">Step 11 — Install a future update</h2>
+<h2 id="section-14">Step 11 — Install a future update</h2>
 <ol start="1">
 <li>Finish or safely stop all calls and lists, then stop the bridge with <strong>Ctrl+C</strong>.</li>
 <li>Keep a private backup of your current local <code>.env</code> and <code>data</code> folder. Never send that backup to colleagues.</li>
@@ -221,5 +234,5 @@
 <li>Start the updated bridge, refresh only idle CRM, reopen the calling list from its panel, and repeat Step 5 before live calling.</li>
 <li>Share only the original clean ZIP. Do not zip your installed folder: it contains your key, downloaded runtime, and call records.</li>
 </ol>
-<h2 id="section-14">What this version has been checked for</h2>
+<h2 id="section-15">What this version has been checked for</h2>
 <p>Windows startup, proxy-based OpenAI audio, simulation, and individual telephone tests have been observed. Multiple-contact live reliability and actual Mac telephone audio still need validation. The AI session has a five-minute limit, including preparation. Use a supervised approved test before relying on a new installation for a live list.</p></main></body></html>

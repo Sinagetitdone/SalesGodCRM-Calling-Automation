@@ -5,7 +5,7 @@
     constructor({ api, driver, audio, rehearsal, expectedSimulation, onState = () => {}, wait = ms => new Promise(r => setTimeout(r, ms)), now = () => Date.now() }) {
       Object.assign(this, { api, driver, audio, rehearsal, expectedSimulation, onState, wait, now }); this.workerId = crypto.randomUUID();
     }
-    async until(test, timeout) { const end = this.now() + timeout; while (!await test()) { if (this.now() > end) throw new Error('Operation timed out; no automatic retry.'); await this.wait(300); } }
+    async until(test, timeout, operation = 'Operation') { const end = this.now() + timeout; while (!await test()) { if (this.now() > end) throw new Error(`${operation} timed out after ${timeout / 1000} seconds; no automatic retry.`); await this.wait(300); } }
     async post(suffix, body = {}) { return this.api('/campaigns-api/' + this.id + suffix, { workerId: this.workerId, ...body }); }
     diagnostic(message) {
       const status = this.simulation || !this.audioAttempt ? {} : this.audio.status();
@@ -37,7 +37,7 @@
               method: 'POST', headers: { 'Content-Type': 'audio/mpeg', 'X-Worker-Id': this.workerId }, body: blob,
               signal: AbortSignal.timeout(20000)
             });
-            if (!response.ok) throw new Error('Conversation MP3 could not be saved.');
+            if (!response.ok) { const result = await response.json().catch(() => ({})); throw new Error('Conversation MP3 save rejected (HTTP ' + response.status + '): ' + (result.error || 'No further cause reported.')); }
           };
           this.audioAttempt = false;
           try {
@@ -49,7 +49,7 @@
                 outcome = this.cancelCurrent ? 'cancelled' : await this.rehearsal.run({ campaignId: id, contact: this.current, workerId: this.workerId, session,
                   settings: next.settings, saveTurn: turn => this.post(contactPath + '/transcript', turn), saveRecording: async blob => {
                     const r = await fetch('/campaigns-api/' + id + contactPath + '/recording', { method: 'POST', headers: { 'Content-Type': 'audio/mpeg', 'X-Worker-Id': this.workerId }, body: blob });
-                    if (!r.ok) throw new Error('Recording save failed.');
+                    if (!r.ok) throw new Error('Rehearsal MP3 save rejected (HTTP ' + r.status + ').');
                   } });
               } else {
                 await this.wait(500);
@@ -58,15 +58,16 @@
               }
             } else {
               await this.driver('inspect');
-              this.audio.configure({ automatic: true, voice: next.settings.voice || 'cedar', responsePauseMs: next.settings.responsePauseMs ?? 250, campaignId: id, contactId: this.current.id, workerId: this.workerId,
-                saveTurn: turn => this.post(contactPath + '/transcript', turn), saveRecording });
+              this.audio.configure({ automatic: true, voice: next.settings.voice || 'marin', responsePauseMs: next.settings.responsePauseMs ?? 250, campaignId: id, contactId: this.current.id, workerId: this.workerId,
+                screeningIntroduction: next.settings.screeningIntroduction || '', saveTurn: turn => this.post(contactPath + '/transcript', turn), saveRecording,
+                saveAudioTranscript: body => this.post(contactPath + '/audio-transcript', body) });
               const token = crypto.randomUUID(); await this.driver('prepare', { token }); this.audio.pair(token);
-              await this.until(() => this.audio.status().canPrepare, 15000);
+              await this.until(() => this.audio.status().canPrepare, 15000, 'Extension audio pairing');
               document.getElementById('voicemailEnabled').checked = true;
               document.getElementById('voicemailMessage').value = next.settings.voicemailMessage;
               this.audioAttempt = true;
-              await this.audio.prepare(); await this.until(() => this.audio.status().prepared || ['failed', 'stopped'].includes(this.audio.status().phase), 40000);
-              if (!this.audio.status().prepared) throw new Error('AI preparation failed.');
+              await this.audio.prepare(); await this.until(() => this.audio.status().prepared || ['failed', 'stopped'].includes(this.audio.status().phase), 40000, 'OpenAI audio preparation');
+              if (!this.audio.status().prepared) throw new Error(this.audio.status().reviewReason || this.audio.status().stopReason || 'AI preparation did not complete; the audio controller supplied no further cause.');
               if (this.pauseRequested) { outcome = 'cancelled'; }
               else {
                 const permit = await this.post(contactPath + '/dispatch', { session: this.audio.status().sessionId });
@@ -82,7 +83,7 @@
                   // End the owned phone call promptly; MP3 encoding continues locally.
                   if (status.audioStopped && status.stopping && ['active', 'dialing'].includes(phone.state)) {
                     await this.driver('hangup', { attempt: this.current.id });
-                    await this.until(async () => ['ended', 'idle'].includes((await this.driver('status')).state), 12000);
+                    await this.until(async () => ['ended', 'idle'].includes((await this.driver('status')).state), 12000, 'CRM hangup confirmation');
                     continue;
                   }
                   if (!observedCall && ['idle', 'ended'].includes(phone.state)) {
@@ -109,10 +110,10 @@
               const stopped = this.audio.stop('stopped', 'List contact finished');
               if (dispatchAttempted) {
                 await this.driver('hangup', { attempt: this.current.id });
-                await this.until(async () => ['ended', 'idle'].includes((await this.driver('status')).state), 12000);
+                await this.until(async () => ['ended', 'idle'].includes((await this.driver('status')).state), 12000, 'CRM hangup confirmation');
               }
               await stopped;
-              if (this.audio.status().recordingState === 'failed') { outcome = 'needs_review'; diagnostic = this.diagnostic(); }
+              if (this.audio.status().recordingState === 'failed' || this.audio.status().transcriptState === 'failed') { outcome = 'needs_review'; diagnostic = this.diagnostic(); }
               await this.driver('release', { attempt: this.current.id });
             }
             await this.post(contactPath + '/finish', { outcome, ...(['failed', 'unknown', 'needs_review'].includes(outcome) ? { diagnostic: diagnostic || this.diagnostic() } : {}) });
@@ -122,7 +123,7 @@
             const diagnostic = this.diagnostic(error.message || 'Attempt failed without an error message.');
             if (this.simulation) this.rehearsal?.stop();
             else {
-              const stopped = this.audio.stop('failed', 'List paused after an uncertain attempt').catch(() => {});
+              const stopped = this.audio.stop('failed', diagnostic.message || 'Attempt failed without a reported cause').catch(() => {});
               if (dispatchAttempted) await this.driver('hangup', { attempt: this.current.id }).catch(() => {});
               else await this.driver('release', { attempt: this.current.id }).catch(() => {});
               await stopped;

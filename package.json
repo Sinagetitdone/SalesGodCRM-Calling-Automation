@@ -8,7 +8,7 @@
     "package:team": "node tools/distribution/build-package.mjs",
     "package:check": "node --test tools/distribution/checks.mjs",
     "audio:bridge": "node --env-file-if-exists=.env tools/audio-bridge/start.mjs",
-    "audio:check": "node --test tools/audio-bridge/bridge-checks.mjs tools/audio-bridge/recording-checks.mjs tools/audio-bridge/voice-checks.mjs tools/audio-bridge/call-checks.mjs tools/audio-bridge/voicemail-checks.mjs tools/audio-bridge/campaign-checks.mjs tools/audio-bridge/calling-profile-checks.mjs tools/audio-bridge/proxy-checks.mjs tools/audio-bridge/rehearsal-checks.mjs",
+    "audio:check": "node --test tools/audio-bridge/bridge-checks.mjs tools/audio-bridge/recording-checks.mjs tools/audio-bridge/voice-checks.mjs tools/audio-bridge/call-checks.mjs tools/audio-bridge/voicemail-checks.mjs tools/audio-bridge/campaign-checks.mjs tools/audio-bridge/calling-profile-checks.mjs tools/audio-bridge/proxy-checks.mjs tools/audio-bridge/rehearsal-checks.mjs tools/audio-bridge/text-import-checks.mjs tools/audio-bridge/audio-transcript-checks.mjs",
     "audio:extension:check": "node --test tools/audio-extension/tests/checks.mjs tools/audio-extension/tests/signaling-checks.mjs tools/audio-extension/tests/window-signaling-checks.mjs tools/audio-extension/tests/campaign-driver-checks.mjs",
     "api:check": "node --test tools/api-check.mjs",
     "build": "tsc --noEmit",
@@ -29,6 +29,8 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "fastify": "^5.0.0"
+    "fastify": "5.12.6",
+    "mammoth": "1.13.0",
+    "pdf-parse": "2.4.5"
   }
 }

@@ -3,6 +3,12 @@
   'use strict';
   const mailboxUnavailable = text => /\b(mailbox (?:is )?full|cannot accept|not accepting|unable to (?:record|accept)|cannot be recorded)\b/i.test(String(text).slice(0, 4000));
   const greetingInvitation = text => /\b(leave (?:me |us |your |a )?(?:voice ?)?message|after (?:the )?(?:tone|beep)|at (?:the )?(?:tone|beep)|reached (?:the )?voice ?mail|voice ?mail (?:box|service)|not available.*(?:message|tone|beep))\b/i.test(String(text).slice(0, 4000));
+  const screeningPrompt = text => {
+    const value = String(text).slice(0, 4000);
+    return /\b(?:say|state|leave|record|tell|provide|share)\b/i.test(value) && /\b(?:your |caller.?s )?name\b/i.test(value)
+      && /\b(?:reason (?:for (?:your )?)?(?:calling|the call)|why you(?: are|'re) calling|what (?:you(?: are|'re)|this call is) calling about|what (?:the |your )?call is (?:about|regarding)|who(?:m)? you(?: are|'re) calling (?:for|on behalf of))\b/i.test(value);
+  };
+  const screeningHold = text => /\b(?:please (?:hold|wait)|hold (?:on|the line)|(?:i(?:'ll| will)|let me) (?:see|check|find out) if|(?:see|check) (?:whether|if) (?:they|he|she|the person|.+?) (?:is|are) available|(?:try(?:ing)? to|i(?:'ll| will)) (?:connect|reach)|(?:thanks|thank you).*(?:stay|hold|wait|available)|call (?:is being|screening)|screening (?:this|your|the) call)\b/i.test(String(text).slice(0, 4000));
   function tone(samples, sampleRate) {
     let energy = 0; for (const value of samples) energy += value * value;
     if (Math.sqrt(energy / samples.length) < 0.012) return false;
@@ -69,5 +75,5 @@
     }
     stop() { this.active = false; }
   }
-  window.SalesGodVoicemail = { Detector, tone, mailboxUnavailable, greetingInvitation };
+  window.SalesGodVoicemail = { Detector, tone, mailboxUnavailable, greetingInvitation, screeningPrompt, screeningHold };
 })();

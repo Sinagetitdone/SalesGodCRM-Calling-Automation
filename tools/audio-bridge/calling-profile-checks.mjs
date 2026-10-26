@@ -6,12 +6,40 @@ import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { CampaignStore } from './campaign-store.mjs';
 import { createBridge } from './server.mjs';
-import { callVoices } from './voice-settings.mjs';
+import { callVoices, apiVoice, speakingStyle } from './voice-settings.mjs';
 
 const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431', 'content-type': 'application/json' };
 const settings = { simulation: false, callerNumber: '+12025550100', timeZone: 'UTC', startHour: 0, endHour: 24, brief: 'Approved synthetic brief.', voicemailMessage: 'Synthetic voicemail remains unchanged.' };
 const draft = { name: 'Synthetic profile test', csv: 'first_name,last_name,phone\nAlex,Example,+12025550101', settings };
 const profile = { background: 'Synthetic Example Office, represented person Alex.', guidance: 'Use only approved synthetic facts. '.repeat(200).slice(0, 6000) };
+test('screening introduction is bounded, saved and snapshotted independently from voicemail and older lists', () => {
+  const store = new CampaignStore(':memory:');
+  try {
+    const old = store.create(draft), introduction = 'Hi, this is Alex, an AI assistant calling for Example Office about an appointment.';
+    assert.equal(store.callingProfile().screeningIntroduction, '');
+    for (const text of ['short', 'x'.repeat(301)]) assert.throws(() => store.saveCallingProfile({ ...profile, screeningIntroduction: text }), /10–300/);
+    store.saveCallingProfile({ ...profile, screeningIntroduction: introduction });
+    const current = store.create(draft); assert.equal(current.settings.screeningIntroduction, introduction);
+    assert.equal(current.settings.voicemailMessage, settings.voicemailMessage); assert.equal(store.read(old.id).settings.screeningIntroduction, undefined);
+    store.applyCallingProfile(old.id, { ...profile, screeningIntroduction: introduction });
+    assert.equal(store.read(old.id).settings.screeningIntroduction, introduction);
+    store.saveCallingProfile({ ...profile, screeningIntroduction: '' }); assert.equal(store.read(current.id).settings.screeningIntroduction, introduction);
+  } finally { store.close(); }
+});
+test('legacy male selections normalize to Marin for future preparations while historical settings remain unchanged', async () => {
+  const store = new CampaignStore(':memory:');
+  store.saveCallingProfile(profile); store.db.prepare("UPDATE calling_profile SET voice='cedar'").run();
+  assert.equal(store.callingProfile().voice, 'marin');
+  const c = store.create(draft), worker = randomUUID();
+  store.db.prepare('UPDATE campaigns SET settings=? WHERE id=?').run(JSON.stringify({ ...c.settings, voice: 'ash' }), c.id);
+  store.start(c.id, worker); const row = store.claim(c.id, worker).contact; let sent;
+  const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic' }, campaignStore: store, fetchImpl: async (_url, options) => { sent = JSON.parse(options.body.get('session')); return new Response('v=0\r\n'); } });
+  try {
+    const response = await app.inject({ method: 'POST', url: '/session', headers: { ...headers, 'content-type': 'application/sdp', 'x-audio-mode': 'campaign-call', 'x-campaign-id': c.id, 'x-contact-id': row.id, 'x-worker-id': worker }, payload: 'v=0\r\n' });
+    assert.equal(response.statusCode, 200); assert.equal(sent.audio.output.voice, 'marin'); assert.match(sent.instructions, /feminine/);
+    assert.equal(store.read(c.id).settings.voice, 'ash');
+  } finally { await app.close(); store.close(); }
+});
 
 test('all five selected voices reach real sessions, supervised sessions and voicemail; unknown voices are rejected', async () => {
   for (const voice of callVoices) {
@@ -24,11 +52,13 @@ test('all five selected voices reach real sessions, supervised sessions and voic
     try {
       for (const mode of ['campaign-call', 'supervised-call']) {
         const response = await app.inject({ method: 'POST', url: '/session', headers: { ...headers, 'content-type': 'application/sdp', 'x-audio-mode': mode, 'x-audio-voice': voice, 'x-campaign-id': c.id, 'x-contact-id': contact.id, 'x-worker-id': worker }, payload: 'v=0\r\n' });
-        assert.equal(response.statusCode, 200); assert.equal(sent.at(-1).audio.output.voice, voice);
+        assert.equal(response.statusCode, 200); assert.equal(sent.at(-1).audio.output.voice, apiVoice(voice));
         assert.match(sent.at(-1).instructions, /confiden/);
+        assert.match(sent.at(-1).instructions, /feminine/);
       }
       const speech = await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message: settings.voicemailMessage, voice } });
-      assert.equal(speech.statusCode, 200); assert.equal(sent.at(-1).voice, voice); assert.equal(sent.at(-1).input, settings.voicemailMessage);
+      assert.equal(speech.statusCode, 200); assert.equal(sent.at(-1).voice, apiVoice(voice)); assert.equal(sent.at(-1).input, settings.voicemailMessage);
+      assert.ok(sent.at(-1).instructions.includes(speakingStyle(voice)));
       assert.equal((await app.inject({ method: 'POST', url: '/session', headers: { ...headers, 'content-type': 'application/sdp', 'x-audio-mode': 'supervised-call', 'x-audio-voice': 'unsupported' }, payload: 'v=0\r\n' })).statusCode, 400);
       assert.equal((await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message: settings.voicemailMessage, voice: 'unsupported' } })).statusCode, 400);
       assert.equal(sent.length, 3);
@@ -44,14 +74,14 @@ test('calling profile survives restart and pruning; imports keep independent sna
     const original = store.create(draft); store.saveCallingProfile(profile);
     assert.equal(store.read(original.id).settings.guidance, undefined);
     const first = store.create(draft); assert.equal(first.settings.guidance, profile.guidance);
-    store.saveCallingProfile({ ...profile, guidance: 'B'.repeat(20000), voice: 'ash' });
+    store.saveCallingProfile({ ...profile, guidance: 'B'.repeat(20000), voice: 'coral' });
     assert.equal(store.read(first.id).settings.guidance, profile.guidance);
     assert.equal(store.create(draft).settings.guidance.length, 20000);
     assert.equal(store.create({ ...draft, settings: { ...settings, simulation: true } }).settings.guidance, undefined);
     store.close(); store = new CampaignStore(path, () => new Date('2099-01-01T12:00:00Z'));
     assert.equal(store.list().length, 4); assert.equal(store.callingProfile().guidance.length, 20000);
     assert.equal(store.callingProfile().background, profile.background);
-    assert.equal(store.callingProfile().voice, 'ash');
+    assert.equal(store.callingProfile().voice, 'coral');
   } finally {
     store?.close(); assert.ok(resolve(dir).startsWith(resolve(tmpdir()) + '\\') || resolve(dir).startsWith(resolve(tmpdir()) + '/'));
     await rm(dir, { recursive: true });

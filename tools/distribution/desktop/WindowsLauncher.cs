@@ -5,7 +5,7 @@ using System.Reflection;
 
 [assembly: AssemblyTitle("SalesGod Bridge")]
 [assembly: AssemblyDescription("Starts the local SalesGod audio bridge. Does not place calls.")]
-[assembly: AssemblyVersion("0.5.9.0")]
+[assembly: AssemblyVersion("0.6.0.0")]
 internal static class WindowsLauncher
 {
     private static int Main(string[] args)
