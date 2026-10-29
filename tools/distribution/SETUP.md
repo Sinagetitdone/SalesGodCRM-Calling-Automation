@@ -6,7 +6,7 @@ You will use two parts: the Chrome extension adds controls to SalesGodCRM, and t
 
 **Double-click startup:** on Windows, open **SalesGod Bridge.exe**; on Mac, open **SalesGod Bridge.app**. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type `npm run audio:bridge`. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.
 
-Package **0.6.1** uses the Jay Marketing Lab purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. For this update, restart the idle bridge and reopen the calling and history pages. Extension **0.4.5** is unchanged; reload it only when updating from an older extension.
+Package **1.0.1** uses the Jay Marketing Lab purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. This update requires extension **0.4.6**. Reload the extension, refresh SalesGodCRM only while idle, restart the bridge, and reopen the calling and history pages.
 
 ## New settings: screening, file uploads and accurate call records
 
@@ -14,7 +14,7 @@ Package **0.6.1** uses the Jay Marketing Lab purple/lime interface. Existing sys
 
 **Make sure guidance is applied:** typing or uploading into the editor alone does not change a saved list. For real calls, use **Save for future calls** for new imports and **Apply to selected list** for an existing idle list. The new guide-status message says whether the editor matches the selected list. In AI Agents Test Call, use **Guide the rehearsal office AI** (optional; 6,000–20,000 characters when provided), then import or **Apply guide to selected rehearsal**. This long guide overrides conflicting short-brief details for the office AI; the fictional customer keeps its own persona. The separate **Send next-reply instruction** control is for an already-live supervised conversation, not the two-agent rehearsal.
 
-1. Start **SalesGod Bridge.exe** on Windows or **SalesGod Bridge.app** on Mac. Leave its window open. In the CRM extension, choose **Open calling list**.
+1. Start **SalesGod Bridge.exe** on Windows or **SalesGod Bridge.app** on Mac. Leave its window open. In SalesGodCRM, open **Contacts** from the left menu; then choose **Open calling list** in the extension.
 2. In the saved calling context, fill **Call-screening introduction** with 10–300 characters, or leave it blank. This is a short answer for a screening assistant that asks for your name and reason for calling. Example: “Hi, this is Alex, an AI assistant calling on behalf of Example Office about an appointment.” Use your actual approved identity and reason. Keep the full voicemail in its separate box.
 3. Click **Save for future calls**. To update a list you already imported, select an idle real list and click **Apply to selected list**. Saving defaults does not change existing lists or an active call.
 4. To load text from a document, use the file picker beside its text box. Supported files: TXT, Markdown (.md), Word (.docx), and PDF; up to 5 MB and 100 PDF pages. Text is extracted locally. Scanned PDFs need OCR first. The existing box's character limit still applies. Long files are rejected, never silently cut off. Review the loaded text, then use the normal Save, Import or Send button. Upload alone does not save settings, send instructions or start calls.
@@ -25,7 +25,7 @@ Package **0.6.1** uses the Jay Marketing Lab purple/lime interface. Existing sys
 
 Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.
 
-In extension 0.4.5, **Open AI voice setup** is renamed **AI Voice Startup**. Buttons now align in equal-width pairs, with **AI Agents Test Call** and **Open calling list** each filling a row. Their actions are unchanged.
+In extension 0.4.6, **Open AI voice setup** is named **AI Voice Startup**. Buttons align in equal-width pairs, with **AI Agents Test Call** and **Open calling list** each filling a row.
 
 ## Listening, reviewing and downloading conversations
 
@@ -102,7 +102,7 @@ The launchers do not require an administrator password. Mac launcher syntax has 
 3. Turn on **Developer mode** in the top-right corner.
 4. Click **Load unpacked**.
 5. Browse into your extracted **SalesGod-Team** folder, then **tools**, then **audio-extension**. Select this folder, which contains `manifest.json`. Do not select the ZIP or the whole SalesGod-Team folder.
-6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.5** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
+6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.6** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
 7. Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.
 8. Look for the **SalesGod audio bridge** panel. Continue to Step 5.
 
@@ -134,8 +134,8 @@ For **real calls**, open **Call settings** and use **Live-call pause before repl
 1. Connect your approved VPN or proxy if your network requires one.
 2. Open the extracted SalesGod-Team folder and double-click **SalesGod Bridge.exe** (Windows) or **SalesGod Bridge.app** (Mac). If its bridge window is already running, use that window instead of opening a second copy.
 3. Wait for **Local audio bridge: http://127.0.0.1:28431**. Leave the command window open.
-4. Open your SalesGodCRM Chrome profile and log in. Check that no call is active. Refresh the idle dashboard if the extension panel is missing.
-5. In the extension panel, click **Open calling list**. Wait for **CRM controls paired** and keep both pages open.
+4. Open your SalesGodCRM Chrome profile and log in. Check that no call is active. From the left menu, open **Contacts**. Refresh this idle Contacts page if the extension panel is missing.
+5. While the CRM remains on **Contacts**, click **Open calling list** in the extension panel. Wait for **CRM controls paired** and keep both pages open. Starting from Contacts is required so the worker can save each first and last name before dialing.
 6. Continue to Step 7. If you changed the key, VPN, or proxy settings, restart the bridge while no call or list is active and repeat the no-call voice test first.
 
 ## Step 7 — Import your list and start calling
@@ -160,7 +160,7 @@ The **Guide the live conversation** area in **AI Agents Test Call** also require
 first_name,last_name,phone
 ```
 
-2. Put one person's first name, last name, and phone number on each following row. Include the country code, such as `+1` for US numbers. Ask your team lead if unsure about a number. If using Excel, save as CSV first; an `.xlsx` workbook cannot be imported directly. Check that the country codes survived the export.
+2. Put one person's first name, last name, and phone number on each following row. A blank first name is rejected; do not substitute the phone number for a name. Include the country code, such as `+1` for US numbers. Ask your team lead if unsure about a number. If using Excel, save as CSV first; an `.xlsx` workbook cannot be imported directly. Check that the country codes survived the export.
 3. In the calling-list page, enter a descriptive **List name**. Use **Choose CSV file**, or paste the CSV text into **Or paste CSV**.
 4. Expand **Call settings**. Enter **Your CRM caller number**, including country code. This is the outgoing number assigned to your CRM account, not a customer's number.
 5. Set **Calling timezone**, **Start hour**, and **End hour**. For San Diego, use `America/Los_Angeles`. Hours use a 24-hour clock: 9 is 9 AM and 17 is 5 PM. One timezone applies to the whole list.
@@ -171,7 +171,7 @@ first_name,last_name,phone
 10. If you need to change the caller, brief, voicemail, or calling hours after import, change the form and import a new draft. Changing the form does not update the previously saved list. Select the correct new draft before continuing.
 11. Before live calling, confirm the CRM microphone is **SalesGod AI Bridge (local audio)**. Keep the CRM speaker on your headset. If the microphone is missing, review the idle CRM's Settings/Refresh devices and repeat the local audio checks. Do not dial to work around a failed setup test.
 12. If you want a desktop completion notification, click **Enable completion notification** and allow Chrome notifications if your company permits them. The page itself shows completion even without notifications.
-13. Click **Start selected list** only when you are ready. On a **LIVE CALLING** list, this starts real calls, one eligible contact at a time. The system prepares AI audio, starts recording before dialing, handles a person or recognized voicemail, saves the whole MP3 plus results, and proceeds through the list.
+13. Click **Start selected list** only when you are ready. On a **LIVE CALLING** list, this starts real calls, one eligible contact at a time. Before every call, the worker searches Contacts by phone and either creates the contact or updates its first and last name from the CSV. It verifies the saved name before dialing. If SalesGodCRM does not confirm the save, the list pauses and no call is placed. The system then prepares AI audio, starts recording, handles a person or recognized voicemail, saves the whole MP3 plus results, and proceeds through the list.
 14. Leave the bridge window, CRM page, and calling-list page open. Do not refresh them while a call is active. Calling-window and suppression checks remain active. If the page says it is waiting for the calling window, keep it open and review the approved hours.
 15. Wait for **Finished processing every contact. Review the results below.** This means processing is finished; it does not mean every person answered. If the list pauses with an uncertain result, review the CRM before taking another action. Uncertain attempts are not automatically redialed.
 
@@ -269,7 +269,7 @@ Try the `bash` commands in Step 8. If macOS or company policy blocks the downloa
 
 ### A call rang but no voicemail was left
 
-Version 0.4.5 fixes an early voicemail screening timeout and can recover a missed beep after a confirmed recorded greeting and 2.5 seconds of silence. It allows more time for ringing and late greetings. The list still pauses for unknown outcomes or a full mailbox rather than claiming delivery. A result of voicemail played means the audio finished playing; mailbox storage is not independently verified. If you updated, restart the idle bridge, close old calling-list windows, and reopen controls from CRM before a supervised test. Do not repeatedly redial an uncertain attempt.
+Version 0.4.6 recognizes more standard mailbox invitations, can recover a missed beep after a confirmed greeting and fresh silence without waiting on a second classifier, and ignores the short beep tail while the voicemail audio gate opens. A brief human greeting such as “Hello” has a bounded 750 ms fallback, while continued recorded speech cancels that fallback. The list still pauses for unknown outcomes or a full mailbox rather than claiming delivery. A result of voicemail played means the audio finished playing; mailbox storage is not independently verified. If you updated, restart the idle bridge, close old calling-list windows, reload extension 0.4.6, refresh the idle Contacts page, and reopen controls before a supervised test. Do not repeatedly redial an uncertain attempt.
 
 ### Chrome shows no audio device, or a local audio/WebRTC test fails
 

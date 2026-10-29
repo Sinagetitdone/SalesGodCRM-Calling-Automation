@@ -253,13 +253,35 @@ test('hello can you hear me starts the gated human path without waiting for a cl
     assert.equal(env.api.status().phase, 'talking'); assert.ok(env.api.status().events.some(e => e.event === 'answer.explicit_human_detected'));
   } finally { await env.cleanup(); }
 });
-test('bare hello and recorded mailbox instructions do not use the explicit-question shortcut', async () => {
+test('a bare human hello uses a short bounded fallback when classification is delayed', async () => {
   const env = environment({ voicemail: true });
   try {
     env.api.configure({ automatic: true }); await env.start(); await env.media(); const dc = env.peers[0].channel; dc.message(listenAck); await tick();
-    for (const transcript of ['Hello.', 'Can you hear me? Leave a message after the beep.']) dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: transcript, transcript });
-    await env.fireTimers(1000); assert.equal(env.api.status().humanAnswered, undefined);
-    assert.equal(env.api.status().events.some(e => e.event === 'answer.explicit_human_detected'), false);
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'hello', transcript: 'Hello.' }); await tick();
+    assert.equal(env.api.status().humanAnswered, undefined); await env.fireTimers(750);
+    assert.equal(env.api.status().phase, 'starting'); assert.equal(env.api.status().humanAnswered, true);
+    assert.ok(env.api.status().events.some(e => e.event === 'answer.short_greeting_detected'));
+  } finally { await env.cleanup(); }
+});
+test('recorded mailbox instructions never use the short human-greeting fallback', async () => {
+  const env = environment({ voicemail: true });
+  try {
+    env.api.configure({ automatic: true }); await env.start(); await env.media(); const dc = env.peers[0].channel; dc.message(listenAck); await tick();
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'mailbox', transcript: 'Can you hear me? Leave a message after the beep.' });
+    await env.fireTimers(750); assert.equal(env.api.status().humanAnswered, undefined); assert.equal(env.api.status().phase, 'voicemail-waiting');
+  } finally { await env.cleanup(); }
+});
+test('a segmented recorded greeting cancels the bare-hello fallback even if the classifier initially says human', async () => {
+  const env = environment({ voicemail: true });
+  try {
+    env.api.configure({ automatic: true }); await env.start(); await env.media(); const dc = env.peers[0].channel; dc.message(listenAck); await tick();
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'hello', transcript: 'Hello.' }); await tick();
+    const request = dc.sent.filter(m => m.response?.metadata?.purpose === 'answer_classification').at(-1);
+    dc.message({ type: 'response.done', response: { id: 'short-human', status: 'completed', metadata: request.response.metadata, output: [{ content: [{ type: 'output_text', text: 'human' }] }] } });
+    dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'continued' });
+    dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'continued' });
+    dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'continued', transcript: 'You have reached the automated voice messaging system.' });
+    await env.fireTimers(750); assert.equal(env.api.status().humanAnswered, undefined); assert.equal(env.api.status().phase, 'voicemail-waiting');
   } finally { await env.cleanup(); }
 });
 test('classification can be read from response.done alone and confirmed human evidence survives another speech segment', async () => {
@@ -414,13 +436,12 @@ async function automaticMailbox(greeting = 'Please leave a message after the bee
   }, async liveGate() { await env.links[0].options.onMessage({ type: 'gate-state', open: true }); dc.message(vadAck); await tick(); await tick(); } });
 }
 
-test('confirmed voicemail with a missed beep plays once after silence and records the actual fallback trigger', async () => {
+test('a clear voicemail invitation with a missed beep plays once after fresh silence without waiting for classifier output', async () => {
   const env = await automaticMailbox();
   try {
-    env.setTime(65000); env.classify('voicemail'); await tick();
     const quiet = new Float32Array(2048);
-    env.setTime(65100); env.detectors[0].samples(quiet, 48000);
-    env.setTime(67700); env.detectors[0].samples(quiet, 48000); await tick(); await tick();
+    env.setTime(100); env.detectors[0].samples(quiet, 48000);
+    env.setTime(2700); env.detectors[0].samples(quiet, 48000); await tick(); await tick();
     assert.equal(env.api.status().phase, 'voicemail-playing');
     await env.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); await tick();
     const source = env.contexts[0].sources[0]; assert.equal(source.started, true);
@@ -431,6 +452,20 @@ test('confirmed voicemail with a missed beep plays once after silence and record
     source.onended(); await env.fireTimers(1000);
     assert.equal(env.api.status().voicemailOutcome, 'playback_completed');
     assert.equal(env.api.status().phase, 'voicemail-complete');
+  } finally { await env.cleanup(); }
+});
+
+test('voicemail beep-tail speech cannot cancel playback while its gate is opening', async () => {
+  const env = await automaticMailbox();
+  try {
+    await beep(env); assert.equal(env.api.status().phase, 'voicemail-playing');
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'beep-tail' });
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'beep-tail' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'beep-tail', transcript: 'Tone.' });
+    await tick(); await tick(); assert.equal(env.api.status().phase, 'voicemail-playing');
+    await env.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); await tick();
+    assert.equal(env.contexts[0].sources[0].started, true); assert.equal(env.api.status().voicemailOutcome, 'playing');
+    assert.ok(env.api.status().events.some(e => e.event === 'voicemail.transition_audio_ignored'));
   } finally { await env.cleanup(); }
 });
 
@@ -744,7 +779,7 @@ test('voicemail synthesis validates input, preserves owner text, exposes no upst
     fail = true;
     const failed = await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message } });
     assert.equal(failed.statusCode, 502); assert.doesNotMatch(failed.body, /private upstream|synthetic-private-key/);
-    for (const [sequence, event] of ['session.started', 'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.playback_started', 'voicemail.playback_completed', 'voicemail.human_takeover', 'voicemail.takeover_unconfirmed', 'answer.transcript_received', 'answer.explicit_human_detected', 'answer.classification_requested', 'answer.classification_timeout', 'answer.classified_human', 'answer.classified_voicemail', 'answer.classified_unavailable', 'answer.classified_unknown'].entries()) {
+    for (const [sequence, event] of ['session.started', 'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.transition_audio_ignored', 'voicemail.playback_started', 'voicemail.playback_completed', 'voicemail.human_takeover', 'voicemail.takeover_unconfirmed', 'answer.transcript_received', 'answer.explicit_human_detected', 'answer.short_greeting_detected', 'answer.classification_requested', 'answer.classification_timeout', 'answer.classified_human', 'answer.classified_voicemail', 'answer.classified_unavailable', 'answer.classified_unknown'].entries()) {
       assert.equal((await app.inject({ method: 'POST', url: '/live-log', headers, payload: { sessionId, sequence, event, phase: 'voicemail-playing' } })).statusCode, 200);
     }
   } finally { await app.close(); journal.close(); }

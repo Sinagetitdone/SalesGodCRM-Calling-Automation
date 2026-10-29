@@ -1,5 +1,9 @@
 # Lessons Learned
 
+## 2026-10-30: Call transitions and contact identity
+
+See [call transitions and contact identity](lessons/LESSON-2026-10-30-CALL-TRANSITIONS-AND-CONTACT-IDENTITY.md): treat voicemail gate opening, short-greeting fallback and CRM contact saving as acknowledged state transitions; save and verify names before dialing.
+
 ## 2026-10-26: Recorded audio and transcript evidence
 
 See [transcript evidence](lessons/LESSON-2026-10-26-TRANSCRIPT-EVIDENCE.md): generated words can outlive interrupted playback; final transcripts must follow captured audio, with explicit source labels and retained recordings. Screening and bounded document extraction lessons are included.

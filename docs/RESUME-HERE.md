@@ -1,6 +1,12 @@
-# Resume here — 2026-10-26
+# Resume here — 2026-10-30
 
-## Latest maintenance update — package 0.6.1 / extension 0.4.5
+## Latest reliability update — package 1.0.1 / extension 0.4.6
+
+The supplied team ZIP had an external 1.0.0 name but internal package 0.6.1/extension 0.4.5 metadata. Release 1.0.1 aligns those versions, repairs short-human-greeting and voicemail-start races, and saves first/last names through the visible SalesGodCRM Contacts workflow before dialing. Start from CRM **Contacts**; a missing save confirmation stops before the call. Both supplied 163-row CSVs fail precisely at row 140 because its first name is blank. No live contact was edited and no telephone call was placed for this repair.
+
+Full evidence, fixes, 198 passing tests plus type checking, and remaining limits: [CALL-RELIABILITY-1.0.1.md](CALL-RELIABILITY-1.0.1.md). Reload extension 0.4.6, refresh the idle Contacts page, restart the bridge, and reopen the calling-list window.
+
+## Previous maintenance update — package 0.6.1 / extension 0.4.5
 
 Conservative code cleanup: separate contact import and diagnostics helpers, readable stopped-call outcome decisions, named unchanged deadlines, a single voice preset registry, consolidated document limits, and packaged-import validation. No database, audio timing, voice behavior or extension changes. Corrected stale setup text about recording/retention.
 

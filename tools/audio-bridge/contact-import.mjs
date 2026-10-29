@@ -44,7 +44,8 @@ export function parseContacts(csv) {
     const get = key => values[columns.indexOf(key)]?.trim() || '';
     if (values.length !== columns.length) throw new Error(`Row ${index + 2}: wrong column count.`);
     const first = get('firstname'), last = get('lastname');
-    if (!first || first.length > contactImportLimits.nameCharacters || last.length > contactImportLimits.nameCharacters || /[\x00-\x1f]/.test(first + last)) throw new Error(`Row ${index + 2}: invalid name.`);
+    if (!first) throw new Error(`Row ${index + 2}: first name is required.`);
+    if (first.length > contactImportLimits.nameCharacters || last.length > contactImportLimits.nameCharacters || /[\x00-\x1f]/.test(first + last)) throw new Error(`Row ${index + 2}: invalid name.`);
     let number;
     try {
       number = phone(get('phone'));

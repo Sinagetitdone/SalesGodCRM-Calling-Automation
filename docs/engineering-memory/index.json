@@ -3,6 +3,17 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-016",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-30-CALL-TRANSITIONS-AND-CONTACT-IDENTITY.md",
+      "tags": [
+        "audio",
+        "calling",
+        "integration",
+        "state-transitions"
+      ]
+    },
+    {
       "id": "LL-2026-015",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-26-CONSERVATIVE-CLEANUP.md",

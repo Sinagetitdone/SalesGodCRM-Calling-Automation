@@ -1,0 +1,7 @@
+# Treat call transitions and CRM identity as acknowledged state changes
+
+Mailbox detection is not one decision. Greeting recognition, beep or silence recovery, microphone-gate opening and playback start are separate transitions. A tone tail observed while the gate opens must not be interpreted as a new human utterance, and a deterministic mailbox invitation must not remain blocked on a second probabilistic classifier. Conversely, a short human greeting needs a bounded fallback that is cancelled when recorded speech continues. Tests must cover these event orderings, not only final labels.
+
+Contact identity is also a prerequisite, not post-call cleanup. Passing only a phone number to a global dialer can create number-only CRM records even when the campaign contains names. Use the provider's observed visible Contacts workflow: search by normalized phone, create or update first/last name, wait for the CRM to confirm the displayed value, and only then permit the call side effect. If the page or save acknowledgement is missing, stop before dialing.
+
+Distribution labels are part of operational correctness. Keep the ZIP filename, internal runtime metadata, desktop launchers, extension version and setup guide aligned so colleagues can prove which behavior they loaded. Source tests cannot explain colleague-side calls when their local event export is absent; state that evidence gap instead of assigning a definite transcript or carrier cause.

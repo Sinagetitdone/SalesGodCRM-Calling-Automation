@@ -181,6 +181,10 @@ The first architecture spike is to establish the provider-approved integration c
 - Engineering Memory records reusable lessons and bugs.
 - Evolution records system-direction history.
 
+## 2026-10-30 — Package 1.0.1 call reliability and CRM names
+
+Review of the supplied team ZIP found that a deterministic mailbox invitation could remain blocked on a delayed second classifier, beep-tail audio could cancel prepared voicemail while the outbound gate opened, and a bare human greeting had no bounded fallback. The list worker also discarded first/last names when it dispatched a phone number. Extension 0.4.6 separates voicemail transition artifacts from human interruption, adds a 750 ms short-greeting fallback cancelled by continued recorded speech, and permits confirmed invitations to recover a missed beep. The browser adapter now uses the observed Contacts search/Add/Edit forms to create or update the supplied name and verifies it before dialing. Starting from any page other than Contacts stops before preparation/calling. Both supplied CSVs contain a blank-name row 140 and now receive a precise import error. The 1.0.1 filename and internal runtime/desktop metadata are aligned. No live contact was edited and no telephone call was placed during this repair.
+
 ## 2026-10-01 — Strict JML audit
 
 The repository was re-audited against the supplied JML standards. CI is green, but production release remains blocked by unresolved provider contract, authorization, persistence, runtime, audit, and security-validation gates. The repository now records those gaps explicitly and corrects stale onboarding/status documentation.

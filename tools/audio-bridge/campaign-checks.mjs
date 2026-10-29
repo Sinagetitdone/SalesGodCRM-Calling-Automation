@@ -124,6 +124,7 @@ test('CSV handles quoted names, BOM and duplicate normalized numbers; malformed 
   const parsed = parseContacts('\uFEFFfirst_name,last_name,phone\r\n"Alex, A",Example,(202) 555-0101\r\nAlex,Example,+12025550101');
   assert.equal(parsed.contacts[0].firstName, 'Alex, A'); assert.equal(parsed.duplicates, 1);
   for (const bad of ['first_name,phone\nA,+12025550101', 'first_name,last_name,phone\n"Unclosed,x,3', 'first_name,last_name,phone\nA,B,not-a-number', 'first_name,last_name,phone\nA,B,+12025550101,extra']) assert.throws(() => parseContacts(bad));
+  assert.throws(() => parseContacts('first_name,last_name,phone\n,,+12025550101'), /Row 2: first name is required/);
 });
 
 test('CSV import preserves escaped quotes, international numbers and its existing boundary limits', () => {
@@ -286,7 +287,7 @@ test('stopped call outcomes retain evidence priority for voicemail, opt-out, par
   }
 });
 function workerFixture(simulation = true, failDial = false, terminal = {}) {
-  const f = fixture(simulation), window = {}, states = [], commands = []; let now = 0, session = randomUUID(), status = { canPrepare: true, prepared: true, sessionId: session, phase: 'waiting' }, phone = 'idle';
+  const f = fixture(simulation), window = {}, states = [], commands = [], dialPayloads = []; let now = 0, session = randomUUID(), status = { canPrepare: true, prepared: true, sessionId: session, phase: 'waiting' }, phone = 'idle';
   vm.runInNewContext(workerSource, { window, crypto: { randomUUID }, setInterval, clearInterval, document: { getElementById: () => ({}) } });
   const api = async (path, body) => {
     if (path === '/campaigns-api/' + f.id && !body) return f.store.read(f.id);
@@ -305,13 +306,13 @@ function workerFixture(simulation = true, failDial = false, terminal = {}) {
   const audio = { configure(options) { this.options = options; status = { canPrepare: true, prepared: true, sessionId: randomUUID(), phase: 'waiting' }; }, startRecording() { commands.push('record'); }, pair() {}, async prepare() {}, status: () => status, async stop() { status = { ...status, phase: 'stopped', humanAnswered: true, stopping: false }; } };
   const driver = async (command, data) => {
     commands.push(command);
-    if (command === 'dial') { phone = 'active'; if (failDial) throw new Error('Lost acknowledgement'); status = { ...status, phase: 'stopped', humanAnswered: true, conversationOutcome: 'completed', ...terminal }; }
+    if (command === 'dial') { dialPayloads.push(data); phone = 'active'; if (failDial) throw new Error('Lost acknowledgement'); status = { ...status, phase: 'stopped', humanAnswered: true, conversationOutcome: 'completed', ...terminal }; }
     if (command === 'hangup') phone = 'ended';
     if (command === 'status') return { state: phone };
     return {};
   };
   const worker = new window.SalesGodCampaignWorker({ api, audio, driver, onState: s => states.push(s.state), wait: async ms => { now += ms; }, now: () => now });
-  return { ...f, worker, commands, states, audio };
+  return { ...f, worker, commands, dialPayloads, states, audio };
 }
 test('simulated list finishes sequentially, saves transcripts and notifies without touching audio or dialer', async () => {
   const f = workerFixture(); try {
@@ -373,6 +374,7 @@ test('AI rehearsal failure and Stop preserve pending rows and avoid even CRM rel
 test('fake live driver hangs up before next dispatch, and lost dispatch acknowledgement pauses without retry', async () => {
   const f = workerFixture(false); try {
     await f.worker.run(f.id); assert.equal(f.commands.filter(x => x === 'dial').length, 2);
+    assert.deepEqual(f.dialPayloads.map(({ firstName, lastName }) => ({ firstName, lastName })), [{ firstName: 'Alex', lastName: 'Example' }, { firstName: 'Sam', lastName: 'Example' }]);
     const dial = f.commands.indexOf('dial'), next = f.commands.indexOf('dial', dial + 1); assert.ok(f.commands.indexOf('hangup', dial) < next); assert.equal(f.states.at(-1), 'finished');
   } finally { f.store.close(); }
   const uncertain = workerFixture(false, true); try {

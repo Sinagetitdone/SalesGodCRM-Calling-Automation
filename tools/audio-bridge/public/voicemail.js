@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const mailboxUnavailable = text => /\b(mailbox (?:is )?full|cannot accept|not accepting|unable to (?:record|accept)|cannot be recorded)\b/i.test(String(text).slice(0, 4000));
-  const greetingInvitation = text => /\b(leave (?:me |us |your |a )?(?:voice ?)?message|after (?:the )?(?:tone|beep)|at (?:the )?(?:tone|beep)|reached (?:the )?voice ?mail|voice ?mail (?:box|service)|not available.*(?:message|tone|beep))\b/i.test(String(text).slice(0, 4000));
+  const greetingInvitation = text => /\b(leave (?:me |us |your |a )?(?:voice ?)?message|record (?:your |a )?(?:voice ?)?message|begin recording|after (?:the )?(?:tone|beep)|at (?:the )?(?:tone|beep)|reached (?:the )?voice ?mail|voice ?mail (?:box|service)|automated voice messag(?:e|ing) system|not available.*(?:message|record|tone|beep))\b/i.test(String(text).slice(0, 4000));
   const screeningPrompt = text => {
     const value = String(text).slice(0, 4000);
     return /\b(?:say|state|leave|record|tell|provide|share)\b/i.test(value) && /\b(?:your |caller.?s )?name\b/i.test(value)
@@ -43,7 +43,12 @@
       }
       // Restricted English greeting cues. Unknown speech is never guessed to be voicemail.
       if (greetingInvitation(text)) {
+        // The transcript itself is deterministic mailbox evidence. Keep it as
+        // fallback approval so a missed or unsupported acoustic beep can still
+        // open the prepared message after fresh silence.
+        this.confirmed = true;
         if (this.greeting === undefined) { this.greeting = this.now(); this.onGreeting(); }
+        this.quietSince = undefined;
         this.check();
       }
     }

@@ -57,15 +57,22 @@ test('late voicemail greeting survives ringing past sixty seconds and a short co
   assert.equal(s.counts().ready, 1);
 });
 
-test('missed beep recovers only after model-confirmed voicemail and fresh sustained silence', () => {
+test('an ambiguous greeting needs model confirmation before missed-beep silence can open voicemail', () => {
   const s = setup();
-  s.detector.transcript('Please leave a message');
+  s.detector.transcript('The person is not here right now.');
   s.at(1000, silence); s.at(6000, silence);
   assert.equal(s.counts().ready, 0);
   s.detector.confirmVoicemail();
   s.at(6100, silence); s.at(8500, silence); assert.equal(s.counts().ready, 0);
   s.at(8700, silence); assert.equal(s.counts().ready, 1);
   s.at(10000, silence); assert.equal(s.counts().ready, 1);
+});
+
+test('a deterministic carrier invitation confirms voicemail and recovers a missed beep after fresh silence', () => {
+  const s = setup();
+  s.detector.transcript('Your call was forwarded to an automated voice messaging system. At the tone, please record your message.');
+  s.at(100, silence); s.at(2700, silence);
+  assert.equal(s.counts().ready, 1);
 });
 
 test('speech and pending human classification prevent the silence fallback', () => {

@@ -107,7 +107,8 @@
                 const permit = await this.post(contactPath + '/dispatch', { session: this.audio.status().sessionId });
                 dispatchAttempted = true;
                 this.audio.startRecording();
-                await this.driver('dial', { attempt: this.current.id, phone: permit.phone, caller: next.settings.callerNumber });
+                await this.driver('dial', { attempt: this.current.id, phone: permit.phone, caller: next.settings.callerNumber,
+                  firstName: this.current.firstName, lastName: this.current.lastName });
                 this.onState({ state: 'calling', contact: this.current });
                 const started = this.now(), deadline = started + timing.callLimitMs; let observedCall = false;
                 while (true) {

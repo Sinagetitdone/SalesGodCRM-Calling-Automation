@@ -1,4 +1,6 @@
-# Calling lists — package 0.5.5 / extension 0.4.4
+# Calling lists — package 1.0.1 / extension 0.4.6
+
+Current update (2026-10-30): open the CRM **Contacts** page before **Open calling list**. Before every dispatch, the worker searches by normalized phone, creates a missing contact or updates first/last name from the CSV, confirms the displayed name, and only then dials. A missing confirmation or wrong CRM page pauses before a phone side effect. Short human greetings now have a bounded 750 ms fallback; continued recorded speech cancels it. Standard mailbox invitations can recover a missed beep without waiting on a second classifier, and beep-tail audio cannot cancel playback while its gate opens. No telephone call was placed for this repair; see [the 1.0.1 report](../../docs/CALL-RELIABILITY-1.0.1.md).
 
 New in 0.5.5: drag the extension panel background or text to move it. **Previous Conversations** opens `/history` for review, individual JSON/MP3 downloads, selected-list/all-history ZIP exports and deletion with confirmation. Active lists cannot be deleted. Failed/pending rows show saved event logs instead of transcripts. New errors include the bounded application error message; missing historical details cannot be reconstructed. Rehearsal includes live listening controls and stores one MP3 containing both speakers for each contact. These recordings and list history remain until owner deletion; telephone audio is not recorded. Restart the bridge, reload extension 0.4.4 and refresh idle CRM.
 
