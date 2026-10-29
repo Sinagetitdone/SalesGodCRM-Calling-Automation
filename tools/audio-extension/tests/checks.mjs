@@ -25,7 +25,7 @@ test('panel accepts the installed manifest version and enables supervised contro
   assert.equal(get('callVoice').disabled, true);
   report.armed = true; publish();
   assert.equal(get('callVoice').disabled, false); assert.equal(get('voice').disabled, false);
-  assert.equal(get('callVoice').textContent, 'AI Agents Test Call'); assert.equal(get('callingList').textContent, 'Open calling list');
+  assert.equal(get('callVoice').textContent, 'AI Agents Test Call'); assert.equal(get('crmImport').textContent, 'Import contacts for calling'); assert.equal(get('callingList').textContent, 'Open calling list');
   const tile = get('section'); let captured = false;
   tile.setPointerCapture = () => { captured = true; }; tile.hasPointerCapture = () => captured; tile.releasePointerCapture = () => { captured = false; };
   const pointer = { button: 0, pointerId: 1, clientX: 30, clientY: 200, preventDefault() {}, target: { closest: () => ({}) } };
@@ -37,6 +37,13 @@ test('panel accepts the installed manifest version and enables supervised contro
   const before = get('salesgod-local-audio-panel').style.left;
   tile.onkeydown({ target: get('arm'), key: 'ArrowRight' });
   assert.equal(get('salesgod-local-audio-panel').style.left, before, 'control keyboard input must not drag');
+});
+test('panel hands a CRM-accepted file to the local list and never contains an upload endpoint or provider API', () => {
+  assert.match(panelSource, /type: 'crm-import'/);
+  assert.match(panelSource, /crmImport\?\.confirmed/);
+  assert.match(panelSource, /input\[type="file"\]/);
+  assert.doesNotMatch(panelSource, /fetch\(|XMLHttpRequest|\/api\/contacts/i);
+  assert.match(panelSource, /result = \{ verified: true, name: contact\.name \}/, 'message-port replies must not contain DOM elements');
 });
 function environment() {
   const listeners = new Map(); const messages = []; const originals = { requests: 0 };

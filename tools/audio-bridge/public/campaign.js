@@ -6,7 +6,7 @@
   const practice = document.body.dataset.workspace === 'rehearsal';
   const readAgentSettings = () => ({ turnSeconds: Number($('turnSeconds').value) });
   document.title = practice ? 'AI Agents Test Call · SalesGod' : 'Real calling lists · SalesGod';
-  let selected, control, pairTimer, worker, starting = false;
+  let selected, control, pairTimer, worker, starting = false, crmImportReady = practice, crmImportFile = '';
   let detailContact, detailRequest = 0;
   const showsLog = contact => ['failed', 'pending', 'unknown', 'needs_review', 'preparing', 'dispatching', 'connected'].includes(contact.state);
   const needsReview = contact => ['needs_review', 'failed', 'unknown'].includes(contact.state);
@@ -111,7 +111,16 @@
     window.addEventListener('message', event => {
       if (control || event.source !== window.opener || event.origin !== origin || event.data?.source !== 'salesgod-campaign-v1' || event.data.type !== 'paired' || event.data.token !== token || !event.ports[0]) return;
       control = event.ports[0]; clearInterval(pairTimer);
-      control.onmessage = ({ data }) => { const p = pending.get(data?.id); if (!p) return; clearTimeout(p.timer); pending.delete(data.id); data.error ? p.reject(new Error(data.error)) : p.resolve(data.result); };
+      control.onmessage = ({ data }) => {
+        if (data?.type === 'crm-import') {
+          if (typeof data.csv !== 'string' || data.csv.length < 1 || data.csv.length > 400000 || typeof data.fileName !== 'string' || data.fileName.length > 255) return error(new Error('The CRM import handoff was invalid. Reopen it from SalesGodCRM.'));
+          $('contactCsv').value = data.csv; $('listName').value = String(data.name || data.fileName.replace(/\.csv$/i, '') || 'CRM import').slice(0, 120);
+          crmImportFile = data.fileName; crmImportReady = true;
+          $('crmImportStatus').textContent = `${data.fileName} was accepted by SalesGodCRM and received from the extension. Review settings, then create the draft. No calls have started.`;
+          $('listError').textContent = ''; render(); return;
+        }
+        const p = pending.get(data?.id); if (!p) return; clearTimeout(p.timer); pending.delete(data.id); data.error ? p.reject(new Error(data.error)) : p.resolve(data.result);
+      };
       control.start(); $('driverState').textContent = 'CRM controls paired. No calls start until you choose Start.'; render();
     });
     const hello = () => window.opener.postMessage({ source: 'salesgod-campaign-v1', type: 'hello', token }, origin);
@@ -167,7 +176,7 @@
       $('startList').disabled ||= profileBusy;
       $('savedLists').disabled ||= profileBusy;
       $('copyList').disabled ||= profileBusy;
-      $('importList').disabled = running || profileBusy || !profileLoaded;
+      $('importList').disabled = running || profileBusy || !profileLoaded || !crmImportReady;
       $('saveCallingProfile').disabled = profileBusy || !profileLoaded;
       $('loadCallingProfile').disabled = profileBusy;
       $('callingBackground').disabled = $('conversationGuide').disabled = profileBusy || !profileLoaded;
@@ -205,7 +214,7 @@
     }
     void refresh().catch(error);
   } });
-  $('contactFile').onchange = async () => { try { const f = $('contactFile').files[0]; if (f) { if (f.size > 400000) throw new Error('CSV file exceeds 400 KB.'); $('contactCsv').value = await f.text(); } } catch (e) { error(e); } };
+  if (practice) $('contactFile').onchange = async () => { try { const f = $('contactFile').files[0]; if (f) { if (f.size > 400000) throw new Error('CSV file exceeds 400 KB.'); $('contactCsv').value = await f.text(); } } catch (e) { error(e); } };
   if (practice) $('demoContacts').onclick = () => { $('contactCsv').value = 'first_name,last_name,phone\nAlex,Example,+12025550101\nSam,Example,+12025550102'; $('listName').value = 'My rehearsal'; };
   $('copyList').onclick = () => {
     if (!selected || worker.running) return;
@@ -216,6 +225,8 @@
     for (const [id, value] of Object.entries({ simulationMode: s.simulationMode || 'offline', rehearsalPersona: s.rehearsalPersona || 'interested', rehearsalTurns: s.rehearsalTurns || 8, callerNumber: s.callerNumber, listTimeZone: s.timeZone, startHour: s.startHour, endHour: s.endHour, callBrief: s.brief, ...(!practice ? { voicemailMessage: s.voicemailMessage } : {}) })) if ($(id)) $(id).value = value;
     if (practice) { $('turnSeconds').value = s.rehearsalConfig?.turnSeconds ?? 20; $('rehearsalVoice').value = selectedVoice(s.voice); $('customerVoice').value = selectedVoice(s.customerVoice, 'coral'); if ($('rehearsalGuidance')) $('rehearsalGuidance').value = s.guidance || ''; }
     else {
+      crmImportReady = true; crmImportFile = selected.settings.crmImportFile || 'existing SalesGodCRM contacts';
+      $('crmImportStatus').textContent = 'Copied an existing CRM-linked list. Each name and phone will still be verified in SalesGodCRM before dialing.';
       $('responsePauseMs').value = s.responsePauseMs ?? 250;
       $('callingBackground').value = s.background || ''; $('conversationGuide').value = s.guidance || ''; profileCounts();
       $('callingVoice').value = selectedVoice(s.voice);
@@ -235,8 +246,10 @@
       if (simulation && $('simulationMode').value === 'agents') {
         if (!$('turnSeconds').reportValidity()) return;
       }
+      if (!practice && !crmImportReady) throw new Error('Complete Import contacts for calling in SalesGodCRM first.');
       selected = await api('/campaigns-api/import', { name: $('listName').value.trim(), csv: $('contactCsv').value,
-        settings: { simulation, ...profile, ...(practice ? { simulationMode: $('simulationMode').value, rehearsalPersona: $('rehearsalPersona').value, rehearsalTurns: Number($('rehearsalTurns').value), rehearsalConfig: readAgentSettings() } : { responsePauseMs: Number($('responsePauseMs').value) }), callerNumber: simulation ? '+12025550100' : $('callerNumber').value.trim(), timeZone: practice ? 'UTC' : $('listTimeZone').value.trim(), startHour: practice ? 0 : Number($('startHour').value), endHour: practice ? 24 : Number($('endHour').value), brief: $('callBrief').value.trim(), voicemailMessage: practice ? 'Fictional rehearsal; no voicemail is sent.' : $('voicemailMessage').value.trim() } });
+        settings: { simulation, ...profile, ...(practice ? { simulationMode: $('simulationMode').value, rehearsalPersona: $('rehearsalPersona').value, rehearsalTurns: Number($('rehearsalTurns').value), rehearsalConfig: readAgentSettings() } : { responsePauseMs: Number($('responsePauseMs').value), crmImportFile }), callerNumber: simulation ? '+12025550100' : $('callerNumber').value.trim(), timeZone: practice ? 'UTC' : $('listTimeZone').value.trim(), startHour: practice ? 0 : Number($('startHour').value), endHour: practice ? 24 : Number($('endHour').value), brief: $('callBrief').value.trim(), voicemailMessage: practice ? 'Fictional rehearsal; no voicemail is sent.' : $('voicemailMessage').value.trim() } });
+      if (!practice) { crmImportReady = false; $('contactCsv').value = ''; $('crmImportStatus').textContent = `${crmImportFile} is saved as this draft. Import another file through SalesGodCRM to create another list.`; }
       $('listState').textContent = `Imported ${selected.contacts.length} contacts. ${selected.duplicates} duplicate numbers skipped. Nothing has started.`; $('selectedTranscript').hidden = true; await refresh();
     } catch (e) { error(e); }
   };

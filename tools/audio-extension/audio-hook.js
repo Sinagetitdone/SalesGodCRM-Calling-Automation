@@ -24,7 +24,7 @@
   let voiceToken, voiceExpiry = 0, voicePair, voiceState = 'disconnected', voiceKind = 'setup';
   const log = (event) => { events.push({ time: new Date().toISOString(), event }); if (events.length > 80) events.shift(); };
   function snapshot() {
-    return { version: '0.4.7', installed: true, armed, testing, virtualDevice: LABEL,
+    return { version: '0.4.8', installed: true, armed, testing, virtualDevice: LABEL,
       dialerRequests, dialerEnumerations, observedPeers,
       activeDialerConnections: [...peers].filter(pc => ['connected', 'connecting'].includes(pc.connectionState)).length,
       lastTest, lastPeerTest, lastVoiceTest, microphonePermission, voiceState, voiceKind, callMedia: voicePair?.media ?? null,

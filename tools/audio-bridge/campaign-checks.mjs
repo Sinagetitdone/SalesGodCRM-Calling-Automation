@@ -291,7 +291,7 @@ test('stopped call outcomes retain evidence priority for voicemail, opt-out, par
 });
 function workerFixture(simulation = true, failDial = false, terminal = {}, failNote = false) {
   const f = fixture(simulation), window = {}, states = [], commands = [], dialPayloads = [], notePayloads = [];
-  const { phoneEndsAfterPoll = false, ...terminalStatus } = terminal;
+  const { phoneEndsAfterPoll = false, importNotReady = false, ...terminalStatus } = terminal;
   let now = 0, session = randomUUID(), statusReads = 0, status = { canPrepare: true, prepared: true, sessionId: session, phase: 'waiting' }, phone = 'idle';
   vm.runInNewContext(workerSource, { window, crypto: { randomUUID }, setInterval, clearInterval, document: { getElementById: () => ({}) } });
   const api = async (path, body) => {
@@ -303,6 +303,7 @@ function workerFixture(simulation = true, failDial = false, terminal = {}, failN
       case 'pause': return f.store.pause(f.id, body.workerId);
       case 'next': return f.store.claim(f.id, body.workerId);
       case 'dispatch': return f.store.dispatch(f.id, id, body.workerId, body.session);
+      case 'defer': return f.store.defer(f.id, id, body.workerId, body.message);
       case 'transcript': return f.store.transcript(f.id, id, body.workerId, body);
       case 'finish': return f.store.finish(f.id, id, body.workerId, body.outcome, body.diagnostic);
       default: throw new Error('Unexpected API path ' + path);
@@ -311,6 +312,7 @@ function workerFixture(simulation = true, failDial = false, terminal = {}, failN
   const audio = { configure(options) { this.options = options; status = { canPrepare: true, prepared: true, sessionId: randomUUID(), phase: 'waiting' }; }, startRecording() { commands.push('record'); }, pair() {}, async prepare() {}, status: () => status, async stop() { status = { ...status, phase: 'stopped', stopping: false }; } };
   const driver = async (command, data) => {
     commands.push(command);
+    if (command === 'contact' && importNotReady) throw new Error('CRM import not ready: synthetic contact is still processing.');
     if (command === 'dial') { dialPayloads.push(data); phone = 'active'; statusReads = 0; if (failDial) throw new Error('Lost acknowledgement'); status = { ...status, phase: phoneEndsAfterPoll ? 'waiting' : 'stopped', humanAnswered: true, conversationOutcome: 'completed', ...terminalStatus }; }
     if (command === 'note') { notePayloads.push(data); if (failNote) throw new Error('CRM note save rejected'); }
     if (command === 'hangup') phone = 'ended';
@@ -394,6 +396,17 @@ test('fake live driver hangs up before next dispatch, and lost dispatch acknowle
     await uncertain.worker.run(uncertain.id); assert.equal(uncertain.commands.filter(x => x === 'dial').length, 1);
     assert.deepEqual(uncertain.store.read(uncertain.id).contacts.map(c => c.state), ['unknown', 'pending']); assert.equal(uncertain.store.read(uncertain.id).state, 'paused');
   } finally { uncertain.store.close(); }
+});
+test('unfinished CRM import returns the uncalled contact to pending and pauses before preparation or dispatch', async () => {
+  const f = workerFixture(false, false, { importNotReady: true });
+  try {
+    await f.worker.run(f.id); const list = f.store.read(f.id);
+    assert.deepEqual(list.contacts.map(contact => contact.state), ['pending', 'pending']);
+    assert.equal(list.state, 'paused'); assert.deepEqual(f.commands, ['inspect', 'contact']);
+    assert.ok(list.events.some(event => event.event === 'crm_import_waiting'));
+    assert.ok(list.events.some(event => /failure_detail: CRM import not ready/.test(event.event)));
+    assert.ok(f.states.includes('import_waiting'));
+  } finally { f.store.close(); }
 });
 test('voicemail and no-answer outcomes are written to CRM notes before the list advances', async () => {
   for (const [terminal, expected] of [

@@ -1,6 +1,10 @@
 # Resume here — 2026-10-30
 
-## Latest CRM notes update — package 1.0.2 / extension 0.4.7
+## Latest CRM-native import update — package 1.0.3 / extension 0.4.8
+
+Real lists now begin with the extension's **Import contacts for calling** button on SalesGodCRM Contacts. The user selects the CSV once in the provider's native Import Contacts dialog. After SalesGodCRM accepts it, the extension passes that in-memory selection to the local draft. Before each call, the driver requires the exact phone/name row and clicks the row Call control, preserving the CRM contact identity. Missing, unfinished or mismatched imports return the uncalled contact to Pending and pause before AI preparation or dispatch. Read-only inspection confirmed the native import dialog, file chooser, header option, Import control and row Call title. All 205 offline checks pass. No file was uploaded, contact edited or call placed. See [CRM-NATIVE-IMPORT-1.0.3.md](CRM-NATIVE-IMPORT-1.0.3.md).
+
+## Previous CRM notes update — package 1.0.2 / extension 0.4.7
 
 Every observed real call now appends a timestamped status to the existing SalesGodCRM Notes field and verifies the saved text before the list advances. Business statuses include Meeting set, Needs follow-up, Not interested, Wrong number and Conversation completed; technical statuses include Opted out, Voicemail left, No answer, Needs review, Failed, Unknown and Cancelled. Meeting set requires an explicitly agreed exact date, time and timezone and does not create a calendar event. Note failure pauses as Needs review. Read-only live-form inspection confirmed Notes/Save/Close without editing a contact, and no call was placed. All 204 offline tests and type checking pass. See [CALL-DISPOSITION-NOTES-1.0.2.md](CALL-DISPOSITION-NOTES-1.0.2.md).
 

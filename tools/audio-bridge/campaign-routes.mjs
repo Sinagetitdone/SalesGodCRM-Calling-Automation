@@ -13,6 +13,7 @@ const settingsSchema = object({ timeZone: { type: 'string', minLength: 1, maxLen
     turnSeconds: { type: 'integer', minimum: 10, maximum: 120 },
   }, []),
   responsePauseMs: { type: 'integer', minimum: 200, maximum: 1000 },
+  crmImportFile: { type: 'string', minLength: 1, maxLength: 255 },
   ...profileFields,
   customerVoice: { type: 'string', enum: callVoices },
 }, ['timeZone', 'startHour', 'endHour', 'callerNumber', 'voicemailMessage', 'brief', 'simulation']);
@@ -49,6 +50,7 @@ export function campaignRoutes(app, { env, store: supplied, journal }) {
   route('POST', '/campaigns-api/:id/pause', object(worker), (s, r) => s.pause(r.params.id, r.body.workerId));
   route('POST', '/campaigns-api/:id/next', object(worker), (s, r) => s.claim(r.params.id, r.body.workerId));
   route('POST', '/campaigns-api/:id/:contact/dispatch', object({ ...worker, session: uuid }), (s, r) => s.dispatch(r.params.id, r.params.contact, r.body.workerId, r.body.session));
+  route('POST', '/campaigns-api/:id/:contact/defer', object({ ...worker, message: { type: 'string', minLength: 1, maxLength: 1500 } }), (s, r) => s.defer(r.params.id, r.params.contact, r.body.workerId, r.body.message));
   route('POST', '/campaigns-api/:id/:contact/finish', object({ ...worker, outcome: { type: 'string', enum: outcomes }, diagnostic: object({ message: { type: 'string', maxLength: 1500 }, session: uuid }, []) }, ['workerId', 'outcome']), (s, r) => {
     const result = s.finish(r.params.id, r.params.contact, r.body.workerId, r.body.outcome, r.body.diagnostic);
     const contact = result.contacts.find(c => c.id === r.params.contact);

@@ -181,6 +181,10 @@ The first architecture spike is to establish the provider-approved integration c
 - Engineering Memory records reusable lessons and bugs.
 - Evolution records system-direction history.
 
+## 2026-10-30 — Package 1.0.3 native CRM import and identity-bound calls
+
+The owner requested one upload directly into SalesGodCRM followed by extension-controlled calling with names visible in the provider. The extension now opens and observes the native Import Contacts dialog, holds the selected CSV only in the current browser page, waits for dialog acceptance, and transfers the same file to the local draft through the existing nonce-bound message channel. Dispatch no longer creates or rewrites contacts per call. It searches by normalized phone, requires the exact imported name, re-resolves the row after dialer configuration, and clicks that row's Call control so CRM contact identity remains attached. Missing/unfinished imports, name mismatches and changed controls fail before the call side effect. Read-only live inspection confirmed the dialog and row Call selector; no import or call occurred.
+
 ## 2026-10-30 — Package 1.0.2 verified CRM disposition notes
 
 The owner requested call statuses in each contact's SalesGodCRM Notes section and emphasized fail-closed verification. The automatic Realtime tool now returns a constrained business disposition; Meeting set requires an exact agreed date, time and timezone, while vague later contact is Needs follow-up. After an observed call ends, the worker appends a timestamped label without replacing existing notes, reopens the exact phone-matched contact to confirm the text, then releases the attempt and advances. Technical voicemail/no-answer/failure states use deterministic worker outcomes. A wrong owner, active call, unsupported status, missing field or unconfirmed save stops advancement; note failure becomes Needs review and pauses. The disposition is also journaled. Read-only browser inspection confirmed the current Notes textarea and Save/Close controls. No contact was changed and no call was placed.

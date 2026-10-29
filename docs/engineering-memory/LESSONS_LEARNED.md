@@ -1,5 +1,9 @@
 # Lessons Learned
 
+## 2026-10-30: Provider-native import handoff
+
+See [provider-native import handoff](lessons/LESSON-2026-10-30-PROVIDER-NATIVE-IMPORT.md): capture one user-selected provider import in memory, bind the local draft to it, and use the verified provider contact row for the call side effect so identity is preserved.
+
 ## 2026-10-30: CRM disposition commit
 
 See [CRM disposition commit](lessons/LESSON-2026-10-30-CRM-DISPOSITION-COMMIT.md): save a post-call status as a verified provider-side commit, preserve prior notes, retain call ownership until confirmation, and pause rather than silently advancing on failure.

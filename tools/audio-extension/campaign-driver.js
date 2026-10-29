@@ -48,33 +48,18 @@
         return first && form && submit ? { first, last: form.querySelector('#last_name'), phone: form.querySelector('#phone'), notes: form.querySelector('#notes'), form, submit } : null;
       }, 8000, `${action} form`);
     }
-    async saveContact({ phone, firstName, lastName }) {
+    async requireImportedContact({ phone, firstName, lastName }) {
       const pageLocation = this.doc.defaultView?.location || location;
-      if (pageLocation.pathname !== '/contacts') throw new Error('Open SalesGodCRM Contacts before starting the calling list so names can be saved.');
+      if (pageLocation.pathname !== '/contacts') throw new Error('Open SalesGodCRM Contacts before starting the calling list so imported names can be verified.');
       firstName = compact(firstName); lastName = compact(lastName); const displayName = compact(`${firstName} ${lastName}`);
       if (!/^\+[1-9]\d{7,14}$/.test(phone) || !firstName || firstName.length > 100 || lastName.length > 100) throw new Error('Invalid contact details; no call was placed.');
-      let row = await this.findContact(phone);
-      if (row.missing) {
-        const add = [...this.doc.querySelectorAll('button')].find(button => compact(button.textContent) === 'Add Contact' && !button.closest('form'));
-        if (!add) throw new Error('SalesGodCRM Add Contact control is unavailable; no call was placed.');
-        add.click(); const form = await this.contactForm('Add Contact');
-        this.setInput(form.first, firstName); this.setInput(form.last, lastName); this.setInput(form.phone, phone); form.submit.click();
-        await this.until(() => !this.doc.querySelector('#first_name'), 12000, 'Contact save');
-        row = await this.findContact(phone);
-        if (row.missing) throw new Error('SalesGodCRM did not confirm the new contact; no call was placed.');
-        return { saved: true, created: true, name: displayName };
-      }
+      const row = await this.findContact(phone);
+      if (row.missing) throw new Error('CRM import not ready: this contact is not available in SalesGodCRM yet. Wait for the import to finish, then resume; no call was placed.');
       const currentName = compact(row.querySelectorAll('td')[1]?.textContent);
-      if (nameKey(currentName) === nameKey(displayName)) return { saved: true, created: false, unchanged: true, name: displayName };
-      const edit = row.querySelector('a[title="Edit"]');
-      if (!edit) throw new Error('SalesGodCRM Edit contact control is unavailable; no call was placed.');
-      edit.click(); const form = await this.contactForm('Save');
-      if (digits(form.phone?.value) !== digits(phone)) throw new Error('SalesGodCRM opened a different contact; no call was placed.');
-      this.setInput(form.first, firstName); this.setInput(form.last, lastName); form.submit.click();
-      await this.until(() => !this.doc.querySelector('#first_name'), 12000, 'Contact name save');
-      row = await this.findContact(phone);
-      if (row.missing || nameKey(row.querySelectorAll('td')[1]?.textContent) !== nameKey(displayName)) throw new Error('SalesGodCRM did not confirm the contact name; no call was placed.');
-      return { saved: true, created: false, unchanged: false, name: displayName };
+      if (nameKey(currentName) !== nameKey(displayName)) throw new Error(`CRM import not ready: SalesGodCRM has “${currentName || 'no name'}” for ${phone}, not “${displayName}”. Correct or finish the import before resuming; no call was placed.`);
+      const call = row.querySelector('button[title="Call"],button[aria-label="Call"]');
+      if (!call) throw new Error('CRM import not ready: the imported contact Call control is unavailable; no call was placed.');
+      return { row, call, name: displayName };
     }
     async saveNote({ attempt, phone, outcome, disposition }) {
       if (!this.owned || this.owned.attempt !== attempt || digits(this.owned.phone) !== digits(phone)) throw new Error('This worker does not own the contact note update.');
@@ -139,22 +124,20 @@
     async dial({ attempt, phone, caller, firstName, lastName }) {
       if (!/^[a-f0-9-]{36}$/.test(attempt) || !/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error('Invalid call attempt.');
       if (this.attempts.has(attempt)) throw new Error('This attempt has already been dispatched; no retry.');
-      await this.inspect(); await this.saveContact({ phone, firstName, lastName }); await this.configure(caller); const p = await this.panel();
+      await this.inspect(); await this.requireImportedContact({ phone, firstName, lastName }); await this.configure(caller); const p = await this.panel();
       if (this.busy(p)) throw new Error('A call is already active.');
-      const input = p.querySelector('#contactNumber'), call = this.button(p, 'Call');
-      if (!input || !call) throw new Error('Dialer is not ready.');
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, phone);
-      input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
-      await Promise.resolve();
-      if (digits(input.value) !== digits(phone) || call.disabled || this.busy(p)) throw new Error('Number verification failed or dialer became busy.');
-      this.owned = { attempt, phone }; this.attempts.set(attempt, true);
+      // Re-resolve the row after changing dialer settings so a CRM re-render cannot
+      // leave us with a stale or different contact immediately before the side effect.
+      const imported = await this.requireImportedContact({ phone, firstName, lastName });
+      if (imported.call.disabled || this.busy(p)) throw new Error('The imported contact cannot be called or the dialer became busy.');
+      this.owned = { attempt, phone, name: imported.name }; this.attempts.set(attempt, true);
       // Mark before the side effect. Uncertain results are never retried automatically.
-      call.click(); return { dispatchAttempted: true };
+      imported.call.click(); return { dispatchAttempted: true, contactName: imported.name };
     }
     async status() {
       const p = await this.panel(), active = this.busy(p);
       if (!this.owned) return { state: active ? 'other_call' : 'idle' };
-      const target = [...p.querySelectorAll('h5')].some(h => digits(h.textContent) === digits(this.owned.phone));
+      const target = [...p.querySelectorAll('h5')].some(h => digits(h.textContent) === digits(this.owned.phone) || nameKey(h.textContent) === nameKey(this.owned.name));
       if (active && !target) return { state: 'unknown' };
       if (!active) return { state: 'ended', attempt: this.owned.attempt };
       return { state: this.button(p, 'End call') ? 'active' : 'dialing', attempt: this.owned.attempt };

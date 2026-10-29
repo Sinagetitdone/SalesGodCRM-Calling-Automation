@@ -11,20 +11,21 @@ function fixture({ persistNotes = true } = {}) {
   const location = { pathname: '/contacts' }, window = { location, HTMLInputElement: Input, HTMLTextAreaElement: Input };
   const input = new Input(), mic = { value: 'physical', options: [{ value: 'physical' }, { value: 'salesgod-ai-bridge-local-v1' }], dispatchEvent() {} }, from = { value: '', options: [{ value: 'caller', textContent: '+1 202-555-0100' }], dispatchEvent() {} };
   const button = (text, click = () => {}) => ({ textContent: text, disabled: false, getAttribute: () => null, click });
-  const call = button('Call', () => { calls++; state = 'dialing'; }), end = button('End call', () => { hangups++; state = 'idle'; });
+  const keypadCall = button('Call'), end = button('End call', () => { hangups++; state = 'idle'; });
   const panel = { textContent: 'Ready', querySelectorAll(selector) {
     if (selector === 'h5') return state === 'idle' ? [] : [{ textContent: target }];
     if (selector !== 'button') return [];
-    return [button('Calls' + (state === 'idle' ? '' : ' 1')), button('Keypad', () => { view = 'Keypad'; }), button('Settings', () => { view = 'Settings'; }), ...(state === 'idle' ? [call] : [end])];
+    return [button('Calls' + (state === 'idle' ? '' : ' 1')), button('Keypad', () => { view = 'Keypad'; }), button('Settings', () => { view = 'Settings'; }), ...(state === 'idle' ? [keypadCall] : [end])];
   }, querySelector(selector) { return ({ '#contactNumber': input, '#calling-number': from, '#call-microphone': mic })[selector]; } };
   const contacts = [{ phone, firstName: 'Test', lastName: 'Person', notes: 'Existing owner note' }], search = new Input();
   const noRows = { textContent: 'No matching records found', querySelectorAll: selector => selector === 'td' ? [{}] : [], querySelector: () => null };
   const rowFor = contact => {
     const cells = Array.from({ length: 12 }, () => ({ textContent: '' })); cells[1].textContent = `${contact.firstName} ${contact.lastName}`.trim(); cells[3].textContent = contact.phone;
     const edit = { click() { formMode = 'edit'; editing = contact; makeForm(contact); } };
+    const rowCall = button('Call', () => { calls++; state = 'dialing'; target = `${contact.firstName} ${contact.lastName}`.trim(); });
     const inlineNotes = { value: contact.notes || '' };
     return { textContent: cells.map(cell => cell.textContent).join(' '), querySelectorAll: selector => selector === 'td' ? cells : [],
-      querySelector: selector => selector === 'a[title="Edit"]' ? edit : selector === 'textarea' ? inlineNotes : null };
+      querySelector: selector => selector === 'a[title="Edit"]' ? edit : selector === 'button[title="Call"],button[aria-label="Call"]' ? rowCall : selector === 'textarea' ? inlineNotes : null };
   };
   let form;
   function makeForm(contact = { phone: '', firstName: '', lastName: '', notes: '' }) {
@@ -50,11 +51,12 @@ function fixture({ persistNotes = true } = {}) {
     querySelector: selector => ({ '#dt_main_search': search, '#contactTable': table, '#first_name': form?.first || null })[selector] || null,
     querySelectorAll: selector => selector === '#contactTable tbody tr' ? rows() : selector === 'button' ? [add] : [] };
   vm.runInNewContext(source, { window, document, location, HTMLInputElement: Input, Event, setTimeout });
-  return { driver: new window.SalesGodCampaignDialer(document, { wait: async ms => { time += ms; }, now: () => time }), contacts, location, mic, from, input, call, setState(s, t = phone) { state = s; target = t; }, counts: () => ({ calls, hangups }), panel };
+  return { driver: new window.SalesGodCampaignDialer(document, { wait: async ms => { time += ms; }, now: () => time }), contacts, location, mic, from, input, setState(s, t = phone) { state = s; target = t; }, counts: () => ({ calls, hangups }), panel };
 }
-test('synthetic DOM dispatch uses generated microphone, verifies target, deduplicates and hangs up owned call only', async () => {
+test('synthetic DOM dispatch uses the imported contact row, generated microphone, verified name and owned hangup', async () => {
   const f = fixture(); await f.driver.dial({ attempt, phone, caller, firstName: 'Test', lastName: 'Person' });
-  assert.equal(f.mic.value, 'salesgod-ai-bridge-local-v1'); assert.equal(f.input.value, phone); assert.equal(f.counts().calls, 1);
+  assert.equal(f.mic.value, 'salesgod-ai-bridge-local-v1'); assert.equal(f.input.value, ''); assert.equal(f.counts().calls, 1);
+  assert.equal((await f.driver.status()).state, 'active', 'the CRM may identify the live target by imported name');
   await assert.rejects(f.driver.dial({ attempt, phone, caller }), /already been dispatched/);
   await f.driver.hangup(attempt); assert.equal(f.counts().hangups, 1); assert.equal((await f.driver.status()).state, 'ended');
   await f.driver.release(attempt); assert.equal((await f.driver.status()).state, 'idle');
@@ -74,22 +76,15 @@ test('target mismatch after dispatch prevents hanging up a foreign or uncertain 
   const f = fixture(); await f.driver.dial({ attempt, phone, caller, firstName: 'Test', lastName: 'Person' }); f.setState('active', '+12025550109');
   assert.equal((await f.driver.status()).state, 'unknown'); await assert.rejects(f.driver.hangup(attempt), /identity is uncertain/); assert.equal(f.counts().hangups, 0);
 });
-test('a Call button disabled on an empty input is checked after entering the target; a still-disabled button never dispatches', async () => {
-  const f = fixture(); f.call.disabled = true;
-  f.input.dispatchEvent = () => { f.call.disabled = !f.input.value; };
-  await f.driver.dial({ attempt, phone, caller, firstName: 'Test', lastName: 'Person' }); assert.equal(f.counts().calls, 1);
-  const blocked = fixture(); blocked.call.disabled = true;
-  await assert.rejects(blocked.driver.dial({ attempt, phone, caller, firstName: 'Test', lastName: 'Person' })); assert.equal(blocked.counts().calls, 0);
-});
+test('a missing imported contact or name mismatch blocks before dialing and never edits CRM', async () => {
+  const mismatch = fixture();
+  await assert.rejects(mismatch.driver.dial({ attempt, phone, caller, firstName: 'Correct', lastName: 'Name' }), /not “Correct Name”/);
+  assert.deepEqual(mismatch.contacts[0], { phone, firstName: 'Test', lastName: 'Person', notes: 'Existing owner note' });
+  assert.equal(mismatch.counts().calls, 0);
 
-test('contact name is updated before dialing and a missing contact is created with first and last name', async () => {
-  const updated = fixture();
-  await updated.driver.dial({ attempt, phone, caller, firstName: 'Correct', lastName: 'Name' });
-  assert.deepEqual(updated.contacts[0], { phone, firstName: 'Correct', lastName: 'Name', notes: 'Existing owner note' });
-
-  const created = fixture(), newPhone = '+12025550155', newAttempt = '22222222-2222-4222-8222-222222222222';
-  await created.driver.dial({ attempt: newAttempt, phone: newPhone, caller, firstName: 'New', lastName: 'Contact' });
-  assert.deepEqual(created.contacts.find(contact => contact.phone === newPhone), { phone: newPhone, firstName: 'New', lastName: 'Contact', notes: '' });
+  const missing = fixture(), newPhone = '+12025550155', newAttempt = '22222222-2222-4222-8222-222222222222';
+  await assert.rejects(missing.driver.dial({ attempt: newAttempt, phone: newPhone, caller, firstName: 'New', lastName: 'Contact' }), /not available in SalesGodCRM yet/);
+  assert.equal(missing.contacts.find(contact => contact.phone === newPhone), undefined); assert.equal(missing.counts().calls, 0);
 });
 
 test('post-call status appends to existing CRM notes, verifies the save and retains ownership until release', async () => {

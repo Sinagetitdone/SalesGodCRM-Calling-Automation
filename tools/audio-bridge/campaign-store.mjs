@@ -184,6 +184,17 @@ export class CampaignStore {
       return { phone: row.phone, attempt: contactId };
     });
   }
+  defer(id, contactId, worker, message) {
+    return this.transaction(() => {
+      const { row } = this.contact(id, contactId, worker);
+      if (row.state !== 'preparing' || row.session || row.dispatched) throw new Error('Only an unattempted prepared contact can wait for CRM import.');
+      this.db.prepare("UPDATE campaign_contacts SET state='pending' WHERE id=?").run(contactId);
+      this.db.prepare("UPDATE campaigns SET state='paused' WHERE id=?").run(id);
+      this.event(id, contactId, 'crm_import_waiting');
+      this.event(id, contactId, 'failure_detail: ' + diagnosticDetail(message));
+      return this.read(id);
+    });
+  }
   finish(id, contactId, worker, outcome, diagnostic = {}) {
     if (!outcomes.includes(outcome)) throw new Error('Invalid outcome.');
     const { row } = this.contact(id, contactId, worker);
