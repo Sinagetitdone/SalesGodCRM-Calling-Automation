@@ -4,6 +4,11 @@
   const digits = value => String(value || '').replace(/\D/g, '');
   const compact = value => String(value || '').trim().replace(/\s+/g, ' ');
   const nameKey = value => compact(value).toLocaleLowerCase();
+  const dispositionLabels = Object.freeze({
+    meeting_set: 'Meeting set', follow_up: 'Needs follow-up', not_interested: 'Not interested', wrong_number: 'Wrong number',
+    completed: 'Conversation completed', opt_out: 'Opted out', voicemail_played: 'Voicemail left', no_answer: 'No answer',
+    needs_review: 'Needs review', failed: 'Failed', unknown: 'Unknown — manual review', cancelled: 'Cancelled',
+  });
   class Dialer {
     constructor(doc = document, { wait = ms => new Promise(resolve => setTimeout(resolve, ms)), now = () => Date.now() } = {}) {
       this.doc = doc; this.wait = wait; this.now = now; this.attempts = new Map(); this.owned = null;
@@ -40,7 +45,7 @@
       return this.until(() => {
         const first = this.doc.querySelector('#first_name'), form = first?.closest('form');
         const submit = form && [...form.querySelectorAll('button')].find(button => compact(button.textContent) === action);
-        return first && form && submit ? { first, last: form.querySelector('#last_name'), phone: form.querySelector('#phone'), form, submit } : null;
+        return first && form && submit ? { first, last: form.querySelector('#last_name'), phone: form.querySelector('#phone'), notes: form.querySelector('#notes'), form, submit } : null;
       }, 8000, `${action} form`);
     }
     async saveContact({ phone, firstName, lastName }) {
@@ -70,6 +75,39 @@
       row = await this.findContact(phone);
       if (row.missing || nameKey(row.querySelectorAll('td')[1]?.textContent) !== nameKey(displayName)) throw new Error('SalesGodCRM did not confirm the contact name; no call was placed.');
       return { saved: true, created: false, unchanged: false, name: displayName };
+    }
+    async saveNote({ attempt, phone, outcome, disposition }) {
+      if (!this.owned || this.owned.attempt !== attempt || digits(this.owned.phone) !== digits(phone)) throw new Error('This worker does not own the contact note update.');
+      if ((await this.status()).state !== 'ended') throw new Error('The owned call has not ended; CRM note was not changed.');
+      const key = outcome === 'completed' && dispositionLabels[disposition] ? disposition : outcome;
+      const label = dispositionLabels[key];
+      if (!label) throw new Error('Unsupported call status; CRM note was not changed.');
+      let row = await this.findContact(phone);
+      if (row.missing) throw new Error('The called SalesGodCRM contact is missing; CRM note was not changed.');
+      const edit = row.querySelector('a[title="Edit"]');
+      if (!edit) throw new Error('SalesGodCRM Edit contact control is unavailable; CRM note was not changed.');
+      edit.click(); let form = await this.contactForm('Save');
+      if (digits(form.phone?.value) !== digits(phone)) throw new Error('SalesGodCRM opened a different contact; CRM note was not changed.');
+      if (!form.notes) {
+        const notesTab = [...form.form.querySelectorAll('button')].find(button => compact(button.textContent) === 'Tags & Notes');
+        if (notesTab) { notesTab.click(); form.notes = await this.until(() => form.form.querySelector('#notes'), 4000, 'Contact notes'); }
+      }
+      if (!form.notes) throw new Error('SalesGodCRM Notes field is unavailable; CRM note was not changed.');
+      const line = `[AI call ${new Date(this.now()).toISOString()}] Status: ${label}`;
+      const prior = String(form.notes.value || ''), separator = prior && !prior.endsWith('\n') ? '\n' : '';
+      this.setInput(form.notes, `${prior}${separator}${line}`); form.submit.click();
+      await this.until(() => !this.doc.querySelector('#first_name'), 12000, 'Call status note save');
+      row = await this.findContact(phone);
+      if (row.missing) throw new Error('SalesGodCRM did not confirm the contact after saving its note.');
+      const savedEdit = row.querySelector('a[title="Edit"]');
+      if (!savedEdit) throw new Error('SalesGodCRM could not verify the saved call status note.');
+      savedEdit.click(); form = await this.contactForm('Save');
+      const confirmed = Boolean(form.notes && String(form.notes.value || '').includes(line));
+      const close = [...form.form.querySelectorAll('button')].find(button => compact(button.textContent) === 'Close');
+      if (!close) throw new Error('SalesGodCRM could not close the contact form after verifying its note.');
+      close.click(); await this.until(() => !this.doc.querySelector('#first_name'), 4000, 'Contact form close');
+      if (!confirmed) throw new Error('SalesGodCRM did not confirm the saved call status note.');
+      return { saved: true, status: label };
     }
     async panel() {
       const toggle = this.doc.getElementById('page-header-call-control-dropdown');
@@ -124,7 +162,7 @@
     async hangup(attempt) {
       if (!this.owned || this.owned.attempt !== attempt) throw new Error('This worker does not own that call.');
       const state = await this.status();
-      if (state.state === 'ended') { this.owned = null; return { ended: true }; }
+      if (state.state === 'ended') return { ended: true };
       if (!['active', 'dialing'].includes(state.state)) throw new Error('Call identity is uncertain; end it manually.');
       const p = await this.panel(), button = this.button(p, 'End call') || this.button(p, 'End dialing call');
       if (!button) throw new Error('Hangup control unavailable.'); button.click(); return { hangupAttempted: true };

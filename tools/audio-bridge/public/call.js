@@ -592,7 +592,15 @@
         }
         if (message.type === 'response.output_audio_transcript.done' && report.phase === 'talking') saveTurn(current, 'assistant', message.item_id || message.response_id, '[Generated live draft; playback may be partial] ' + message.transcript);
         if (message.type === 'response.function_call_arguments.done' && current.config.automatic && message.name === 'finish_call' && report.phase === 'talking') {
-          try { const reason = JSON.parse(message.arguments).reason; if (['completed', 'opt_out'].includes(reason)) { current.endReason = reason; scheduleConversationEnd(current); } } catch {}
+          try {
+            const result = JSON.parse(message.arguments), reason = result.reason;
+            const dispositions = ['meeting_set', 'follow_up', 'not_interested', 'wrong_number', 'completed', 'opt_out'];
+            const pairMatches = (reason === 'opt_out' && result.disposition === 'opt_out') || (reason === 'completed' && result.disposition !== 'opt_out');
+            if (['completed', 'opt_out'].includes(reason) && dispositions.includes(result.disposition) && pairMatches) {
+              current.endReason = reason; report.callDisposition = reason === 'opt_out' ? 'opt_out' : result.disposition;
+              void log('conversation.disposition_' + report.callDisposition); scheduleConversationEnd(current);
+            }
+          } catch {}
         }
         if (message.type === 'conversation.item.input_audio_transcription.failed' && [...greetingPhases, 'call-screening-prompt', 'call-screening-speaking'].includes(report.phase)) {
           if (message.item_id) current.unclassifiedSpeech.delete(message.item_id); else current.unclassifiedSpeech.clear();

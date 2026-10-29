@@ -65,7 +65,7 @@
           if (next.waiting) { this.onState({ state: 'waiting', reason: next.waiting }); await this.wait(timing.callingWindowRetryMs); continue; }
           this.simulation = next.settings.simulation;
           this.current = next.contact; this.onState({ state: 'preparing', contact: this.current });
-          const contactPath = '/' + this.current.id; let dispatchAttempted = false, outcome, diagnostic;
+          const contactPath = '/' + this.current.id; let dispatchAttempted = false, callObserved = false, noteAttempted = false, outcome, diagnostic;
           const saveRecording = async blob => {
             const response = await fetch('/campaigns-api/' + id + contactPath + '/recording', {
               method: 'POST', headers: { 'Content-Type': 'audio/mpeg', 'X-Worker-Id': this.workerId }, body: blob,
@@ -110,18 +110,18 @@
                 await this.driver('dial', { attempt: this.current.id, phone: permit.phone, caller: next.settings.callerNumber,
                   firstName: this.current.firstName, lastName: this.current.lastName });
                 this.onState({ state: 'calling', contact: this.current });
-                const started = this.now(), deadline = started + timing.callLimitMs; let observedCall = false;
+                const started = this.now(), deadline = started + timing.callLimitMs;
                 while (true) {
                   const status = this.audio.status(), phone = await this.driver('status');
                   if (phone.state === 'unknown' || phone.state === 'other_call') throw new Error('Call identity is uncertain.');
-                  if (['active', 'dialing'].includes(phone.state)) observedCall = true;
+                  if (['active', 'dialing'].includes(phone.state)) callObserved = true;
                   // End the owned phone call promptly; MP3 encoding continues locally.
                   if (status.audioStopped && status.stopping && ['active', 'dialing'].includes(phone.state)) {
                     await this.driver('hangup', { attempt: this.current.id });
                     await this.until(async () => phoneEnded((await this.driver('status')).state), timing.hangupMs, 'CRM hangup confirmation');
                     continue;
                   }
-                  if (!observedCall && phoneEnded(phone.state)) {
+                  if (!callObserved && phoneEnded(phone.state)) {
                     if (this.now() - started > timing.dispatchObservationMs) throw new Error('Dispatch was not observed; do not retry.');
                     await this.wait(timing.pollMs); continue;
                   }
@@ -145,6 +145,16 @@
               }
               await stopped;
               if (this.audio.status().recordingState === 'failed' || this.audio.status().transcriptState === 'failed') { outcome = 'needs_review'; diagnostic = this.diagnostic(); }
+              if (callObserved) {
+                const completedOutcome = outcome; noteAttempted = true;
+                try {
+                  await this.driver('note', { attempt: this.current.id, phone: this.current.phone, outcome,
+                    disposition: this.audio.status().callDisposition });
+                } catch (error) {
+                  outcome = 'needs_review';
+                  diagnostic = this.diagnostic(`Call ended as ${completedOutcome || 'unknown'}, but its SalesGodCRM note was not confirmed: ${error.message || 'No cause reported.'}`);
+                }
+              }
               await this.driver('release', { attempt: this.current.id });
             }
             await this.post(contactPath + '/finish', { outcome, ...(needsReview(outcome) ? { diagnostic: diagnostic || this.diagnostic() } : {}) });
@@ -158,6 +168,15 @@
               if (dispatchAttempted) await this.driver('hangup', { attempt: this.current.id }).catch(() => {});
               else await this.driver('release', { attempt: this.current.id }).catch(() => {});
               await stopped;
+              if (callObserved && !noteAttempted) {
+                const phone = await this.driver('status').catch(() => ({ state: 'unknown' }));
+                if (phoneEnded(phone.state)) {
+                  noteAttempted = true;
+                  await this.driver('note', { attempt: this.current.id, phone: this.current.phone, outcome: dispatchAttempted ? 'unknown' : 'failed' })
+                    .catch(noteError => { diagnostic.message = [diagnostic.message, `CRM note was not confirmed: ${noteError.message || 'No cause reported.'}`].filter(Boolean).join(' · ').slice(0, 1500); });
+                  await this.driver('release', { attempt: this.current.id }).catch(() => {});
+                }
+              }
               if (this.audio.status().recordingState === 'failed') diagnostic.message = [diagnostic.message, this.audio.status().stopReason].filter(Boolean).join(' · ').slice(0, 1500);
             }
             await this.post(contactPath + '/finish', { outcome: dispatchAttempted ? 'unknown' : 'failed', diagnostic }).catch(() => {});

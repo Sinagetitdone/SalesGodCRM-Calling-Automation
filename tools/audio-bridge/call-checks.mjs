@@ -233,11 +233,18 @@ test('automatic human classification stays silent until acknowledged media gates
     dc.message({ type: 'response.output_audio_transcript.done', item_id: 'reply', transcript: 'You can contact Cena if you would like to talk more. Goodbye.' }); await tick();
     dc.message({ type: 'response.created', response: { id: 'closing' } });
     dc.message({ type: 'output_audio_buffer.started' });
-    dc.message({ type: 'response.function_call_arguments.done', name: 'finish_call', arguments: '{"reason":"completed"}' });
+    dc.message({ type: 'response.function_call_arguments.done', name: 'finish_call', arguments: '{"reason":"completed"}' }); await tick();
+    assert.equal(env.api.status().phase, 'talking'); assert.equal(env.api.status().callDisposition, undefined);
+    dc.message({ type: 'response.function_call_arguments.done', name: 'finish_call', arguments: '{"reason":"completed","disposition":"opt_out"}' }); await tick();
+    assert.equal(env.api.status().phase, 'talking'); assert.equal(env.api.status().callDisposition, undefined);
+    dc.message({ type: 'response.function_call_arguments.done', name: 'finish_call', arguments: '{"reason":"opt_out","disposition":"meeting_set"}' }); await tick();
+    assert.equal(env.api.status().phase, 'talking'); assert.equal(env.api.status().callDisposition, undefined);
+    dc.message({ type: 'response.function_call_arguments.done', name: 'finish_call', arguments: '{"reason":"completed","disposition":"meeting_set"}' });
     dc.message({ type: 'response.done', response: { id: 'closing', status: 'completed' } }); await tick();
     assert.equal(env.api.status().phase, 'talking');
     dc.message({ type: 'output_audio_buffer.stopped' }); await new Promise(r => setTimeout(r, 2050)); await tick();
-    assert.equal(env.api.status().phase, 'stopped'); assert.equal(env.api.status().conversationOutcome, 'completed');
+    assert.equal(env.api.status().phase, 'stopped'); assert.equal(env.api.status().conversationOutcome, 'completed'); assert.equal(env.api.status().callDisposition, 'meeting_set');
+    assert.ok(env.api.status().events.some(event => event.event === 'conversation.disposition_meeting_set'));
     assert.deepEqual(saved.map(t => t.speaker), ['customer', 'assistant']); assert.equal(saved[0].text, 'Hello, how can I help?');
     assert.doesNotMatch(env.elements.get('evidence').textContent, /Hello, who is calling/);
   } finally { await env.cleanup(); }

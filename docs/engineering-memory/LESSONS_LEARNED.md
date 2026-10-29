@@ -1,5 +1,9 @@
 # Lessons Learned
 
+## 2026-10-30: CRM disposition commit
+
+See [CRM disposition commit](lessons/LESSON-2026-10-30-CRM-DISPOSITION-COMMIT.md): save a post-call status as a verified provider-side commit, preserve prior notes, retain call ownership until confirmation, and pause rather than silently advancing on failure.
+
 ## 2026-10-30: Call transitions and contact identity
 
 See [call transitions and contact identity](lessons/LESSON-2026-10-30-CALL-TRANSITIONS-AND-CONTACT-IDENTITY.md): treat voicemail gate opening, short-greeting fallback and CRM contact saving as acknowledged state transitions; save and verify names before dialing.

@@ -1,6 +1,10 @@
 # Resume here — 2026-10-30
 
-## Latest reliability update — package 1.0.1 / extension 0.4.6
+## Latest CRM notes update — package 1.0.2 / extension 0.4.7
+
+Every observed real call now appends a timestamped status to the existing SalesGodCRM Notes field and verifies the saved text before the list advances. Business statuses include Meeting set, Needs follow-up, Not interested, Wrong number and Conversation completed; technical statuses include Opted out, Voicemail left, No answer, Needs review, Failed, Unknown and Cancelled. Meeting set requires an explicitly agreed exact date, time and timezone and does not create a calendar event. Note failure pauses as Needs review. Read-only live-form inspection confirmed Notes/Save/Close without editing a contact, and no call was placed. All 204 offline tests and type checking pass. See [CALL-DISPOSITION-NOTES-1.0.2.md](CALL-DISPOSITION-NOTES-1.0.2.md).
+
+## Previous reliability update — package 1.0.1 / extension 0.4.6
 
 The supplied team ZIP had an external 1.0.0 name but internal package 0.6.1/extension 0.4.5 metadata. Release 1.0.1 aligns those versions, repairs short-human-greeting and voicemail-start races, and saves first/last names through the visible SalesGodCRM Contacts workflow before dialing. Start from CRM **Contacts**; a missing save confirmation stops before the call. Both supplied 163-row CSVs fail precisely at row 140 because its first name is blank. No live contact was edited and no telephone call was placed for this repair.
 

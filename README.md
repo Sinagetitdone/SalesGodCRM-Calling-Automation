@@ -6,6 +6,8 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **1.0.2** / extension **0.4.7** appends and verifies a timestamped call status in each contact's existing SalesGodCRM Notes field before advancing. “Meeting set” requires an exact agreed date, time and timezone; uncertain note saves pause as Needs review. See [the verification report](docs/CALL-DISPOSITION-NOTES-1.0.2.md).
+
 - Package **1.0.1** / extension **0.4.6** saves each CSV first/last name in SalesGodCRM Contacts before dialing, answers short human greetings with a bounded fallback, and prevents voicemail beep-tail audio from cancelling prepared playback. Start real lists from the CRM **Contacts** page. No phone call was placed for this repair; see [the verification report](docs/CALL-RELIABILITY-1.0.1.md).
 
 - Package **0.5.9** shows full saved conversation, timestamps, review/failure details and archived event logs together for **Needs review**, **Failed** and **Unknown** attempts. Choose **View full details** in a list, or select the contact in **Previous Conversations**. Missing historical details are identified explicitly.
@@ -20,7 +22,7 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 - Package **0.5.3** adds reusable real-call background and a **6,000–20,000-character** conversation guide, saved locally until replaced. New lists snapshot these defaults; apply context to an existing idle list explicitly. Real calls, prepared voicemail, manual supervised calls and each rehearsal agent offer **Cedar, Ash, Echo, Ballad and Marin**. Cedar is the new real-call default with a confident young-adult masculine delivery direction; perceived age is not guaranteed. Existing rehearsals retain their original fallback voices.
 
-- Extension **0.4.6** exposes a generated microphone, routes dialer audio, saves names through the visible Contacts workflow, and provides a separate guarded browser adapter for explicitly started calling lists. It starts disabled and contains no API key. VB-CABLE is not required.
+- Extension **0.4.7** exposes a generated microphone, routes dialer audio, saves names and verified post-call statuses through the visible Contacts workflow, and provides a separate guarded browser adapter for explicitly started calling lists. It starts disabled and contains no API key. VB-CABLE is not required.
 - `/campaigns` imports `first_name,last_name,phone` CSV into draft lists, previews contacts, processes them sequentially, saves conversation transcripts and event logs, and displays completion. The separate **AI Agents Test Call** page offers **Live AI rehearsal**, which uses two OpenAI agents with streamed text, distinct voices and downloadable audio; **Offline workflow check** uses free canned replies. Neither simulation invokes the dialer. Import/reload/restart never starts calls.
 - Live lists enforce backend suppression, calling windows, campaign-level Start authorization, one active attempt, single-use dispatch, and recovery without blind redial. The owner pre-authorizes imported contacts; no per-contact consent field is required.
 - Voicemail uses the approved message after greeting/beep detection. Automatic mode keeps listening during playback and an eight-second quiet window afterward. New speech interrupts playback and blocks hangup while checking for a person. Unconfirmed interruptions require review.
@@ -48,7 +50,7 @@ Optional synthetic demonstrations:
 
     npm run audio:bridge
 
-Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.6**; reload and refresh the CRM only while idle. Open the CRM **Contacts** page before **Open calling list** so first and last names are verified before each call. Opening/importing never starts calls. `/campaigns` is exclusively for real calling lists; import never calls anyone. **AI Agents Test Call** opens `/supervised-call` with manual controls and no-phone Live AI rehearsal (or free Offline workflow check). The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
+Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.7**; reload and refresh the CRM only while idle. Open the CRM **Contacts** page before **Open calling list** so names and post-call Notes can be verified. Opening/importing never starts calls. `/campaigns` is exclusively for real calling lists; import never calls anyone. **AI Agents Test Call** opens `/supervised-call` with manual controls and no-phone Live AI rehearsal (or free Offline workflow check). The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
 
 - [Extension setup and limits](tools/audio-extension/README.md)
 - [Observed no-call test results](tools/audio-extension/TEST-RESULTS.md)

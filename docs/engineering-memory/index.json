@@ -3,6 +3,17 @@
   "generated": true,
   "records": [
     {
+      "id": "LL-2026-017",
+      "type": "lesson",
+      "path": "docs/engineering-memory/lessons/LESSON-2026-10-30-CRM-DISPOSITION-COMMIT.md",
+      "tags": [
+        "calling",
+        "integration",
+        "persistence",
+        "state-transitions"
+      ]
+    },
+    {
       "id": "LL-2026-016",
       "type": "lesson",
       "path": "docs/engineering-memory/lessons/LESSON-2026-10-30-CALL-TRANSITIONS-AND-CONTACT-IDENTITY.md",

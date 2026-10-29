@@ -6,7 +6,7 @@ You will use two parts: the Chrome extension adds controls to SalesGodCRM, and t
 
 **Double-click startup:** on Windows, open **SalesGod Bridge.exe**; on Mac, open **SalesGod Bridge.app**. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type `npm run audio:bridge`. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.
 
-Package **1.0.1** uses the Jay Marketing Lab purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. This update requires extension **0.4.6**. Reload the extension, refresh SalesGodCRM only while idle, restart the bridge, and reopen the calling and history pages.
+Package **1.0.2** uses the Jay Marketing Lab purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. This update requires extension **0.4.7**. Reload the extension, refresh SalesGodCRM only while idle, restart the bridge, and reopen the calling and history pages.
 
 ## New settings: screening, file uploads and accurate call records
 
@@ -25,7 +25,7 @@ Package **1.0.1** uses the Jay Marketing Lab purple/lime interface. Existing sys
 
 Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.
 
-In extension 0.4.6, **Open AI voice setup** is named **AI Voice Startup**. Buttons align in equal-width pairs, with **AI Agents Test Call** and **Open calling list** each filling a row.
+In extension 0.4.7, **Open AI voice setup** is named **AI Voice Startup**. Buttons align in equal-width pairs, with **AI Agents Test Call** and **Open calling list** each filling a row.
 
 ## Listening, reviewing and downloading conversations
 
@@ -102,7 +102,7 @@ The launchers do not require an administrator password. Mac launcher syntax has 
 3. Turn on **Developer mode** in the top-right corner.
 4. Click **Load unpacked**.
 5. Browse into your extracted **SalesGod-Team** folder, then **tools**, then **audio-extension**. Select this folder, which contains `manifest.json`. Do not select the ZIP or the whole SalesGod-Team folder.
-6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.6** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
+6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.7** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
 7. Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.
 8. Look for the **SalesGod audio bridge** panel. Continue to Step 5.
 
@@ -171,9 +171,11 @@ first_name,last_name,phone
 10. If you need to change the caller, brief, voicemail, or calling hours after import, change the form and import a new draft. Changing the form does not update the previously saved list. Select the correct new draft before continuing.
 11. Before live calling, confirm the CRM microphone is **SalesGod AI Bridge (local audio)**. Keep the CRM speaker on your headset. If the microphone is missing, review the idle CRM's Settings/Refresh devices and repeat the local audio checks. Do not dial to work around a failed setup test.
 12. If you want a desktop completion notification, click **Enable completion notification** and allow Chrome notifications if your company permits them. The page itself shows completion even without notifications.
-13. Click **Start selected list** only when you are ready. On a **LIVE CALLING** list, this starts real calls, one eligible contact at a time. Before every call, the worker searches Contacts by phone and either creates the contact or updates its first and last name from the CSV. It verifies the saved name before dialing. If SalesGodCRM does not confirm the save, the list pauses and no call is placed. The system then prepares AI audio, starts recording, handles a person or recognized voicemail, saves the whole MP3 plus results, and proceeds through the list.
-14. Leave the bridge window, CRM page, and calling-list page open. Do not refresh them while a call is active. Calling-window and suppression checks remain active. If the page says it is waiting for the calling window, keep it open and review the approved hours.
-15. Wait for **Finished processing every contact. Review the results below.** This means processing is finished; it does not mean every person answered. If the list pauses with an uncertain result, review the CRM before taking another action. Uncertain attempts are not automatically redialed.
+13. Click **Start selected list** only when you are ready. On a **LIVE CALLING** list, this starts real calls, one eligible contact at a time. Before every call, the worker searches Contacts by phone and either creates the contact or updates its first and last name from the CSV. It verifies the saved name before dialing. If SalesGodCRM does not confirm the save, the list pauses and no call is placed. The system then prepares AI audio, starts recording, handles a person or recognized voicemail, and saves the whole MP3 plus results.
+14. After the owned phone call ends, the worker appends one timestamped status line to the contact's existing **Notes** without replacing earlier notes. Possible statuses include **Meeting set**, **Needs follow-up**, **Not interested**, **Wrong number**, **Conversation completed**, **Opted out**, **Voicemail left**, **No answer**, **Needs review**, **Failed**, **Unknown — manual review**, and **Cancelled**. **Meeting set** is used only when the customer explicitly agrees to an exact date, time, and timezone; it does not create a calendar event.
+15. The worker reopens that same phone-matched contact and verifies the exact note before it releases the call attempt or moves to the next number. If the note is missing, rejected, or cannot be confirmed, the list pauses as **Needs review** and shows the reason. Do not resume until you inspect the CRM contact and current call state.
+16. Leave the bridge window, CRM page, and calling-list page open. Do not refresh them while a call is active or while the contact note is being verified. Calling-window and suppression checks remain active. If the page says it is waiting for the calling window, keep it open and review the approved hours.
+17. Wait for **Finished processing every contact. Review the results below.** This means processing is finished; it does not mean every person answered. If the list pauses with an uncertain result, review the CRM before taking another action. Uncertain attempts are not automatically redialed.
 
 ## Step 8 — Manual commands if double-click does not work
 
@@ -269,7 +271,7 @@ Try the `bash` commands in Step 8. If macOS or company policy blocks the downloa
 
 ### A call rang but no voicemail was left
 
-Version 0.4.6 recognizes more standard mailbox invitations, can recover a missed beep after a confirmed greeting and fresh silence without waiting on a second classifier, and ignores the short beep tail while the voicemail audio gate opens. A brief human greeting such as “Hello” has a bounded 750 ms fallback, while continued recorded speech cancels that fallback. The list still pauses for unknown outcomes or a full mailbox rather than claiming delivery. A result of voicemail played means the audio finished playing; mailbox storage is not independently verified. If you updated, restart the idle bridge, close old calling-list windows, reload extension 0.4.6, refresh the idle Contacts page, and reopen controls before a supervised test. Do not repeatedly redial an uncertain attempt.
+Version 0.4.7 adds verified post-call Notes while retaining 0.4.6's mailbox invitation, missed-beep, beep-tail and short-human-greeting repairs. The list still pauses for unknown outcomes, a full mailbox, or an unconfirmed CRM note rather than claiming success. A result of voicemail played means the audio finished playing; mailbox storage is not independently verified. If you updated, restart the idle bridge, close old calling-list windows, reload extension 0.4.7, refresh the idle Contacts page, and reopen controls before a supervised test. Do not repeatedly redial an uncertain attempt.
 
 ### Chrome shows no audio device, or a local audio/WebRTC test fails
 
