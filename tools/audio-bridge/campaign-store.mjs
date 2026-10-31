@@ -210,7 +210,6 @@ export class CampaignStore {
       }
       this.db.prepare('UPDATE campaign_contacts SET state=?,ended=? WHERE id=?').run(outcome, this.stamp(), contactId); this.event(id, contactId, outcome);
       if (outcome === 'opt_out') this.suppress(row.phone);
-      if (['unknown', 'needs_review', 'failed'].includes(outcome)) this.db.prepare("UPDATE campaigns SET state='paused' WHERE id=?").run(id);
     }); return this.read(id);
   }
   transcript(id, contactId, worker, { session, item, speaker, text }) {

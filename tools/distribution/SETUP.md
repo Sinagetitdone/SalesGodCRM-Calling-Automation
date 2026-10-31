@@ -6,7 +6,7 @@ You will use two parts: the Chrome extension adds controls to SalesGodCRM, and t
 
 **Double-click startup:** on Windows, open **SalesGod Bridge.exe**; on Mac, open **SalesGod Bridge.app**. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type `npm run audio:bridge`. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.
 
-Package **1.0.3** uses the Jay Marketing Lab purple/lime interface. Existing system fonts are used when JML fonts are not installed; no font installation is required. This update requires extension **0.4.8**. Reload the extension, refresh SalesGodCRM only while idle, restart the bridge, and reopen the calling and history pages.
+Package **1.0.4** automatically advances to the next contact after every saved call result, including results marked Needs review, Failed or Unknown. Those results remain visible in the logs. Manual Pause/Stop, an unfinished CRM import, a calling-window wait, or a system failure still stops safely. The extension remains **0.4.8**; replace the old package, restart the bridge, and reopen the calling and history pages. No extension reload is required when 0.4.8 is already installed.
 
 ## New settings: screening, file uploads and accurate call records
 

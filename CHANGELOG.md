@@ -4,6 +4,11 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-10-31 — Continue automatically between contacts (team package 1.0.4)
+
+- Contact results marked Needs review, Failed or Unknown remain logged but no longer pause the entire list. Once cleanup, CRM note handling and result persistence finish, the worker claims the next pending contact without another Start click.
+- Manual Pause/Stop, unfinished CRM imports, calling-window waits and operational exceptions retain their stop behavior. All 205 offline checks plus type checking pass. No phone call or CRM import was made for this change.
+
 ### 2026-10-20 — Preserve normal voicemail invitations (team package 0.4.6)
 
 - One authorized real test reached a voicemail greeting, then an unavailable classifier result ended the call before playback. The owner heard “Please leave your message at the tone.” No message playback was logged. This attempt did not verify the missed-beep recovery.

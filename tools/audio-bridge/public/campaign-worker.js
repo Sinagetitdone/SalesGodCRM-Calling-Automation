@@ -162,7 +162,6 @@
             }
             await this.post(contactPath + '/finish', { outcome, ...(needsReview(outcome) ? { diagnostic: diagnostic || this.diagnostic() } : {}) });
             this.onState({ state: 'contact_finished', outcome, contact: this.current });
-            if (needsReview(outcome)) this.pauseRequested = true;
           } catch (error) {
             const importNotReady = !dispatchAttempted && /^CRM import not ready:/i.test(error.message || '');
             const diagnostic = this.diagnostic(error.message || 'Attempt failed without an error message.');

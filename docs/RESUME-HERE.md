@@ -1,5 +1,9 @@
 # Resume here — 2026-10-30
 
+## Automatic between-call continuation — package 1.0.4 / extension 0.4.8
+
+After Start, every saved contact result now advances automatically to the next pending contact. Needs review, Failed and Unknown remain saved on the contact with their diagnostics but no longer pause the whole list. Manual Pause/Stop, CRM import waiting, calling-window waiting and operational failures still stop safely. Deterministic tests cover note-save failure, recording failure and uncertain late pickup continuing without another Start click. All 205 offline checks plus type checking pass. No contact was imported and no phone call was placed for this change.
+
 ## Latest CRM-native import update — package 1.0.3 / extension 0.4.8
 
 Real lists now begin with the extension's **Import contacts for calling** button on SalesGodCRM Contacts. The user selects the CSV once in the provider's native Import Contacts dialog. After SalesGodCRM accepts it, the extension passes that in-memory selection to the local draft. Before each call, the driver requires the exact phone/name row and clicks the row Call control, preserving the CRM contact identity. Missing, unfinished or mismatched imports return the uncalled contact to Pending and pause before AI preparation or dispatch. Read-only inspection confirmed the native import dialog, file chooser, header option, Import control and row Call title. All 205 offline checks pass. No file was uploaded, contact edited or call placed. See [CRM-NATIVE-IMPORT-1.0.3.md](CRM-NATIVE-IMPORT-1.0.3.md).

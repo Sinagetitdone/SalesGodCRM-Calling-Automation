@@ -33,6 +33,7 @@ for (const simulation of [false, true]) test(`history saves ${simulation ? 'rehe
     assert.equal((await upload(f.worker)).statusCode, 409);
     const events = f.store.read(f.id).events;
     assert.match(events.at(-2).event, /timed out/); assert.doesNotMatch(JSON.stringify(events), /sk-synthetic/);
+    f.store.pause(f.id, f.worker);
     f.store.archiveAudio(c.id, [{ time: '2026-10-20T19:00:00Z', event: 'session.error', phase: 'failed' }]);
     assert.equal((await app.inject({ url: base + '/events', headers })).json().events[0].event, 'session.error');
     assert.deepEqual((await app.inject({ url: base + '/recording', headers })).rawPayload, Buffer.from([0xff, 0xfb, 0x90, 0x00]));
@@ -418,25 +419,25 @@ test('voicemail and no-answer outcomes are written to CRM notes before the list 
     finally { f.store.close(); }
   }
 });
-test('an unconfirmed CRM note pauses after the call and preserves pending contacts', async () => {
+test('an unconfirmed CRM note is logged and the list advances without another Start click', async () => {
   const f = workerFixture(false, false, { callDisposition: 'follow_up' }, true);
   try {
     await f.worker.run(f.id); const list = f.store.read(f.id);
-    assert.equal(f.notePayloads.length, 1); assert.equal(f.notePayloads[0].disposition, 'follow_up');
-    assert.deepEqual(list.contacts.map(contact => contact.state), ['needs_review', 'pending']);
+    assert.equal(f.notePayloads.length, 2); assert.ok(f.notePayloads.every(item => item.disposition === 'follow_up'));
+    assert.deepEqual(list.contacts.map(contact => contact.state), ['needs_review', 'needs_review']);
     assert.match(list.events.find(event => /failure_detail/.test(event.event))?.event || '', /CRM note save rejected/);
-    assert.equal(list.state, 'paused');
+    assert.equal(list.state, 'finished');
   } finally { f.store.close(); }
 });
-test('real worker starts recording before dialing, and stops the list if MP3 saving fails', async () => {
+test('real worker starts recording before dialing, and logs MP3 failures while advancing the list', async () => {
   const f = workerFixture(false, false, { recordingState: 'failed', stopReason: 'Call recording could not be saved' });
   try {
     await f.worker.run(f.id);
     assert.equal(typeof f.audio.options.saveRecording, 'function');
     assert.ok(f.commands.indexOf('record') < f.commands.indexOf('dial'));
-    assert.equal(f.commands.filter(c => c === 'dial').length, 1);
-    assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['needs_review', 'pending']);
-    assert.equal(f.store.read(f.id).state, 'paused');
+    assert.equal(f.commands.filter(c => c === 'dial').length, 2);
+    assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['needs_review', 'needs_review']);
+    assert.equal(f.store.read(f.id).state, 'finished');
   } finally { f.store.close(); }
 });
 test('recorder startup failure prevents the phone side effect', async () => {
@@ -471,11 +472,11 @@ test('phone hangup does not wait for encoding, but finishing and next dispatch w
     assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['completed', 'completed']);
   } finally { release(); f.store.close(); }
 });
-test('unconfirmed late human pickup overrides voicemail playback and pauses before the next contact', async () => {
+test('unconfirmed late human pickup is logged and advances to the next contact', async () => {
   const f = workerFixture(false, false, { voicemailOutcome: 'playback_completed', takeoverPending: true });
   try {
-    await f.worker.run(f.id); assert.equal(f.commands.filter(c => c === 'dial').length, 1);
-    assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['needs_review', 'pending']);
-    assert.equal(f.store.read(f.id).state, 'paused');
+    await f.worker.run(f.id); assert.equal(f.commands.filter(c => c === 'dial').length, 2);
+    assert.deepEqual(f.store.read(f.id).contacts.map(c => c.state), ['needs_review', 'needs_review']);
+    assert.equal(f.store.read(f.id).state, 'finished');
   } finally { f.store.close(); }
 });

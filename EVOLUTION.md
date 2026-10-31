@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-10-31 — Automatic continuation between contacts (1.0.4 / extension 0.4.8)
+
+The previous state machine coupled a per-contact Needs review, Failed or Unknown result to a campaign-wide pause, which forced the operator to press Start after each such call. These contact outcomes now remain terminal and fully logged while the running campaign advances to the next pending contact. Explicit Pause/Stop, CRM-import waiting, calling-window waiting and operational exceptions continue to stop safely. Regression coverage verifies continuation after an unconfirmed CRM note, recording failure and uncertain late pickup. No call or contact import was performed.
+
 ## 2026-10-24 — Double-click audio bridge applications (0.5.6)
 
 Added SalesGod Bridge.exe and SalesGod Bridge.app to the clean team ZIP. They invoke the existing start scripts, including automatic checked Node bootstrap and locked dependency installation; neither invokes audio:check or starts a call. Windows uses a compiled AnyCPU .NET launcher with a fixed command and installation directory supplied separately, no elevation or interpolated shell paths. Mac opens the existing .command in Terminal through a quoted bundle-relative path. Progress stays visible and the existing stop procedure remains. Keep the extracted folder together and use a shortcut/alias for desktop access.

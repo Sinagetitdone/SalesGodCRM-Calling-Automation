@@ -6,6 +6,7 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **1.0.4** keeps a started list moving automatically after every saved contact result, including Needs review, Failed and Unknown. Results and diagnostics stay logged; manual Pause/Stop, import waiting, calling-window waiting and system failures still stop safely. Extension **0.4.8** is unchanged.
 - Package **1.0.3** / extension **0.4.8** uses SalesGodCRM's native **Import Contacts** dialog as the single CSV selection. The extension hands the accepted file to the local draft, then verifies the exact imported name and phone before clicking that contact row's Call button. Missing, unfinished or mismatched imports pause before dialing. See [the verification report](docs/CRM-NATIVE-IMPORT-1.0.3.md).
 
 - Package **1.0.2** / extension **0.4.7** appends and verifies a timestamped call status in each contact's existing SalesGodCRM Notes field before advancing. “Meeting set” requires an exact agreed date, time and timezone; uncertain note saves pause as Needs review. See [the verification report](docs/CALL-DISPOSITION-NOTES-1.0.2.md).
