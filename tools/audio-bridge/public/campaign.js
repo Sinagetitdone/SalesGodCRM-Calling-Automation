@@ -56,8 +56,7 @@
   }
   function error(e) { $('listError').textContent = e.message; }
   function profileCounts() {
-    $('backgroundCount').textContent = `${$('callingBackground').value.trim().length.toLocaleString()} / 20,000 characters · optional`;
-    $('guidanceCount').textContent = `${$('conversationGuide').value.trim().length.toLocaleString()} / 20,000 characters · minimum 6,000`;
+    window.SalesGodTextCounts?.refresh();
     guidanceUsage();
   }
   function guidanceUsage() {
@@ -217,6 +216,7 @@
     const file = $('contactFile').files?.[0];
     if (!file || worker.running || starting || crmImportBusy) return;
     crmImportBusy = true; crmImportReady = false; $('contactCsv').value = ''; crmImportFile = '';
+    $('contactFilePreview').hidden = true; $('contactFileContents').textContent = '';
     $('listError').textContent = ''; $('crmImportStatus').textContent = 'Reading your CSV…'; render();
     try {
       if (!/\.csv$/i.test(file.name)) throw new Error('Choose a CSV file. Save Excel workbooks as CSV first.');
@@ -226,6 +226,8 @@
       if (csv.length > 400000) throw new Error('CSV file exceeds the import limit.');
       $('contactCsv').value = csv; $('listName').value = file.name.replace(/\.csv$/i, '').slice(0, 120) || 'My calling list';
       crmImportFile = file.name; crmImportReady = true;
+      $('contactFilePreviewTitle').textContent = `${file.name} · ${(file.size / 1024).toFixed(1)} KB · CSV contents (scroll to review)`;
+      $('contactFileContents').textContent = csv; $('contactFilePreview').hidden = false;
       $('crmImportStatus').textContent = `${file.name} loaded from your computer. Review settings, then create the draft to validate and preview the contacts.`;
     } catch (e) { error(e); $('crmImportStatus').textContent = 'File could not be loaded: ' + e.message; }
     finally { crmImportBusy = false; render(); }
@@ -243,6 +245,8 @@
     else {
       crmImportReady = true; crmImportFile = selected.settings.crmImportFile || 'copied calling list';
       $('crmImportStatus').textContent = 'Copied the selected list into the editor. Review settings and create a new draft.';
+      $('contactFilePreviewTitle').textContent = 'Copied list contents · CSV';
+      $('contactFileContents').textContent = $('contactCsv').value; $('contactFilePreview').hidden = false;
       $('responsePauseMs').value = s.responsePauseMs ?? 250;
       $('callingBackground').value = s.background || ''; $('conversationGuide').value = s.guidance || ''; profileCounts();
       $('callingVoice').value = selectedVoice(s.voice);

@@ -4,6 +4,11 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-11-07 — Live text counts and uploaded-file preview (1.0.8)
+
+- Text entries on calling, supervised and rehearsal pages show character/word counts, including existing content, typing/paste, document uploads and restored settings. Character counts include whitespace; word counts use whitespace separators. Length limits remain unchanged.
+- A compact scrollable box immediately below Import contacts for calling shows the uploaded filename, size and CSV contents as plain text. Failed replacement uploads clear the preview; copied lists show their copied contents. No call or CRM import was made.
+
 ### 2026-11-07 — Upload CSV from the local computer (1.0.7)
 
 - Import contacts for calling opens the local file chooser without pairing or opening CRM import. Create draft from uploaded file validates and persists the local list. Start still requires CRM pairing and matching existing CRM contacts.

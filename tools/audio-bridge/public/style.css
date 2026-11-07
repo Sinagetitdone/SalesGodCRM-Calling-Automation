@@ -38,6 +38,10 @@ pre{font:12px/1.8 var(--font-mono);background:#f4f2f6;border:1px solid var(--lin
 footer{font:11px/1.8 var(--font-mono);color:var(--muted);border-top:1px solid var(--line);padding-top:24px;text-align:center;margin-top:32px}
 #toneStatus{display:block;font-size:14px}audio{display:none}
 .list-scroll{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px;text-align:left}
+.text-count{font-size:12px;color:var(--muted);margin:4px 0 12px;line-height:1.6}
+.file-preview{margin:10px 0 18px;padding:12px;border:1px solid var(--line);border-radius:4px;background:#faf9fc}
+.file-preview>p{font-size:13px;margin:0 0 8px;overflow-wrap:anywhere}
+.file-preview pre{margin:0;max-height:160px;white-space:pre;overflow-wrap:normal}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--jml-purple);background:#f4f2f6}
 th,td{padding:14px 10px;border-bottom:1px solid var(--line)}td button{font-size:12px;padding:8px}
 #listState,#rehearsalStatus{padding:14px 18px;background:#f2eef7;border-left:3px solid var(--jml-purple);font-size:14px;line-height:1.6}

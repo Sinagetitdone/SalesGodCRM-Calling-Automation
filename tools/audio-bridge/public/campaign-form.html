@@ -11,6 +11,7 @@
 <section aria-labelledby="listHeading"><h2 id="listHeading">Calling list</h2>
 <p>Click <b>Import contacts for calling</b> to choose a CSV from your computer with <b>first_name,last_name,phone</b> columns. The file loads into this local calling list. Review the settings and create a draft before starting.</p>
 <button id="importCrmContacts" disabled>Import contacts for calling</button>
+<div id="contactFilePreview" class="file-preview" hidden aria-labelledby="contactFilePreviewTitle"><p id="contactFilePreviewTitle"></p><pre id="contactFileContents" tabindex="0" aria-label="Uploaded CSV contents"></pre></div>
 <label for="listName">List name</label><input id="listName" maxlength="120" value="My calling list">
 <input id="contactFile" type="file" accept=".csv,text/csv" hidden><textarea id="contactCsv" hidden></textarea>
 <p id="crmImportStatus" role="status">Choose a CSV from your computer. No SalesGodCRM connection is needed to upload or create a draft.</p>

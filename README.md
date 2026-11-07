@@ -6,6 +6,8 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **1.0.8** adds live word/character counts to text boxes on calling and test pages, plus a compact scrollable CSV preview beneath Import contacts for calling. Restart the bridge and reopen pages after updating; extension 0.4.10 is unchanged.
+
 - Package **1.0.7** / extension **0.4.10** loads CSV files directly from your computer into the local calling-list page. Upload and draft creation work without CRM pairing; starting calls still requires the connected CRM and matching saved contacts.
 - Package **1.0.4** keeps a started list moving automatically after every saved contact result, including Needs review, Failed and Unknown. Results and diagnostics stay logged; manual Pause/Stop, import waiting, calling-window waiting and system failures still stop safely. Extension **0.4.8** is unchanged.
 - Package **1.0.3** / extension **0.4.8** uses SalesGodCRM's native **Import Contacts** dialog as the single CSV selection. The extension hands the accepted file to the local draft, then verifies the exact imported name and phone before clicking that contact row's Call button. Missing, unfinished or mismatched imports pause before dialing. See [the verification report](docs/CRM-NATIVE-IMPORT-1.0.3.md).

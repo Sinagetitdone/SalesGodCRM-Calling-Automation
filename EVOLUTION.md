@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-11-07 — Text counts and CSV preview (1.0.8)
+
+Added a shared local counter to the calling and supervised/rehearsal pages for text fields, including initial, typed, pasted, uploaded and programmatically restored values. Counters use existing limit hints for background/guidance and accessible descriptions for other fields; no extra text is sent or stored. The calling page displays uploaded CSV bytes as plain text inside a bounded scroll area beneath the import action and clears stale previews on failure. No phone/provider actions were performed. Extension 0.4.10 is unchanged.
+
 ## 2026-11-07 — Independent local list upload (1.0.7)
 
 The owner clarified that importing into the calling page should select a Windows file independently of CRM. The page now reads a local CSV and creates its draft through the local backend, with pairing needed only for Start. The existing CRM identity/row-call/notes contract is preserved; local upload does not synchronize contacts into SalesGodCRM. The page ignores legacy native-import handoffs. Extension 0.4.10 is unchanged. Offline tests verify standalone upload, persisted names/numbers and rejection of invalid replacement files without any CRM connection or phone call.

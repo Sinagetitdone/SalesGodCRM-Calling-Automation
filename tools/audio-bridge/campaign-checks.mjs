@@ -144,6 +144,9 @@ test('calling-list uploads and saves a local CSV without CRM pairing and rejects
     const good = { name: 'test.csv', size: 90, text: async () => 'first_name,last_name,phone\nTest,Person,+12025550101' };
     get('contactFile').files = [good]; await get('contactFile').onchange();
     assert.match(get('contactCsv').value, /Test,Person/); assert.equal(get('importList').disabled, false);
+    assert.equal(get('contactFilePreview').hidden, false);
+    assert.match(get('contactFilePreviewTitle').textContent, /test.csv/);
+    assert.equal(get('contactFileContents').textContent, await good.text());
     for (const [id, value] of Object.entries({ responsePauseMs: '250', callerNumber: '+12025550100', listTimeZone: 'UTC', startHour: '0', endHour: '24', callBrief: 'Synthetic brief', voicemailMessage: 'Synthetic voicemail' })) get(id).value = value;
     await get('importList').onclick();
     const draft = store.read(store.list()[0].id);
@@ -153,9 +156,26 @@ test('calling-list uploads and saves a local CSV without CRM pairing and rejects
       get('contactFile').files = [good]; await get('contactFile').onchange();
       get('contactFile').files = [bad]; await get('contactFile').onchange();
       assert.equal(get('importList').disabled, true); assert.equal(get('contactCsv').value, ''); assert.match(get('crmImportStatus').textContent, /File could not be loaded/);
+      assert.equal(get('contactFilePreview').hidden, true); assert.equal(get('contactFileContents').textContent, '');
     }
     assert.ok(requests.every(path => path.startsWith('/'))); assert.equal(store.list().length, 1);
   } finally { store.close(); }
+});
+test('text counters follow typing, whitespace and programmatic upload/restore without changing text', async () => {
+  const source = await readFile(new URL('public/text-counts.js', import.meta.url), 'utf8');
+  const output = () => ({ classList: { add() {} } });
+  const field = (id, value, maxLength = -1, minLength = -1) => ({ id, value, maxLength, minLength, attrs: {}, handlers: {},
+    getAttribute(name) { return this.attrs[name]; }, setAttribute(name, value) { this.attrs[name] = value; },
+    after(node) { this.output = node; }, addEventListener(name, fn) { this.handlers[name] = fn; } });
+  const guide = field('conversationGuide', 'hello  world\nagain', 20000, 6000), brief = field('callBrief', ''), list = field('listName', 'My list', 120);
+  const guidanceCount = { ...output(), id: 'guidanceCount' }; let refresh;
+  vm.runInNewContext(source, { document: { querySelectorAll: () => [guide, brief, list], getElementById: () => guidanceCount, createElement: output }, window: {}, setInterval(fn) { refresh = fn; } });
+  assert.match(guidanceCount.textContent, /^18 \/ 20,000 characters · 3 words · minimum 6,000/);
+  assert.equal(brief.output.textContent, '0 characters · 0 words');
+  brief.value = ' \n  '; brief.handlers.input(); assert.equal(brief.output.textContent, '4 characters · 0 words');
+  brief.value = '<script>test</script> two'; brief.handlers.change(); assert.match(brief.output.textContent, /2 words$/);
+  list.value = 'Restored list name'; refresh(); assert.match(list.output.textContent, /^18 \/ 120 characters · 3 words/);
+  assert.equal(guide.value, 'hello  world\nagain'); assert.ok(guide.attrs['aria-describedby'].includes('guidanceCount'));
 });
 test('CSV handles quoted names, BOM and duplicate normalized numbers; malformed imports fail', () => {
   const parsed = parseContacts('\uFEFFfirst_name,last_name,phone\r\n"Alex, A",Example,(202) 555-0101\r\nAlex,Example,+12025550101');
@@ -298,7 +318,8 @@ test('campaign API rejects cross-origin/start without authorization and exposes 
     const practice = await app.inject({ url: '/supervised-call', headers });
     assert.match(practice.body, /id="rehearsalPanel"/); assert.match(practice.body, /id="prepare"/);
     assert.match(practice.body, /data-workspace="rehearsal"/);
-    for (const html of [page.body, practice.body]) { const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]); assert.equal(ids.length, new Set(ids).size); }
+    for (const html of [page.body, practice.body]) { const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]); assert.equal(ids.length, new Set(ids).size); assert.match(html, /src="\/text-counts.js"/); }
+    assert.equal((await app.inject({ url: '/text-counts.js', headers })).statusCode, 200);
   } finally { await app.close(); f.store.close(); }
 });
 const workerSource = await readFile(new URL('public/campaign-worker.js', import.meta.url), 'utf8');

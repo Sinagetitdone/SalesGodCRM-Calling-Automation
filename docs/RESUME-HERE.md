@@ -1,5 +1,9 @@
 # Resume here — 2026-11-07
 
+## Text counters and uploaded CSV preview — 1.0.8
+
+Calling and test pages now load text-counts.js. All text boxes show words/characters and their existing character limits; saved/restored/programmatic text updates are detected too. The import button has a compact CSV preview immediately below it, safe plain text with scrolling, filename and size. Invalid replacement uploads clear it; copy-to-editor refreshes it. Restart bridge/reopen pages after updating. Extension 0.4.10 is unchanged; no live call or CRM import was made.
+
 ## Local CSV upload — 1.0.7 / extension 0.4.10 unchanged
 
 Import contacts for calling on /campaigns now opens the computer file picker. Local upload and draft creation work without CRM pairing. The file is bounded to CSV / 400 KB, errors invalidate stale content, and server parsing validates the draft. Native CRM handoff messages are no longer consumed by this page. For calling, CRM pairing and the existing exact contact preflight still apply; local upload does not create CRM contacts. Restart bridge/reopen local pages after updating; no extension reload for existing 0.4.10. Synthetic upload, draft persistence and failure checks pass without CRM or phone calls.
