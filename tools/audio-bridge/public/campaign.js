@@ -1,6 +1,24 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  const zoneSearch = $('timeZoneSearch'), zoneSelect = $('listTimeZone');
+  if (zoneSearch?.addEventListener && zoneSelect) {
+    const common = ['America/Los_Angeles', 'America/New_York', 'America/Chicago', 'America/Denver', 'UTC', 'Europe/London', 'Asia/Tehran'];
+    const supported = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
+    const label = zone => zone === 'America/Los_Angeles' ? 'Los Angeles / San Diego — America/Los_Angeles' : zone === 'UTC' ? 'UTC' : `${zone.split('/').at(-1).replaceAll('_', ' ')} — ${zone}`;
+    const values = [...new Set([...common, ...supported])];
+    zoneSelect.replaceChildren(...values.map(zone => new Option(label(zone), zone, false, zone === 'America/Los_Angeles')));
+    zoneSearch.addEventListener('input', () => {
+      const query = zoneSearch.value.trim().toLocaleLowerCase().replaceAll('_', ' ');
+      let matches = 0;
+      for (const option of zoneSelect.options) {
+        option.hidden = !option.textContent.toLocaleLowerCase().replaceAll('_', ' ').includes(query);
+        if (!option.hidden) matches++;
+      }
+      $('timeZoneStatus').textContent = `${matches} matching timezones. Selected: ${zoneSelect.value}.` + (matches ? ' Select a timezone from the list.' : ' Try another city or timezone.');
+    });
+    zoneSelect.addEventListener('change', () => { $('timeZoneStatus').textContent = `Selected: ${zoneSelect.value}.`; });
+  }
   const selectedVoice = (voice, fallback = 'marin') => ['marin', 'coral', 'sage', 'shimmer', 'marin_confident'].includes(voice) ? voice : fallback;
   const transcriptText = data => (data.source === 'recorded_audio' ? 'Transcript from recorded audio · automatic transcription; check the MP3 for exact wording.' : 'Live draft · not checked against the recording; generated AI text may include unspoken words.') + (data.error ? '\nTranscription issue: ' + data.error : '') + '\n\n' + (data.turns.map(t => `${Number.isFinite(t.start) ? '[' + t.start.toFixed(1) + 's] ' : t.time ? t.time + ' ' : ''}${t.speaker}: ${t.text}`).join('\n\n') || 'No speech transcript saved.');
   const practice = document.body.dataset.workspace === 'rehearsal';
@@ -237,6 +255,7 @@
   $('copyList').onclick = () => {
     if (!selected || worker.running) return;
     const s = selected.settings;
+    if (!practice && zoneSelect?.options && s.timeZone && ![...zoneSelect.options].some(option => option.value === s.timeZone)) zoneSelect.append(new Option(s.timeZone, s.timeZone));
     $('listName').value = (selected.name + ' — revised').slice(0, 120);
     const csvCell = value => '"' + String(value).replaceAll('"', '""') + '"';
     $('contactCsv').value = 'first_name,last_name,phone\n' + selected.contacts.map(c => [c.firstName, c.lastName, c.phone].map(csvCell).join(',')).join('\n');

@@ -4,6 +4,11 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-11-07 — Searchable timezone choices (1.0.10)
+
+- Replaced free-text timezone entry with a searchable list of browser-supported identifiers and common choices first. San Diego/Los Angeles share America/Los_Angeles. Filtering retains the current selection until the user selects a row, including no-result searches; copied lists preserve older saved timezone identifiers.
+- Chrome verification found 419 choices and passed San Diego filtering and Tokyo selection. No phone call or campaign save was made. Extension remains 0.4.10.
+
 ### 2026-11-07 — Start immediately at any hour (1.0.9)
 
 - Removed local calling-hour gates before claim and dispatch, including old saved lists with 9–17 settings. New drafts no longer require or submit startHour/endHour; the API still accepts those legacy fields for compatibility.

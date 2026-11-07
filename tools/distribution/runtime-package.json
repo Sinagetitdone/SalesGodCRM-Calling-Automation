@@ -1,6 +1,6 @@
 {
   "name": "salesgod-local-audio-bridge",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "private": true,
   "type": "module",
   "description": "Local SalesGodCRM audio bridge and Chrome extension",

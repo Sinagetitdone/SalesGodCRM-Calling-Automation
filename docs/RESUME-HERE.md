@@ -1,5 +1,9 @@
 # Resume here — 2026-11-07
 
+## Searchable timezone list — 1.0.10
+
+Under Call settings, Search timezones filters the visible six-row timezone selector. It uses browser-supported identifiers plus common options; San Diego matches America/Los_Angeles. Selecting a row sets the actual identifier submitted in the existing list settings. Filtering itself does not change the selected timezone. Existing copied aliases are retained. Verified live Chrome filtering/selection without saving or starting calls. Refresh/reopen local pages for the UI update; extension 0.4.10 is unchanged.
+
 ## Immediate Start at any hour — 1.0.9
 
 Local list claim and dispatch no longer enforce calling-hour windows. Old saved 9–17 lists ignore these hour fields automatically; new drafts omit them. Start/End Hour controls are removed. Start still requires paired CRM and exact contact checks, suppression and one active attempt. Existing owner authorization and safety controls remain. Restart the updated bridge and reopen the paired calling-list page, select the existing paused list and press Start; no reimport is needed. Extension 0.4.10 is unchanged. Synthetic tests reproduce 06:15 Los Angeles and late-night dispatch without actual phone calls.

@@ -21,7 +21,18 @@
 <label for="responsePauseMs">Live-call pause before replying (milliseconds, 200–1000)</label><input id="responsePauseMs" type="number" min="200" max="1000" value="250">
 <p>250 ms means 0.25 seconds of silence before the AI treats the customer’s turn as finished. Lower values respond sooner but may interrupt a hesitation. This applies to human conversations; voicemail detection keeps its own timing.</p>
 <label for="callerNumber">Your CRM caller number (with country code)</label><input id="callerNumber" placeholder="+1…">
-<label for="listTimeZone">Timezone for dates and appointments</label><input id="listTimeZone" value="America/Los_Angeles">
+<label for="listTimeZone">Timezone for dates and appointments</label>
+<input id="timeZoneSearch" type="search" aria-label="Search timezones" aria-controls="listTimeZone" placeholder="Search a city or timezone, e.g. San Diego, New York, London">
+<select id="listTimeZone" size="6" aria-describedby="timeZoneStatus">
+<option value="America/Los_Angeles" selected>Los Angeles / San Diego — America/Los_Angeles</option>
+<option value="America/New_York">New York — America/New_York</option>
+<option value="America/Chicago">Chicago — America/Chicago</option>
+<option value="America/Denver">Denver — America/Denver</option>
+<option value="UTC">UTC</option>
+<option value="Europe/London">London — Europe/London</option>
+<option value="Asia/Tehran">Tehran — Asia/Tehran</option>
+</select>
+<p id="timeZoneStatus" role="status">Selected: America/Los_Angeles. Search above, then select a timezone from the list.</p>
 <p>Pressing Start begins processing the list immediately, at any time. There is no calling-hours restriction.</p>
 <label for="callBrief">Additional instructions for this list</label><textarea id="callBrief" rows="4" maxlength="2000">Follow the saved background and conversation guide. Do not claim an appointment is booked.</textarea>
 <input id="voicemailEnabled" type="checkbox" checked hidden>
