@@ -121,6 +121,27 @@ test('real and rehearsal review panels show saved conversation and all logs toge
     }
   }
 });
+test('calling-list import button requires pairing, requests the CRM dialog and shows acknowledgement errors', async () => {
+  const source = await readFile(new URL('public/campaign.js', import.meta.url), 'utf8');
+  const nodes = new Map(), listeners = [], commands = [], opener = { postMessage() {} };
+  const node = () => ({ children: [], value: '', hidden: true, append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; } });
+  const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
+  const port = { start() {}, postMessage(data) { commands.push(data.command); queueMicrotask(() => this.onmessage({ data: { id: data.id, error: 'CRM import control unavailable' } })); } };
+  const window = { opener, SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class {}, addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
+  vm.runInNewContext(source, { window, document: { body: { dataset: { workspace: 'live' } }, getElementById: get, createElement: node },
+    location: { hash: '#token=test&origin=https%3A%2F%2Fwww.salesgodcrm.net' }, URLSearchParams, Option: class {}, crypto: { randomUUID },
+    setTimeout: () => 1, clearTimeout() {}, setInterval() {}, clearInterval() {},
+    fetch: async path => ({ ok: true, json: async () => path === '/calling-profile' ? { background: '', guidance: '' } : { campaigns: [] } }) });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(get('importCrmContacts').disabled, true);
+  for (const fn of listeners) fn({ source: opener, origin: 'https://www.salesgodcrm.net', data: { source: 'salesgod-campaign-v1', type: 'paired', token: 'test' }, ports: [port] });
+  assert.equal(get('importCrmContacts').disabled, false);
+  await get('importCrmContacts').onclick();
+  assert.deepEqual(commands, ['import-contacts']); assert.match(get('crmImportStatus').textContent, /Import could not open.*unavailable/);
+  assert.equal(get('importCrmContacts').disabled, false);
+  port.onmessage({ data: { type: 'crm-import', fileName: 'test.csv', csv: 'first_name,last_name,phone\nTest,Person,+12025550101' } });
+  assert.match(get('contactCsv').value, /Test,Person/); assert.equal(get('importList').disabled, false);
+});
 test('CSV handles quoted names, BOM and duplicate normalized numbers; malformed imports fail', () => {
   const parsed = parseContacts('\uFEFFfirst_name,last_name,phone\r\n"Alex, A",Example,(202) 555-0101\r\nAlex,Example,+12025550101');
   assert.equal(parsed.contacts[0].firstName, 'Alex, A'); assert.equal(parsed.duplicates, 1);

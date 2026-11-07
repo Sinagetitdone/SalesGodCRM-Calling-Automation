@@ -4,6 +4,11 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-11-07 — Import from the calling-list tab (1.0.6 / extension 0.4.10)
+
+- Moved Import contacts for calling from the extension panel into the paired live calling-list page. The button requests the native CRM dialog over the existing authenticated MessagePort; the file is still selected once in SalesGodCRM and handed back after submission.
+- Import opening supports native buttons/links/labeled controls, ignores hidden dialogs and confirms the visible file dialog within eight seconds. Opening, capture, acceptance and failure messages appear on the calling page. Synthetic tests cover the complete handoff, missing controls, unresponsive dialogs and pairing/error UI. No live calls or contact imports were performed.
+
 ### 2026-11-07 — Verify tagged contact names (team package 1.0.5 / extension 0.4.9)
 
 - Fixed false CRM-import waiting when the Name cell concatenates a contact's name and tags. Ambiguous cells now use the saved first-name, last-name and phone fields in the existing Edit dialog, closed without saving. The row is resolved again after closing.

@@ -25,7 +25,7 @@ test('panel accepts the installed manifest version and enables supervised contro
   assert.equal(get('callVoice').disabled, true);
   report.armed = true; publish();
   assert.equal(get('callVoice').disabled, false); assert.equal(get('voice').disabled, false);
-  assert.equal(get('callVoice').textContent, 'AI Agents Test Call'); assert.equal(get('crmImport').textContent, 'Import contacts for calling'); assert.equal(get('callingList').textContent, 'Open calling list');
+  assert.equal(get('callVoice').textContent, 'AI Agents Test Call'); assert.equal(nodes.has('crmImport'), false); assert.equal(get('callingList').textContent, 'Open calling list');
   const tile = get('section'); let captured = false;
   tile.setPointerCapture = () => { captured = true; }; tile.hasPointerCapture = () => captured; tile.releasePointerCapture = () => { captured = false; };
   const pointer = { button: 0, pointerId: 1, clientX: 30, clientY: 200, preventDefault() {}, target: { closest: () => ({}) } };
@@ -44,6 +44,51 @@ test('panel hands a CRM-accepted file to the local list and never contains an up
   assert.match(panelSource, /input\[type="file"\]/);
   assert.doesNotMatch(panelSource, /fetch\(|XMLHttpRequest|\/api\/contacts/i);
   assert.match(panelSource, /result = \{ verified: true, name: contact\.name \}/, 'message-port replies must not contain DOM elements');
+});
+function importPanel({ missing = false, neverOpens = false } = {}) {
+  const nodes = new Map(), listeners = [], messages = [], timers = [];
+  let opened = false, submitted = false, focused = 0, clicks = 0, time = 0;
+  const node = () => ({ disabled: false, textContent: '', style: {}, before() {}, after() {}, prepend() {} });
+  const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
+  const root = { innerHTML: '', querySelector: get, getElementById: get };
+  const fileInput = { dataset: {}, files: [], addEventListener(type, fn) { this[type] = fn; } };
+  const submit = { textContent: 'Import', addEventListener(type, fn) { this[type] = fn; } };
+  const dialog = { textContent: 'Import Contacts', hidden: false, getClientRects: () => [1], querySelector: () => fileInput, querySelectorAll: () => [submit] };
+  const native = { textContent: 'Import Contacts', getAttribute: () => null, getClientRects: () => [1], closest: () => null, click() { clicks++; if (!neverOpens) opened = true; } };
+  const document = { getElementById() { return null; }, documentElement: { append() {} }, contains: () => !submitted,
+    querySelectorAll(selector) { return selector.includes('input[type="button"]') ? missing ? [] : [native] : opened && !submitted ? [dialog] : []; },
+    createElement() { return { ...node(), set id(value) { nodes.set(value, this); }, attachShadow: () => root }; } };
+  const popup = { closed: false, postMessage() {} }, port = { postMessage(data) { messages.push(data); }, start() {} };
+  const window = { innerWidth: 1200, innerHeight: 900, postMessage() {}, focus() { focused++; }, open: () => popup,
+    SalesGodCampaignDialer: class { async inspect() {} }, addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
+  vm.runInNewContext(panelSource, { document, window, location: { origin: 'https://www.salesgodcrm.net', pathname: '/contacts' },
+    crypto: { randomUUID: () => 'pair-token' }, URLSearchParams, MessageChannel: class { port1 = port; port2 = {}; },
+    getComputedStyle: () => ({ display: 'block', visibility: 'visible' }), Date: { now: () => time },
+    setTimeout(fn, ms) { if (ms === 100) { time += ms; queueMicrotask(fn); } else timers.push(fn); }, setInterval() {}, clearInterval() {} });
+  get('callingList').onclick();
+  for (const fn of listeners) fn({ origin: 'http://127.0.0.1:28431', source: popup, data: { source: 'salesgod-campaign-v1', token: 'pair-token', type: 'hello' } });
+  return { messages, fileInput, submit, timers, counts: () => ({ focused, clicks }),
+    send: data => port.onmessage({ data }), accept() { submitted = true; } };
+}
+test('paired calling-list import opens the CRM control, captures the selected file and hands it off only after Import', async () => {
+  const env = importPanel();
+  await env.send({ id: 'open', command: 'import-contacts' });
+  assert.equal(env.messages.find(m => m.id === 'open').result.opened, true);
+  assert.deepEqual(env.counts(), { focused: 1, clicks: 1 });
+  env.fileInput.files = [{ name: 'synthetic.csv', size: 80, text: async () => 'first_name,last_name,phone\nTest,Person,+12025550101' }];
+  await env.fileInput.change();
+  assert.equal(env.messages.some(m => m.type === 'crm-import'), false);
+  env.submit.click(); env.accept(); env.timers.shift()();
+  const handoff = env.messages.find(m => m.type === 'crm-import');
+  assert.equal(handoff.fileName, 'synthetic.csv'); assert.match(handoff.csv, /Test,Person/);
+});
+test('paired import returns a visible error for missing controls or a dialog that never opens', async () => {
+  for (const options of [{ missing: true }, { neverOpens: true }]) {
+    const env = importPanel(options);
+    await env.send({ id: 'open', command: 'import-contacts' });
+    assert.match(env.messages.find(m => m.id === 'open').error, /not found|did not open/);
+    assert.equal(env.messages.some(m => m.type === 'crm-import'), false);
+  }
 });
 function environment() {
   const listeners = new Map(); const messages = []; const originals = { requests: 0 };

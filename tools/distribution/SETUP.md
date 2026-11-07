@@ -6,9 +6,9 @@ You will use two parts: the Chrome extension adds controls to SalesGodCRM, and t
 
 **Double-click startup:** on Windows, open **SalesGod Bridge.exe**; on Mac, open **SalesGod Bridge.app**. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type `npm run audio:bridge`. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.
 
-Package **1.0.5** / extension **0.4.9** fixes contact tags being mistaken for part of a person's name. If the Name cell contains extra text, the extension checks the saved first name, last name and phone in the contact form, then closes it without saving. Existing automatic continuation between calls remains.
+Package **1.0.6** / extension **0.4.10** places **Import contacts for calling** inside the calling-list tab. It opens the connected CRM import dialog and reports opening, file capture, acceptance or errors on the calling page.
 
-**Updating from 1.0.4:** finish or stop the current list and close the bridge. Extract this ZIP and copy its contents into your existing installation, replacing program files; keep your existing `.env` and data folders. In `chrome://extensions`, reload SalesGod Local Audio Bridge and confirm **0.4.9**. If you extracted into a different folder, use **Load unpacked** to select that folder's `tools/audio-extension` instead of reloading the old copy. Refresh SalesGodCRM while idle, restart the bridge, and reopen the calling-list page from the extension. Select your existing paused list and press Start once. Contacts already imported successfully do not need importing again.
+**Updating from an earlier package:** finish or stop the current list and close the bridge. Extract this ZIP and copy its contents into your existing installation, replacing program files; keep your existing `.env` and data folders. In `chrome://extensions`, reload SalesGod Local Audio Bridge and confirm **0.4.10**. If you extracted into a different folder, use **Load unpacked** to select that folder's `tools/audio-extension` instead of reloading the old copy. Refresh SalesGodCRM while idle, restart the bridge, and reopen the calling-list page from the extension. Select your existing paused list and press Start once. Contacts already imported successfully do not need importing again.
 
 ## New settings: screening, file uploads and accurate call records
 
@@ -27,7 +27,7 @@ Package **1.0.5** / extension **0.4.9** fixes contact tags being mistaken for pa
 
 Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.
 
-In extension 0.4.8, **Open AI voice setup** is named **AI Voice Startup**. **Import contacts for calling**, **AI Agents Test Call**, and **Open calling list** use clear full-row actions.
+Choose **Open calling list** in the extension. The **Import contacts for calling** button is now inside that page.
 
 ## Listening, reviewing and downloading conversations
 
@@ -137,7 +137,7 @@ For **real calls**, open **Call settings** and use **Live-call pause before repl
 2. Open the extracted SalesGod-Team folder and double-click **SalesGod Bridge.exe** (Windows) or **SalesGod Bridge.app** (Mac). If its bridge window is already running, use that window instead of opening a second copy.
 3. Wait for **Local audio bridge: http://127.0.0.1:28431**. Leave the command window open.
 4. Open your SalesGodCRM Chrome profile and log in. Check that no call is active. From the left menu, open **Contacts**. Refresh this idle Contacts page if the extension panel is missing.
-5. Keep the CRM on **Contacts**. You will import the CSV through **Import contacts for calling** in Step 7, then open the calling list. Starting from Contacts is required so the worker can verify each imported name and use that contact row for the call.
+5. Keep the CRM on **Contacts** and click **Open calling list** in the extension. Import contacts using the button inside the calling-list tab in Step 7.
 6. Continue to Step 7. If you changed the key, VPN, or proxy settings, restart the bridge while no call or list is active and repeat the no-call voice test first.
 
 ## Step 7 — Import your list and start calling
@@ -163,8 +163,8 @@ first_name,last_name,phone
 ```
 
 2. Put one person's first name, last name, and phone number on each following row. A blank first name is rejected; do not substitute the phone number for a name. Include the country code, such as `+1` for US numbers. Ask your team lead if unsure about a number. If using Excel, save as CSV first; an `.xlsx` workbook cannot be imported directly. Check that the country codes survived the export.
-3. In SalesGodCRM **Contacts**, click **Import contacts for calling** in the extension panel. The normal SalesGodCRM **Import Contacts** dialog opens. Click **Choose File**, select the CSV once, keep **File Contains a header row of Column Names** checked, and click the dialog's **Import** button. Do not add the same file separately on the local calling page.
-4. Wait until the extension says **SalesGodCRM accepted [filename]**. This confirms the dialog submission, not that every background import row already exists. Click **Open calling list**. Wait for **CRM controls paired** and for the page to say the same filename was received. Enter or review the descriptive **List name**, then click **Create draft from CRM import**. Review every name and number. Creating the draft never calls anyone.
+3. On SalesGodCRM **Contacts**, choose **Open calling list** in the extension. Wait for **CRM controls paired**, then click **Import contacts for calling** inside the calling-list tab. The normal SalesGodCRM **Import Contacts** dialog opens in the CRM tab; switch there if needed. Click **Choose File**, select the CSV once, keep **File Contains a header row of Column Names** checked, and click **Import**.
+4. Return to the calling-list tab and wait for the same filename to be received. If opening or import fails, its reason appears beside the import button. CRM acceptance confirms dialog submission; background processing may still be in progress. Review the **List name** and call settings, then click **Create draft from CRM import**. Review every name and number. Creating the draft never calls anyone.
 5. Expand **Call settings**. Enter **Your CRM caller number**, including country code. This is the outgoing number assigned to your CRM account, not a customer's number.
 6. Set **Calling timezone**, **Start hour**, and **End hour**. For San Diego, use `America/Los_Angeles`. Hours use a 24-hour clock: 9 is 9 AM and 17 is 5 PM. One timezone applies to the whole list.
 7. Review **Additional instructions for this list** for any short list-specific details. Your saved Background and Guide define who the AI represents; no code change is needed for a different office identity. Older lists use their original brief until you explicitly apply new context.

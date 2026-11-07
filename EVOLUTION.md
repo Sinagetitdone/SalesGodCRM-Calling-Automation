@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-11-07 — Import action inside the calling-list page (1.0.6 / extension 0.4.10)
+
+The user reported that the CRM extension import action did nothing and requested it on the calling page. That page now sends an import request through the existing paired channel; the adapter confirms a visible native file dialog opened and returns serializable status. Import control lookup supports buttons, links and labeled controls. File selection/submission remains in SalesGodCRM with the existing bounded handoff. Opening failures and capture progress appear at the initiating page. All 210 offline checks and type checking passed; no live import or call was performed.
+
 ## 2026-10-31 — Automatic continuation between contacts (1.0.4 / extension 0.4.8)
 
 The previous state machine coupled a per-contact Needs review, Failed or Unknown result to a campaign-wide pause, which forced the operator to press Start after each such call. These contact outcomes now remain terminal and fully logged while the running campaign advances to the next pending contact. Explicit Pause/Stop, CRM-import waiting, calling-window waiting and operational exceptions continue to stop safely. Regression coverage verifies continuation after an unconfirmed CRM note, recording failure and uncertain late pickup. No call or contact import was performed.

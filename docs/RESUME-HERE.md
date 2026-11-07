@@ -1,5 +1,9 @@
 # Resume here — 2026-11-07
 
+## Import inside the calling-list page — 1.0.6 / extension 0.4.10
+
+Open calling list from CRM Contacts, then click Import contacts for calling inside that page. The paired CRM adapter confirms the visible native file dialog opened; choose the CSV and submit in CRM, then return to review/create the draft. Missing controls and timeout errors now surface on the calling page. File selection stays in CRM with the existing bounded memory handoff. Reload extension 0.4.10, refresh idle CRM and reopen local pages after updating. Verification is synthetic; no live file import or call was performed.
+
 ## Tagged contact name verification — package 1.0.5 / extension 0.4.9
 
 The colleague's import-waiting log showed the entire Name cell (name plus a follow-up tag) compared as the name. Ambiguous cells now trigger a read of saved first/last name and phone in the existing contact form, closed without saving. The fresh phone row is resolved after closing before using its Call control. Synthetic tests cover joined/spaced/multiple tags and wrong name/phone/missing field rejection. No real call or contact write was made. Reload extension 0.4.9 and refresh idle CRM after updating; resume the existing list without reimporting.
