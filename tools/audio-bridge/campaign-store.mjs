@@ -12,11 +12,6 @@ export { phone, parseContacts } from './contact-import.mjs';
 export const outcomes = ['completed', 'voicemail_played', 'no_answer', 'blocked', 'failed', 'unknown', 'needs_review', 'opt_out', 'cancelled'];
 const activeStates = ['preparing', 'dispatching', 'connected'];
 
-export function withinWindow(settings, now = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: settings.timeZone, hour: '2-digit', hourCycle: 'h23' }).formatToParts(now);
-  const hour = Number(parts.find(x => x.type === 'hour').value);
-  return hour >= settings.startHour && hour < settings.endHour;
-}
 export class CampaignStore {
   constructor(path, now = () => new Date()) {
     this.now = now; if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
@@ -113,7 +108,6 @@ export class CampaignStore {
     }
     const parsed = parseContacts(csv);
     new Intl.DateTimeFormat('en-US', { timeZone: settings.timeZone }).format(this.now());
-    if (!(Number.isInteger(settings.startHour) && Number.isInteger(settings.endHour) && settings.startHour >= 0 && settings.endHour <= 24 && settings.startHour < settings.endHour)) throw new Error('Invalid calling window.');
     const id = randomUUID(); this.prune();
     this.transaction(() => {
       this.db.prepare('INSERT INTO campaigns(id,name,state,settings,created) VALUES(?,?,?,?,?)').run(id, name, 'draft', JSON.stringify(settings), this.stamp());
@@ -159,7 +153,6 @@ export class CampaignStore {
       if (!this.db.prepare("SELECT id FROM campaign_contacts WHERE campaign=? AND state='pending'").get(id)) {
         this.db.prepare("UPDATE campaigns SET state='finished',finished=? WHERE id=?").run(this.stamp(), id); this.event(id, null, 'finished'); return { finished: true };
       }
-      if (!JSON.parse(c.settings).simulation && !withinWindow(JSON.parse(c.settings), this.now())) return { waiting: 'calling_window' };
       let next;
       while ((next = this.db.prepare("SELECT * FROM campaign_contacts WHERE campaign=? AND state='pending' ORDER BY position LIMIT 1").get(id))) {
         if (!this.db.prepare('SELECT phone FROM campaign_suppressions WHERE phone=?').get(next.phone)) break;
@@ -178,7 +171,6 @@ export class CampaignStore {
     return this.transaction(() => {
       const { campaign, row } = this.contact(id, contactId, worker);
       if (campaign.state !== 'running' || row.state !== 'preparing') throw new Error('Dispatch is not permitted or has already been attempted.');
-      if (!JSON.parse(campaign.settings).simulation && !withinWindow(JSON.parse(campaign.settings), this.now())) throw new Error('Outside calling window.');
       if (this.db.prepare('SELECT phone FROM campaign_suppressions WHERE phone=?').get(row.phone)) throw new Error('Contact is suppressed.');
       this.db.prepare("UPDATE campaign_contacts SET state='dispatching',session=?,dispatched=? WHERE id=?").run(session, this.stamp(), contactId); this.event(id, contactId, 'dispatch_authorized_once');
       return { phone: row.phone, attempt: contactId };

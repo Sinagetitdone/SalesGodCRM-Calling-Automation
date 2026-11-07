@@ -4,6 +4,11 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-11-07 — Start immediately at any hour (1.0.9)
+
+- Removed local calling-hour gates before claim and dispatch, including old saved lists with 9–17 settings. New drafts no longer require or submit startHour/endHour; the API still accepts those legacy fields for compatibility.
+- Removed Start/End Hour controls and the scheduled-wait worker path. Explicit Start, suppression, identity verification and one-attempt dispatch remain. Tests reproduce the reported 06:15 Los Angeles start and after-hours dispatch using synthetic contacts. No actual calls were made.
+
 ### 2026-11-07 — Live text counts and uploaded-file preview (1.0.8)
 
 - Text entries on calling, supervised and rehearsal pages show character/word counts, including existing content, typing/paste, document uploads and restored settings. Character counts include whitespace; word counts use whitespace separators. Length limits remain unchanged.

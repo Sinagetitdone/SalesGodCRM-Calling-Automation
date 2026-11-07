@@ -5,7 +5,6 @@
   const timing = Object.freeze({
     pollMs: 300,
     heartbeatMs: 10000,
-    callingWindowRetryMs: 15000,
     recordingUploadMs: 20000,
     pairingMs: 15000,
     preparationMs: 40000,
@@ -62,7 +61,6 @@
         while (!this.pauseRequested) {
           const next = await this.post('/next');
           if (next.finished) { this.onState({ state: 'finished', campaignId: id }); return; }
-          if (next.waiting) { this.onState({ state: 'waiting', reason: next.waiting }); await this.wait(timing.callingWindowRetryMs); continue; }
           this.simulation = next.settings.simulation;
           this.current = next.contact; this.onState({ state: 'preparing', contact: this.current });
           const contactPath = '/' + this.current.id; let dispatchAttempted = false, callObserved = false, noteAttempted = false, outcome, diagnostic;

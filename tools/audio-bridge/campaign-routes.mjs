@@ -16,7 +16,7 @@ const settingsSchema = object({ timeZone: { type: 'string', minLength: 1, maxLen
   crmImportFile: { type: 'string', minLength: 1, maxLength: 255 },
   ...profileFields,
   customerVoice: { type: 'string', enum: callVoices },
-}, ['timeZone', 'startHour', 'endHour', 'callerNumber', 'voicemailMessage', 'brief', 'simulation']);
+}, ['timeZone', 'callerNumber', 'voicemailMessage', 'brief', 'simulation']);
 export function campaignRoutes(app, { env, store: supplied, journal }) {
   let store = supplied;
   let existingHistoryArchived = false;

@@ -21,13 +21,12 @@
 <label for="responsePauseMs">Live-call pause before replying (milliseconds, 200–1000)</label><input id="responsePauseMs" type="number" min="200" max="1000" value="250">
 <p>250 ms means 0.25 seconds of silence before the AI treats the customer’s turn as finished. Lower values respond sooner but may interrupt a hesitation. This applies to human conversations; voicemail detection keeps its own timing.</p>
 <label for="callerNumber">Your CRM caller number (with country code)</label><input id="callerNumber" placeholder="+1…">
-<label for="listTimeZone">Calling timezone</label><input id="listTimeZone" value="America/Los_Angeles">
-<label for="startHour">Start hour (0–23)</label><input id="startHour" type="number" min="0" max="23" value="9">
-<label for="endHour">End hour (1–24)</label><input id="endHour" type="number" min="1" max="24" value="17">
+<label for="listTimeZone">Timezone for dates and appointments</label><input id="listTimeZone" value="America/Los_Angeles">
+<p>Pressing Start begins processing the list immediately, at any time. There is no calling-hours restriction.</p>
 <label for="callBrief">Additional instructions for this list</label><textarea id="callBrief" rows="4" maxlength="2000">Follow the saved background and conversation guide. Do not claim an appointment is booked.</textarea>
 <input id="voicemailEnabled" type="checkbox" checked hidden>
 <label for="voicemailMessage">Voicemail message</label><textarea id="voicemailMessage" rows="4" maxlength="1000">Hi, this is Sina's AI assistant calling for a brief audio test. If you have received this voicemail, please notify me. Thanks.</textarea>
-<p>One calling timezone applies to the entire list. Review the brief and voicemail before importing.</p></details>
+<p>Review the brief and voicemail before creating the draft.</p></details>
 <button id="importList">Create draft from uploaded file</button><p id="listError" role="alert"></p>
 <label for="savedLists">Saved lists</label><select id="savedLists"><option value="">Choose a list</option></select><button id="refreshLists">Refresh</button>
 <button id="copyList" disabled>Copy selected list to editor</button>

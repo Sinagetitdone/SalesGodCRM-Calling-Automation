@@ -199,7 +199,7 @@
   }
   worker = new window.SalesGodCampaignWorker({ api, driver, audio: window.SalesGodCall, rehearsal, expectedSimulation: practice, onState: state => {
     const name = state.contact ? `${state.contact.firstName} ${state.contact.lastName}` : '';
-    $('listState').textContent = state.state === 'finished' ? 'Finished processing every contact. Review the results below.' : state.state === 'waiting' ? 'Waiting for the calling window. Keep this window open.' : `${state.state.replaceAll('_', ' ')} ${name}`;
+    $('listState').textContent = state.state === 'finished' ? 'Finished processing every contact. Review the results below.' : `${state.state.replaceAll('_', ' ')} ${name}`;
     if (['paused', 'needs_review'].includes(state.state)) document.title = practice ? 'Rehearsal paused · SalesGod' : 'Calling list paused · SalesGod';
     if (state.state === 'finished') {
       document.title = practice ? 'Rehearsal finished · SalesGod' : 'Calling list finished · SalesGod';
@@ -240,7 +240,7 @@
     $('listName').value = (selected.name + ' — revised').slice(0, 120);
     const csvCell = value => '"' + String(value).replaceAll('"', '""') + '"';
     $('contactCsv').value = 'first_name,last_name,phone\n' + selected.contacts.map(c => [c.firstName, c.lastName, c.phone].map(csvCell).join(',')).join('\n');
-    for (const [id, value] of Object.entries({ simulationMode: s.simulationMode || 'offline', rehearsalPersona: s.rehearsalPersona || 'interested', rehearsalTurns: s.rehearsalTurns || 8, callerNumber: s.callerNumber, listTimeZone: s.timeZone, startHour: s.startHour, endHour: s.endHour, callBrief: s.brief, ...(!practice ? { voicemailMessage: s.voicemailMessage } : {}) })) if ($(id)) $(id).value = value;
+    for (const [id, value] of Object.entries({ simulationMode: s.simulationMode || 'offline', rehearsalPersona: s.rehearsalPersona || 'interested', rehearsalTurns: s.rehearsalTurns || 8, callerNumber: s.callerNumber, listTimeZone: s.timeZone, callBrief: s.brief, ...(!practice ? { voicemailMessage: s.voicemailMessage } : {}) })) if ($(id)) $(id).value = value;
     if (practice) { $('turnSeconds').value = s.rehearsalConfig?.turnSeconds ?? 20; $('rehearsalVoice').value = selectedVoice(s.voice); $('customerVoice').value = selectedVoice(s.customerVoice, 'coral'); if ($('rehearsalGuidance')) $('rehearsalGuidance').value = s.guidance || ''; }
     else {
       crmImportReady = true; crmImportFile = selected.settings.crmImportFile || 'copied calling list';
@@ -268,7 +268,7 @@
       }
       if (!practice && (!crmImportReady || crmImportBusy)) throw new Error('Choose a CSV from your computer using Import contacts for calling first.');
       selected = await api('/campaigns-api/import', { name: $('listName').value.trim(), csv: $('contactCsv').value,
-        settings: { simulation, ...profile, ...(practice ? { simulationMode: $('simulationMode').value, rehearsalPersona: $('rehearsalPersona').value, rehearsalTurns: Number($('rehearsalTurns').value), rehearsalConfig: readAgentSettings() } : { responsePauseMs: Number($('responsePauseMs').value), crmImportFile }), callerNumber: simulation ? '+12025550100' : $('callerNumber').value.trim(), timeZone: practice ? 'UTC' : $('listTimeZone').value.trim(), startHour: practice ? 0 : Number($('startHour').value), endHour: practice ? 24 : Number($('endHour').value), brief: $('callBrief').value.trim(), voicemailMessage: practice ? 'Fictional rehearsal; no voicemail is sent.' : $('voicemailMessage').value.trim() } });
+        settings: { simulation, ...profile, ...(practice ? { simulationMode: $('simulationMode').value, rehearsalPersona: $('rehearsalPersona').value, rehearsalTurns: Number($('rehearsalTurns').value), rehearsalConfig: readAgentSettings() } : { responsePauseMs: Number($('responsePauseMs').value), crmImportFile }), callerNumber: simulation ? '+12025550100' : $('callerNumber').value.trim(), timeZone: practice ? 'UTC' : $('listTimeZone').value.trim(), brief: $('callBrief').value.trim(), voicemailMessage: practice ? 'Fictional rehearsal; no voicemail is sent.' : $('voicemailMessage').value.trim() } });
       if (!practice) { crmImportReady = false; $('contactCsv').value = ''; $('crmImportStatus').textContent = `${crmImportFile} is saved as this local draft. Upload another file to create another list.`; }
       $('listState').textContent = `Imported ${selected.contacts.length} contacts. ${selected.duplicates} duplicate numbers skipped. Nothing has started.`; $('selectedTranscript').hidden = true; await refresh();
     } catch (e) { error(e); }

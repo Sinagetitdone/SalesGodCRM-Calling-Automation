@@ -1,5 +1,9 @@
 # Resume here — 2026-11-07
 
+## Immediate Start at any hour — 1.0.9
+
+Local list claim and dispatch no longer enforce calling-hour windows. Old saved 9–17 lists ignore these hour fields automatically; new drafts omit them. Start/End Hour controls are removed. Start still requires paired CRM and exact contact checks, suppression and one active attempt. Existing owner authorization and safety controls remain. Restart the updated bridge and reopen the paired calling-list page, select the existing paused list and press Start; no reimport is needed. Extension 0.4.10 is unchanged. Synthetic tests reproduce 06:15 Los Angeles and late-night dispatch without actual phone calls.
+
 ## Text counters and uploaded CSV preview — 1.0.8
 
 Calling and test pages now load text-counts.js. All text boxes show words/characters and their existing character limits; saved/restored/programmatic text updates are detected too. The import button has a compact CSV preview immediately below it, safe plain text with scrolling, filename and size. Invalid replacement uploads clear it; copy-to-editor refreshes it. Restart bridge/reopen pages after updating. Extension 0.4.10 is unchanged; no live call or CRM import was made.

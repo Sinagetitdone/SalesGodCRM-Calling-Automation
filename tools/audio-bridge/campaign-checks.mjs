@@ -235,25 +235,45 @@ test('only the authorized worker can claim; dispatch is once and only one active
     assert.equal(f.store.claim(f.id, f.worker).contact.position, 1);
   } finally { f.store.close(); }
 });
-test('suppression and calling window are checked again before dispatch', () => {
+test('suppression is checked before dispatch while legacy closing hours no longer block it', () => {
   const f = fixture(false, '2026-10-20T23:59:50Z'); try {
     f.store.start(f.id, f.worker); const c = f.store.claim(f.id, f.worker).contact;
     f.store.suppress(c.phone); assert.throws(() => f.store.dispatch(f.id, c.id, f.worker, randomUUID()));
     f.store.finish(f.id, c.id, f.worker, 'blocked');
     const next = f.store.claim(f.id, f.worker).contact; f.advance(20000);
-    assert.throws(() => f.store.dispatch(f.id, next.id, f.worker, randomUUID()), /Outside calling window/);
+    assert.equal(f.store.dispatch(f.id, next.id, f.worker, randomUUID()).phone, next.phone);
   }
   finally { f.store.close(); }
 });
-test('outside-window contacts wait; simulation is independent of time and never needs provider access', () => {
-  const f = fixture(); try {
-    f.store.start(f.id, f.worker); f.advance(12 * 3600000); f.store.expire(); f.store.start(f.id, f.worker);
-    assert.equal(f.store.claim(f.id, f.worker).waiting, 'calling_window');
-  } finally { f.store.close(); }
-  const sim = fixture(true); try {
-    sim.store.start(sim.id, sim.worker); sim.advance(12 * 3600000); sim.store.expire(); sim.store.start(sim.id, sim.worker);
-    assert.ok(sim.store.claim(sim.id, sim.worker).contact);
-  } finally { sim.store.close(); }
+test('Start claims and dispatches immediately before opening and after closing hours for old saved lists', () => {
+  for (const simulation of [false, true]) for (const time of ['2026-11-07T14:15:32Z', '2026-11-08T06:00:00Z']) {
+    const f = fixture(simulation, time);
+    try {
+      f.store.start(f.id, f.worker);
+      const next = f.store.claim(f.id, f.worker); assert.equal(next.waiting, undefined); assert.equal(next.contact.position, 0);
+      f.store.dispatch(f.id, next.contact.id, f.worker, randomUUID());
+      assert.equal(f.store.read(f.id).contacts[0].state, 'dispatching');
+    } finally { f.store.close(); }
+  }
+});
+test('new live lists need no hour fields and dispatch through the API after explicit Start', async () => {
+  const store = new CampaignStore(':memory:', () => new Date('2026-11-07T14:15:32Z'));
+  const app = createBridge({ campaignStore: store, env: {} });
+  const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431' };
+  const post = (url, payload) => app.inject({ method: 'POST', url, headers, payload });
+  const { startHour, endHour, ...noHours } = settings;
+  try {
+    const imported = await post('/campaigns-api/import', { name: 'Immediate synthetic list', csv, settings: noHours });
+    assert.equal(imported.statusCode, 200); const list = imported.json(), workerId = randomUUID();
+    assert.equal(list.state, 'draft'); assert.equal(list.contacts[0].dispatched, null);
+    assert.equal((await post(`/campaigns-api/${list.id}/next`, { workerId })).statusCode, 409);
+    assert.equal((await post(`/campaigns-api/${list.id}/start`, { workerId, authorized: true })).statusCode, 200);
+    const next = await post(`/campaigns-api/${list.id}/next`, { workerId });
+    assert.equal(next.statusCode, 200); assert.ok(next.json().contact); assert.equal(next.json().waiting, undefined);
+    const dispatched = await post(`/campaigns-api/${list.id}/${next.json().contact.id}/dispatch`, { workerId, session: randomUUID() });
+    assert.equal(dispatched.statusCode, 200);
+    assert.equal((await post(`/campaigns-api/${list.id}/${next.json().contact.id}/dispatch`, { workerId, session: randomUUID() })).statusCode, 409);
+  } finally { await app.close(); store.close(); }
 });
 test('transcripts are session-bound and idempotent; opt-outs suppress future imports', () => {
   const f = fixture(); try {

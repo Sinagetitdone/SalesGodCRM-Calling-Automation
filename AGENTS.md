@@ -22,7 +22,7 @@ Do not silently resolve material conflicts. Record the decision or surface the a
 - Do not invent undocumented SalesGodCRM APIs, endpoints, payloads, authentication mechanisms, or capabilities.
 - Treat SalesGodCRM as an external provider behind an adapter boundary.
 - Keep campaign and business state authoritative in our system once implemented.
-- Enforce suppression, calling-window policy, and application authorization on the backend. For the owner's pre-authorized imported lists, do not require a per-contact consent verification field; record the owner's campaign-level authorization without inventing individual consent evidence.
+- Enforce suppression and application authorization on the backend. The owner explicitly removed calling-hours restrictions from local calling lists: Start processes pending contacts immediately at any time, including existing saved lists with older hour settings. For the owner's pre-authorized imported lists, do not require a per-contact consent verification field; record the owner's campaign-level authorization without inventing individual consent evidence.
 - Default to deny for authorization and default to no-call when eligibility is unknown.
 - Never store provider credentials in source control.
 - Make provider callbacks and events idempotent.

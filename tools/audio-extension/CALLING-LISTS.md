@@ -1,4 +1,6 @@
-# Calling lists — package 1.0.7 / extension 0.4.10
+# Calling lists — package 1.0.9 / extension 0.4.10
+
+Current policy (1.0.9): pressing Start processes pending contacts immediately at any time. Start/End Hour controls and backend calling-hour gates have been removed, including for older lists with saved hour settings. Any hour-window requirements in older release notes below are superseded. Explicit Start, suppression, CRM identity and one-attempt dispatch checks remain.
 
 Current workflow: Import contacts for calling opens a local CSV file picker in the calling-list page. Upload and Create draft from uploaded file work without CRM pairing. Start requires CRM pairing and matching existing contact names/numbers. The local uploader does not sync contacts to CRM. Native-import instructions below describe earlier releases.
 

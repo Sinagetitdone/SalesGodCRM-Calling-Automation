@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-11-07 — Owner Start replaces calling-hour policy (1.0.9)
+
+The owner explicitly requested removal of local list calling-hour restrictions after a 06:15 Los Angeles Start waited for the saved 09:00 window. Removed both claim and dispatch time gates so existing lists process immediately after Start without migration or reimport. New lists omit hour fields; legacy schema fields remain optional for compatibility. Removed obsolete controls/worker waits and updated the repository requirement to reflect the explicit owner decision. Suppression, Start authorization, CRM identity, one active attempt and failure handling remain. Regression coverage reproduces the incident and preserves unauthorized/duplicate dispatch rejection. No live calls were placed.
+
 ## 2026-11-07 — Text counts and CSV preview (1.0.8)
 
 Added a shared local counter to the calling and supervised/rehearsal pages for text fields, including initial, typed, pasted, uploaded and programmatically restored values. Counters use existing limit hints for background/guidance and accessible descriptions for other fields; no extra text is sent or stored. The calling page displays uploaded CSV bytes as plain text inside a bounded scroll area beneath the import action and clears stale previews on failure. No phone/provider actions were performed. Extension 0.4.10 is unchanged.
