@@ -4,6 +4,11 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-11-07 — Verify tagged contact names (team package 1.0.5 / extension 0.4.9)
+
+- Fixed false CRM-import waiting when the Name cell concatenates a contact's name and tags. Ambiguous cells now use the saved first-name, last-name and phone fields in the existing Edit dialog, closed without saving. The row is resolved again after closing.
+- Exact identity checks, import deferral and call behavior remain. Synthetic regressions cover joined/spaced/multiple tags, different full names, wrong phone and missing fields. No live call or CRM contact write was made.
+
 ### 2026-10-31 — Continue automatically between contacts (team package 1.0.4)
 
 - Contact results marked Needs review, Failed or Unknown remain logged but no longer pause the entire list. Once cleanup, CRM note handling and result persistence finish, the worker claims the next pending contact without another Start click.

@@ -6,6 +6,7 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **1.0.5** / extension **0.4.9** fixes false name mismatches caused by tags in the CRM Name cell. Ambiguous names are verified against saved contact fields without saving any edits. Update the package, reload extension 0.4.9, refresh idle CRM and restart the bridge before resuming the existing list.
 - Package **1.0.4** keeps a started list moving automatically after every saved contact result, including Needs review, Failed and Unknown. Results and diagnostics stay logged; manual Pause/Stop, import waiting, calling-window waiting and system failures still stop safely. Extension **0.4.8** is unchanged.
 - Package **1.0.3** / extension **0.4.8** uses SalesGodCRM's native **Import Contacts** dialog as the single CSV selection. The extension hands the accepted file to the local draft, then verifies the exact imported name and phone before clicking that contact row's Call button. Missing, unfinished or mismatched imports pause before dialing. See [the verification report](docs/CRM-NATIVE-IMPORT-1.0.3.md).
 

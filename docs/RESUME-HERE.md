@@ -1,4 +1,8 @@
-# Resume here — 2026-10-30
+# Resume here — 2026-11-07
+
+## Tagged contact name verification — package 1.0.5 / extension 0.4.9
+
+The colleague's import-waiting log showed the entire Name cell (name plus a follow-up tag) compared as the name. Ambiguous cells now trigger a read of saved first/last name and phone in the existing contact form, closed without saving. The fresh phone row is resolved after closing before using its Call control. Synthetic tests cover joined/spaced/multiple tags and wrong name/phone/missing field rejection. No real call or contact write was made. Reload extension 0.4.9 and refresh idle CRM after updating; resume the existing list without reimporting.
 
 ## Automatic between-call continuation — package 1.0.4 / extension 0.4.8
 

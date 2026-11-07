@@ -5,7 +5,8 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('../campaign-driver.js', import.meta.url), 'utf8');
 const attempt = '11111111-1111-4111-8111-111111111111', phone = '+12025550101', caller = '+12025550100';
 const digits = value => String(value || '').replace(/\D/g, '');
-function fixture({ persistNotes = true } = {}) {
+function fixture({ persistNotes = true, nameSuffix = '', formPhone, missingLast = false } = {}) {
+  let edits = 0, saves = 0, closes = 0;
   let state = 'idle', target = phone, calls = 0, hangups = 0, view = 'Keypad', time = 0, formMode = '', editing;
   class Input { constructor(value = '') { this.saved = value; this.tagName = 'INPUT'; } get value() { return this.saved; } set value(v) { this.saved = v; } dispatchEvent() {} }
   const location = { pathname: '/contacts' }, window = { location, HTMLInputElement: Input, HTMLTextAreaElement: Input };
@@ -21,7 +22,8 @@ function fixture({ persistNotes = true } = {}) {
   const noRows = { textContent: 'No matching records found', querySelectorAll: selector => selector === 'td' ? [{}] : [], querySelector: () => null };
   const rowFor = contact => {
     const cells = Array.from({ length: 12 }, () => ({ textContent: '' })); cells[1].textContent = `${contact.firstName} ${contact.lastName}`.trim(); cells[3].textContent = contact.phone;
-    const edit = { click() { formMode = 'edit'; editing = contact; makeForm(contact); } };
+    cells[1].textContent += nameSuffix;
+    const edit = { click() { edits++; formMode = 'edit'; editing = contact; makeForm(contact); } };
     const rowCall = button('Call', () => { calls++; state = 'dialing'; target = `${contact.firstName} ${contact.lastName}`.trim(); });
     const inlineNotes = { value: contact.notes || '' };
     return { textContent: cells.map(cell => cell.textContent).join(' '), querySelectorAll: selector => selector === 'td' ? cells : [],
@@ -31,12 +33,14 @@ function fixture({ persistNotes = true } = {}) {
   function makeForm(contact = { phone: '', firstName: '', lastName: '', notes: '' }) {
     const first = new Input(contact.firstName), last = new Input(contact.lastName), contactPhone = new Input(contact.phone), notes = new Input(contact.notes || ''); notes.tagName = 'TEXTAREA';
     const submit = button(formMode === 'add' ? 'Add Contact' : 'Save', () => {
+      saves++;
       if (formMode === 'add') contacts.push({ phone: contactPhone.value, firstName: first.value, lastName: last.value, notes: notes.value });
       else Object.assign(editing, { firstName: first.value, lastName: last.value, ...(persistNotes ? { notes: notes.value } : {}) });
       form = null; formMode = ''; editing = null;
     });
-    const close = button('Close', () => { form = null; formMode = ''; editing = null; }), notesTab = button('Tags & Notes');
-    form = { first, querySelector: selector => ({ '#last_name': last, '#phone': contactPhone, '#notes': notes })[selector] || null,
+    if (formPhone) contactPhone.value = formPhone;
+    const close = button('Close', () => { closes++; form = null; formMode = ''; editing = null; }), notesTab = button('Tags & Notes');
+    form = { first, querySelector: selector => ({ '#last_name': missingLast ? null : last, '#phone': contactPhone, '#notes': notes })[selector] || null,
       querySelectorAll: selector => selector === 'button' ? [notesTab, close, submit] : [] };
     first.closest = selector => selector === 'form' ? form : null;
   }
@@ -51,8 +55,31 @@ function fixture({ persistNotes = true } = {}) {
     querySelector: selector => ({ '#dt_main_search': search, '#contactTable': table, '#first_name': form?.first || null })[selector] || null,
     querySelectorAll: selector => selector === '#contactTable tbody tr' ? rows() : selector === 'button' ? [add] : [] };
   vm.runInNewContext(source, { window, document, location, HTMLInputElement: Input, Event, setTimeout });
-  return { driver: new window.SalesGodCampaignDialer(document, { wait: async ms => { time += ms; }, now: () => time }), contacts, location, mic, from, input, setState(s, t = phone) { state = s; target = t; }, counts: () => ({ calls, hangups }), panel };
+  return { driver: new window.SalesGodCampaignDialer(document, { wait: async ms => { time += ms; }, now: () => time }), contacts, location, mic, from, input, setState(s, t = phone) { state = s; target = t; }, counts: () => ({ calls, hangups }), formCounts: () => ({ edits, saves, closes, open: Boolean(form) }), panel };
 }
+test('tags concatenated with a contact name verify against saved fields without editing the contact', async () => {
+  for (const nameSuffix of ['Follow up drip', ' Follow Up Drip', 'Needs follow upVIP']) {
+    const f = fixture({ nameSuffix });
+    const before = JSON.stringify(f.contacts);
+    const imported = await f.driver.requireImportedContact({ phone, firstName: 'Test', lastName: 'Person' });
+    assert.equal(imported.name, 'Test Person'); assert.equal(f.counts().calls, 0);
+    assert.deepEqual(f.formCounts(), { edits: 1, saves: 0, closes: 1, open: false });
+    await f.driver.dial({ attempt, phone, caller, firstName: 'Test', lastName: 'Person' });
+    assert.equal(f.counts().calls, 1); assert.equal((await f.driver.status()).state, 'active');
+    assert.equal(JSON.stringify(f.contacts), before);
+    assert.deepEqual(f.formCounts(), { edits: 3, saves: 0, closes: 3, open: false });
+  }
+});
+test('tagged rows still reject different full names, wrong form phone and missing identity fields', async () => {
+  for (const options of [{}, { formPhone: '+12025550199' }, { missingLast: true }]) {
+    const f = fixture({ nameSuffix: 'Follow up drip', ...options });
+    if (!options.formPhone && !options.missingLast) f.contacts[0].lastName = 'Person Junior';
+    const before = JSON.stringify(f.contacts);
+    await assert.rejects(f.driver.dial({ attempt, phone, caller, firstName: 'Test', lastName: 'Person' }), /CRM import not ready/);
+    assert.equal(f.counts().calls, 0); assert.equal(JSON.stringify(f.contacts), before);
+    assert.deepEqual(f.formCounts(), { edits: 1, saves: 0, closes: 1, open: false });
+  }
+});
 test('synthetic DOM dispatch uses the imported contact row, generated microphone, verified name and owned hangup', async () => {
   const f = fixture(); await f.driver.dial({ attempt, phone, caller, firstName: 'Test', lastName: 'Person' });
   assert.equal(f.mic.value, 'salesgod-ai-bridge-local-v1'); assert.equal(f.input.value, ''); assert.equal(f.counts().calls, 1);

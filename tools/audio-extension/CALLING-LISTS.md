@@ -1,4 +1,6 @@
-# Calling lists — package 1.0.3 / extension 0.4.8
+# Calling lists — package 1.0.5 / extension 0.4.9
+
+Current update (2026-11-07): CRM Name cells may include tags. A differing cell now triggers read-only verification of the saved first/last name and phone in the contact form, then closes without saving and resolves the row again. Real name/phone mismatches still defer before dialing. Reload extension 0.4.9 after updating. Automatic between-contact continuation from 1.0.4 remains.
 
 Current update (2026-10-30): select the CSV once through SalesGodCRM's native **Import Contacts** dialog, opened by the extension's **Import contacts for calling** button. The extension retains that selection only in the current page, waits for the CRM to accept the dialog, and hands the same CSV to the local draft for review. Before each side effect, it searches the CRM by phone, requires the exact imported name, and clicks that row's **Call** button so the CRM associates and displays the name. It no longer creates or rewrites contacts one by one. A missing contact, unfinished async import, name mismatch, missing row Call control or stale row stops before dialing. See [the 1.0.3 verification report](../../docs/CRM-NATIVE-IMPORT-1.0.3.md).
 

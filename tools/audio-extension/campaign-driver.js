@@ -53,9 +53,28 @@
       if (pageLocation.pathname !== '/contacts') throw new Error('Open SalesGodCRM Contacts before starting the calling list so imported names can be verified.');
       firstName = compact(firstName); lastName = compact(lastName); const displayName = compact(`${firstName} ${lastName}`);
       if (!/^\+[1-9]\d{7,14}$/.test(phone) || !firstName || firstName.length > 100 || lastName.length > 100) throw new Error('Invalid contact details; no call was placed.');
-      const row = await this.findContact(phone);
+      let row = await this.findContact(phone);
       if (row.missing) throw new Error('CRM import not ready: this contact is not available in SalesGodCRM yet. Wait for the import to finish, then resume; no call was placed.');
-      const currentName = compact(row.querySelectorAll('td')[1]?.textContent);
+      let currentName = compact(row.querySelectorAll('td')[1]?.textContent);
+      // The Name cell also contains tags (sometimes with no separating space).
+      // Read the existing form fields when the cell is ambiguous; never strip
+      // arbitrary suffixes or accept a partial name match.
+      if (nameKey(currentName) !== nameKey(displayName)) {
+        const edit = row.querySelector('a[title="Edit"]');
+        if (!edit) throw new Error('CRM import not ready: contact name verification is unavailable; no call was placed.');
+        edit.click(); const form = await this.contactForm('Save');
+        try {
+          if (digits(form.phone?.value) !== digits(phone) || !form.last) throw new Error('CRM import not ready: contact form identity could not be verified; no call was placed.');
+          currentName = compact(`${form.first.value} ${form.last.value}`);
+        } finally {
+          const close = [...form.form.querySelectorAll('button')].find(button => compact(button.textContent) === 'Close');
+          if (!close) throw new Error('CRM import not ready: contact verification form could not be closed; no call was placed.');
+          close.click(); await this.until(() => !this.doc.querySelector('#first_name'), 4000, 'Contact verification form close');
+        }
+        // Closing the dialog can re-render the table; use the fresh phone row.
+        row = await this.findContact(phone);
+        if (row.missing) throw new Error('CRM import not ready: verified contact is no longer available; no call was placed.');
+      }
       if (nameKey(currentName) !== nameKey(displayName)) throw new Error(`CRM import not ready: SalesGodCRM has “${currentName || 'no name'}” for ${phone}, not “${displayName}”. Correct or finish the import before resuming; no call was placed.`);
       const call = row.querySelector('button[title="Call"],button[aria-label="Call"]');
       if (!call) throw new Error('CRM import not ready: the imported contact Call control is unavailable; no call was placed.');
