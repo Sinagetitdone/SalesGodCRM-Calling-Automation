@@ -4,6 +4,11 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-11-07 — Upload CSV from the local computer (1.0.7)
+
+- Import contacts for calling opens the local file chooser without pairing or opening CRM import. Create draft from uploaded file validates and persists the local list. Start still requires CRM pairing and matching existing CRM contacts.
+- Empty, oversized, wrong-extension and unreadable files invalidate the selection with a visible error. Existing CRM-import messages cannot replace a selected local CSV. Extension remains 0.4.10. Synthetic checks cover independent upload and draft persistence; no calls or CRM imports were made.
+
 ### 2026-11-07 — Import from the calling-list tab (1.0.6 / extension 0.4.10)
 
 - Moved Import contacts for calling from the extension panel into the paired live calling-list page. The button requests the native CRM dialog over the existing authenticated MessagePort; the file is still selected once in SalesGodCRM and handed back after submission.

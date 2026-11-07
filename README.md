@@ -6,7 +6,7 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
-- Package **1.0.6** / extension **0.4.10** moves **Import contacts for calling** into the calling-list page. It requests the native CRM dialog through the paired channel, confirms it opened and shows progress/errors in the list. Reload the updated extension, refresh idle CRM and reopen the calling page after updating. Tagged-name verification from 1.0.5 remains.
+- Package **1.0.7** / extension **0.4.10** loads CSV files directly from your computer into the local calling-list page. Upload and draft creation work without CRM pairing; starting calls still requires the connected CRM and matching saved contacts.
 - Package **1.0.4** keeps a started list moving automatically after every saved contact result, including Needs review, Failed and Unknown. Results and diagnostics stay logged; manual Pause/Stop, import waiting, calling-window waiting and system failures still stop safely. Extension **0.4.8** is unchanged.
 - Package **1.0.3** / extension **0.4.8** uses SalesGodCRM's native **Import Contacts** dialog as the single CSV selection. The extension hands the accepted file to the local draft, then verifies the exact imported name and phone before clicking that contact row's Call button. Missing, unfinished or mismatched imports pause before dialing. See [the verification report](docs/CRM-NATIVE-IMPORT-1.0.3.md).
 
@@ -54,7 +54,7 @@ Optional synthetic demonstrations:
 
     npm run audio:bridge
 
-Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.10**; reload and refresh the CRM only while idle. Open CRM **Contacts**, choose **Open calling list** in the extension, then **Import contacts for calling** inside the calling-list page. Complete the native import in the CRM tab and return to review the received file. Opening/importing never starts calls. `/campaigns` is exclusively for real calling lists. **AI Agents Test Call** opens `/supervised-call` with manual controls and no-phone Live AI rehearsal (or free Offline workflow check). The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
+Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.10**; reload and refresh the CRM only while idle. Open CRM **Contacts**, choose **Open calling list** in the extension, then **Import contacts for calling** inside the calling-list page. Choose the CSV directly from your computer and create a local draft. Uploading also works by opening /campaigns directly; only calling requires pairing and existing CRM contacts. Opening/importing never starts calls. `/campaigns` is exclusively for real calling lists. **AI Agents Test Call** opens `/supervised-call` with manual controls and no-phone Live AI rehearsal (or free Offline workflow check). The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
 
 - [Extension setup and limits](tools/audio-extension/README.md)
 - [Observed no-call test results](tools/audio-extension/TEST-RESULTS.md)

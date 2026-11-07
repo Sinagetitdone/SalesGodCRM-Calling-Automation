@@ -1,5 +1,9 @@
 # Resume here — 2026-11-07
 
+## Local CSV upload — 1.0.7 / extension 0.4.10 unchanged
+
+Import contacts for calling on /campaigns now opens the computer file picker. Local upload and draft creation work without CRM pairing. The file is bounded to CSV / 400 KB, errors invalidate stale content, and server parsing validates the draft. Native CRM handoff messages are no longer consumed by this page. For calling, CRM pairing and the existing exact contact preflight still apply; local upload does not create CRM contacts. Restart bridge/reopen local pages after updating; no extension reload for existing 0.4.10. Synthetic upload, draft persistence and failure checks pass without CRM or phone calls.
+
 ## Import inside the calling-list page — 1.0.6 / extension 0.4.10
 
 Open calling list from CRM Contacts, then click Import contacts for calling inside that page. The paired CRM adapter confirms the visible native file dialog opened; choose the CSV and submit in CRM, then return to review/create the draft. Missing controls and timeout errors now surface on the calling page. File selection stays in CRM with the existing bounded memory handoff. Reload extension 0.4.10, refresh idle CRM and reopen local pages after updating. Verification is synthetic; no live file import or call was performed.

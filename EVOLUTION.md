@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-11-07 — Independent local list upload (1.0.7)
+
+The owner clarified that importing into the calling page should select a Windows file independently of CRM. The page now reads a local CSV and creates its draft through the local backend, with pairing needed only for Start. The existing CRM identity/row-call/notes contract is preserved; local upload does not synchronize contacts into SalesGodCRM. The page ignores legacy native-import handoffs. Extension 0.4.10 is unchanged. Offline tests verify standalone upload, persisted names/numbers and rejection of invalid replacement files without any CRM connection or phone call.
+
 ## 2026-11-07 — Import action inside the calling-list page (1.0.6 / extension 0.4.10)
 
 The user reported that the CRM extension import action did nothing and requested it on the calling page. That page now sends an import request through the existing paired channel; the adapter confirms a visible native file dialog opened and returns serializable status. Import control lookup supports buttons, links and labeled controls. File selection/submission remains in SalesGodCRM with the existing bounded handoff. Opening failures and capture progress appear at the initiating page. All 210 offline checks and type checking passed; no live import or call was performed.

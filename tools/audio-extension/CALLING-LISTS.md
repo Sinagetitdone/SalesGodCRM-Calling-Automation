@@ -1,4 +1,6 @@
-# Calling lists — package 1.0.6 / extension 0.4.10
+# Calling lists — package 1.0.7 / extension 0.4.10
+
+Current workflow: Import contacts for calling opens a local CSV file picker in the calling-list page. Upload and Create draft from uploaded file work without CRM pairing. Start requires CRM pairing and matching existing contact names/numbers. The local uploader does not sync contacts to CRM. Native-import instructions below describe earlier releases.
 
 Current update (2026-11-07): CRM Name cells may include tags. A differing cell now triggers read-only verification of the saved first/last name and phone in the contact form, then closes without saving and resolves the row again. Real name/phone mismatches still defer before dialing. Reload extension 0.4.9 after updating. Automatic between-contact continuation from 1.0.4 remains.
 
@@ -44,7 +46,7 @@ Alex,Example,+12025550101
 Sam,Example,+12025550102
 ```
 
-These numbers are fictional examples. Include country codes internationally; ten-digit numbers default to +1. Maximum 1,000 rows / 400 KB CSV. Quoted fields and BOM are supported. On CRM Contacts choose **Open calling list** in the extension, then **Import contacts for calling** inside that page. Choose the file in the CRM dialog and click Import; return to the calling tab for the accepted file and create the draft. Normalized duplicates are skipped in the local draft; invalid rows reject it. No per-contact consent field is required for the owner's pre-authorized lists. Explicit Start records campaign-level authorization; suppression and window checks remain backend-enforced.
+These numbers are fictional examples. Include country codes internationally; ten-digit numbers default to +1. Maximum 1,000 rows / 400 KB CSV. Quoted fields and BOM are supported. Import contacts for calling now selects a local CSV in the calling-list page, without a CRM connection. Create draft from uploaded file validates and previews it. Starting calls still requires a paired CRM Contacts tab and matching saved contact identities. Local upload does not import or edit CRM contacts. Explicit Start records campaign-level authorization; suppression and window checks remain backend-enforced.
 
 ## Live operation — pending authorized integration verification
 

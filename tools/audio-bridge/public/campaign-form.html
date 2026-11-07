@@ -9,11 +9,12 @@
 <p id="guideUsage" role="status">Choose a list to see which guide it will use.</p>
 <p id="callingProfileStatus" role="status">Loading saved context…</p><p>Saved locally until you replace it. Context is sent to OpenAI when a real call is prepared. New lists keep their own copy; existing lists change only with Apply to selected list while idle. Saving never starts a call.</p></section>
 <section aria-labelledby="listHeading"><h2 id="listHeading">Calling list</h2>
-<p>Click <b>Import contacts for calling</b> below to open the import dialog in your connected SalesGodCRM tab. Choose a CSV with <b>first_name,last_name,phone</b> columns and complete Import there, then return here to review the list. Nothing starts until you press Start.</p>
+<p>Click <b>Import contacts for calling</b> to choose a CSV from your computer with <b>first_name,last_name,phone</b> columns. The file loads into this local calling list. Review the settings and create a draft before starting.</p>
 <button id="importCrmContacts" disabled>Import contacts for calling</button>
 <label for="listName">List name</label><input id="listName" maxlength="120" value="My calling list">
 <input id="contactFile" type="file" accept=".csv,text/csv" hidden><textarea id="contactCsv" hidden></textarea>
-<p id="crmImportStatus" role="status">Open this page using Open calling list in the SalesGodCRM extension, then click Import contacts for calling above.</p>
+<p id="crmImportStatus" role="status">Choose a CSV from your computer. No SalesGodCRM connection is needed to upload or create a draft.</p>
+<p>Starting calls requires the paired SalesGodCRM extension. Contacts must already exist there with matching names and numbers so the CRM can display their names and save call notes. This local upload does not import or change CRM contacts.</p>
 <p><strong>Real calls only.</strong> Creating the draft never calls anyone. Before every call, the extension must find the exact imported phone and name in SalesGodCRM; otherwise the list pauses before dialing.</p>
 <details><summary>Call settings</summary>
 <label for="responsePauseMs">Live-call pause before replying (milliseconds, 200–1000)</label><input id="responsePauseMs" type="number" min="200" max="1000" value="250">
@@ -26,7 +27,7 @@
 <input id="voicemailEnabled" type="checkbox" checked hidden>
 <label for="voicemailMessage">Voicemail message</label><textarea id="voicemailMessage" rows="4" maxlength="1000">Hi, this is Sina's AI assistant calling for a brief audio test. If you have received this voicemail, please notify me. Thanks.</textarea>
 <p>One calling timezone applies to the entire list. Review the brief and voicemail before importing.</p></details>
-<button id="importList">Create draft from CRM import</button><p id="listError" role="alert"></p>
+<button id="importList">Create draft from uploaded file</button><p id="listError" role="alert"></p>
 <label for="savedLists">Saved lists</label><select id="savedLists"><option value="">Choose a list</option></select><button id="refreshLists">Refresh</button>
 <button id="copyList" disabled>Copy selected list to editor</button>
 <p id="listMode">No list selected.</p><p id="driverState">Open this page through Open calling list in the CRM extension to connect the dialer.</p>
