@@ -9,3 +9,5 @@
 - Public callback routes and private Start/import/history routes need separate listeners. A tunnel to the full local admin app would expose contact information and calling controls.
 - Voice recording MP3s can include ID3 tags. Accept supported MP3 headers instead of assuming every file starts at its first audio frame.
 - Pin and verify tool downloads. Generate the distribution dependency lock from tested production dependencies; never globally replace version-like strings in lockfiles.
+
+- Current Twilio trials use shared Twilio-owned trial numbers and block the Stream verb. A trial-panel calling number is not evidence of an owned programmable voice number. Detect this account restriction explicitly before looking up numbers or attempting calls; never bypass it by removing provider eligibility checks. Source: https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs

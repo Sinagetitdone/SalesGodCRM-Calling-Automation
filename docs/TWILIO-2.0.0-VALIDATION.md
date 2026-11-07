@@ -1,3 +1,5 @@
+**Later update:** Twilio authentication was corrected after these initial checks. See [2.0.1 validation](TWILIO-2.0.1-VALIDATION.md) for current account restrictions and readiness.
+
 # Twilio migration 2.0.0 — validation and remaining setup
 
 Date: 2026-11-08.

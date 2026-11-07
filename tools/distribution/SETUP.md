@@ -1,4 +1,4 @@
-# Team calling desk 2.0.0 — Twilio setup
+# Team calling desk 2.0.1 — Twilio setup
 
 This version replaces SalesGodCRM dialing with Twilio. No SalesGodCRM login, extension, virtual microphone, VB-CABLE or Docker is required. Your list, context, call results, transcripts and downloaded recordings remain on your computer.
 
@@ -14,10 +14,10 @@ The launcher names **SalesGod Bridge.exe** and **SalesGod Bridge.app** are retai
 
 ## Step 2 — Prepare Twilio and OpenAI
 
-1. Have an active Twilio account and a voice-enabled Twilio telephone number.
+1. Have an upgraded Twilio account and an owned voice-enabled Twilio telephone number.
 2. In Twilio account home, find **Account SID** (starts with **AC**) and **Auth Token**. An API key SID starting with **SK** is a different field; do not use it as Account SID.
 3. Have a valid OpenAI API key with API billing and voice-model access. A ChatGPT subscription alone does not provide API credits.
-4. Trial Twilio accounts restrict destinations, usually to verified numbers, and may play a trial announcement. Upgrade decisions and billing are handled by your account owner; this app does not upgrade or buy numbers.
+4. Twilio’s current trial blocks Media Streams, which this live AI workflow requires, and uses shared trial numbers rather than an owned calling number. The account owner must upgrade and obtain a voice-enabled number before using this workflow. The app does not upgrade accounts, buy numbers or change billing. Source: https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs
 
 ## Step 3A — Save settings on Windows
 
@@ -150,6 +150,8 @@ cloudflared tunnel --url http://127.0.0.1:28432
 Copy the printed HTTPS origin into **TWILIO_PUBLIC_URL**, set **TWILIO_TUNNEL=manual**, restart the bridge, and keep both processes open.
 
 ## Troubleshooting
+
+**Twilio trial blocks Media Streams:** authentication is working, but the account cannot use this live audio workflow yet. Ask the account owner to upgrade and obtain a voice-enabled Twilio number. Update TWILIO_FROM_NUMBER locally and restart. Do not use the shared trial-panel number as an owned number.
 
 **Twilio rejects authentication:** recheck the AC Account SID and the account Auth Token on Twilio account home. An SK API key and its secret are not interchangeable with these settings.
 

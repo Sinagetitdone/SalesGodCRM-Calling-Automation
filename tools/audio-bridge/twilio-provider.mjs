@@ -42,9 +42,13 @@ export class TwilioProvider {
     return binary ? Buffer.from(await response.arrayBuffer()) : response.json();
   }
   async check() {
-    const config = this.configuration(); if (!config.ready) throw new Error(config.error);
+    // Account checks are read-only and can explain authentication/trial problems
+    // before a public tunnel has been configured. Dial still requires the real URL.
+    const config = twilioConfiguration({ ...this.env, TWILIO_PUBLIC_URL: this.env.TWILIO_PUBLIC_URL || 'https://not-configured.invalid' });
+    if (!config.ready) throw new Error(config.error);
     const account = await this.request('.json');
     if (account.status !== 'active') throw new Error('The Twilio account is not active.');
+    if (account.type === 'Trial') throw new Error('Twilio authentication succeeded, but this trial account blocks Media Streams required for live AI audio. The account owner must upgrade Twilio and add a voice-enabled Twilio number before this workflow can call. No call was placed.');
     const numbers = await this.request('/IncomingPhoneNumbers.json?PhoneNumber=' + encodeURIComponent(config.fromNumber));
     if (!numbers.incoming_phone_numbers?.some(n => n.phone_number === config.fromNumber && n.capabilities?.voice)) throw new Error('TWILIO_FROM_NUMBER must be a voice-enabled number owned by this Twilio account.');
     return { ready: true, fromNumber: config.fromNumber, trial: account.type === 'Trial' };

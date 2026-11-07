@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SalesGod Team — Step-by-step guide</title>
 <style>body{font:17px/1.65 system-ui,sans-serif;color:#173c34;background:#f2f6f3;margin:0}main{max-width:880px;margin:32px auto;background:white;padding:40px;border-radius:18px}h1{font-size:36px;line-height:1.2}h2{border-top:1px solid #d7e5de;padding-top:28px;margin-top:38px;font-size:25px;scroll-margin-top:20px}h3{font-size:20px;margin-top:30px}li{margin:14px 0;padding-left:5px}code{background:#edf3f0;border-radius:4px;padding:2px 5px;overflow-wrap:anywhere}pre{background:#173c34;color:white;padding:18px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}pre code{background:transparent;color:inherit;padding:0}a{color:#166454}p{overflow-wrap:anywhere}nav{background:#edf3f0;padding:20px;border-radius:10px}nav ul{padding-left:20px}nav li{margin:6px 0}nav a{text-decoration:none}@media(max-width:600px){main{margin:0;padding:20px;border-radius:0}h1{font-size:29px}}@media print{body{background:white}main{margin:0;padding:0;max-width:none}nav{display:none}h2,h3{break-after:avoid}pre{border:1px solid #ccc;background:white;color:black}a{color:inherit}}</style></head>
-<body><main><h1>Team calling desk 2.0.0 — Twilio setup</h1>
+<body><main><h1>Team calling desk 2.0.1 — Twilio setup</h1>
 <nav aria-label="Guide contents"><strong>Jump to a step</strong><ul><li><a href="#section-0">Step 1 — Extract the whole package</a></li><li><a href="#section-1">Step 2 — Prepare Twilio and OpenAI</a></li><li><a href="#section-2">Step 3A — Save settings on Windows</a></li><li><a href="#section-3">Step 3B — Save settings on Mac</a></li><li><a href="#section-4">Step 4 — Start the calling desk</a></li><li><a href="#section-5">Step 5 — Check the connection without calling anyone</a></li><li><a href="#section-6">Step 6 — Set the background, guide and voicemail</a></li><li><a href="#section-7">Step 7 — Upload your list and preview it</a></li><li><a href="#section-8">Step 8 — Start, pause and stop</a></li><li><a href="#section-9">Step 9 — Read or export the results</a></li><li><a href="#section-10">Step 10 — A stable public connection for team use</a></li><li><a href="#section-11">Troubleshooting</a></li></ul></nav>
 <p>This version replaces SalesGodCRM dialing with Twilio. No SalesGodCRM login, extension, virtual microphone, VB-CABLE or Docker is required. Your list, context, call results, transcripts and downloaded recordings remain on your computer.</p>
 <p>The launcher names <strong>SalesGod Bridge.exe</strong> and <strong>SalesGod Bridge.app</strong> are retained so existing shortcuts keep working. They now open the Twilio calling desk.</p>
@@ -15,10 +15,10 @@
 </ol>
 <h2 id="section-1">Step 2 — Prepare Twilio and OpenAI</h2>
 <ol start="1">
-<li>Have an active Twilio account and a voice-enabled Twilio telephone number.</li>
+<li>Have an upgraded Twilio account and an owned voice-enabled Twilio telephone number.</li>
 <li>In Twilio account home, find <strong>Account SID</strong> (starts with <strong>AC</strong>) and <strong>Auth Token</strong>. An API key SID starting with <strong>SK</strong> is a different field; do not use it as Account SID.</li>
 <li>Have a valid OpenAI API key with API billing and voice-model access. A ChatGPT subscription alone does not provide API credits.</li>
-<li>Trial Twilio accounts restrict destinations, usually to verified numbers, and may play a trial announcement. Upgrade decisions and billing are handled by your account owner; this app does not upgrade or buy numbers.</li>
+<li>Twilio’s current trial blocks Media Streams, which this live AI workflow requires, and uses shared trial numbers rather than an owned calling number. The account owner must upgrade and obtain a voice-enabled number before using this workflow. The app does not upgrade accounts, buy numbers or change billing. Source: <a href="https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs">https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs</a></li>
 </ol>
 <h2 id="section-2">Step 3A — Save settings on Windows</h2>
 <ol start="1">
@@ -126,6 +126,7 @@ Sam,Example,+12025550102</code></pre>
 <pre><code>cloudflared tunnel --url http://127.0.0.1:28432</code></pre>
 <p>Copy the printed HTTPS origin into <strong>TWILIO_PUBLIC_URL</strong>, set <strong>TWILIO_TUNNEL=manual</strong>, restart the bridge, and keep both processes open.</p>
 <h2 id="section-11">Troubleshooting</h2>
+<p><strong>Twilio trial blocks Media Streams:</strong> authentication is working, but the account cannot use this live audio workflow yet. Ask the account owner to upgrade and obtain a voice-enabled Twilio number. Update TWILIO_FROM_NUMBER locally and restart. Do not use the shared trial-panel number as an owned number.</p>
 <p><strong>Twilio rejects authentication:</strong> recheck the AC Account SID and the account Auth Token on Twilio account home. An SK API key and its secret are not interchangeable with these settings.</p>
 <p><strong>OpenAI expired_secret_key / authentication error:</strong> replace OPENAI_API_KEY with a valid key locally and restart. Never paste it into chat or GitHub.</p>
 <p><strong>Public callback unreachable:</strong> keep the tunnel running and target port 28432. Confirm the public hostname reaches this installation. Use a stable managed tunnel if the quick service is unavailable.</p>

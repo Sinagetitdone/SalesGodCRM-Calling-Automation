@@ -53,6 +53,12 @@ test('human hello starts live conversation without waiting for AMD; interruption
   assert(f.socket.sent.some(e => e.type === 'conversation.item.truncate' && e.audio_end_ms === 50));
   f.audio.close();
 });
+test('a current Twilio trial is reported explicitly before number lookup, tunnel setup or any dial request', async () => {
+  const requests = [];
+  const provider = new TwilioProvider({ env: { ...env, TWILIO_PUBLIC_URL: '' }, fetchImpl: async (url, options) => { requests.push({ url, options }); return { ok: true, json: async () => ({ status: 'active', type: 'Trial' }) }; } });
+  await assert.rejects(provider.check(), /authentication succeeded.*trial account blocks Media Streams/);
+  assert.equal(requests.length, 1); assert.equal(requests[0].options.method, 'GET'); assert(!requests[0].url.includes('/Calls'));
+});
 test('voicemail is delivered only after greeting end and playback acknowledgment; cleared marks never count as delivery', () => {
   const f = audioFixture(); f.audio.decision('machine_end_beep');
   assert.equal(f.audio.mode, 'voicemail'); assert.equal(f.finished.length, 0);

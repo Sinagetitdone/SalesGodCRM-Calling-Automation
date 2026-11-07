@@ -27,9 +27,9 @@ export class TwilioService {
     if (this.run) { this.run.pause = this.run.stop = true; if (this.run.attempt) { this.run.attempt.diagnostic = this.networkError; await this.end(this.run.attempt, 'needs_review'); } }
   }
   async check() {
+    const result = await this.provider.check();
     if (this.networkError) throw new Error(this.networkError);
     if (!this.ingress?.listening) throw new Error('The Twilio callback service is not running.');
-    const result = await this.provider.check();
     let response;
     try { response = await this.fetch(this.provider.configuration().publicUrl + '/twilio/health', { signal: AbortSignal.timeout(10000), redirect: 'error' }); }
     catch { throw new Error('The public Twilio callback address is unreachable. Start the HTTPS tunnel to port 28432.'); }
