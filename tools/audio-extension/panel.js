@@ -71,7 +71,7 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
   historyButton.onclick = () => { window.open('http://127.0.0.1:28431/history', '_blank', 'noopener'); };
   const voiceResult = document.createElement('p'); voiceResult.id = 'voiceResult'; $('rtcResult').after(voiceResult);
   const importResult = document.createElement('p'); importResult.id = 'crmImportResult'; importResult.textContent = 'No CRM import captured for a new calling list.'; listButton.after(importResult);
-  let report, listPopup, listToken, listPort, dialer, listWatch, crmImport;
+  let report, listPopup, listToken, listPort, listConnectionId, dialer, listWatch, crmImport;
   const handoffCrmImport = () => { if (listPort && crmImport?.confirmed) listPort.postMessage({ type: 'crm-import', fileName: crmImport.fileName, name: crmImport.name, csv: crmImport.csv }); };
   const importStatus = (message, error = false) => { importResult.textContent = message; listPort?.postMessage({ type: 'crm-import-status', message, error }); };
   const isContacts = () => location.pathname === '/contacts';
@@ -140,11 +140,11 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
     const waiter = pending.get(event.data.requestId);
     if (waiter) { clearTimeout(waiter.timer); pending.delete(event.data.requestId); event.data.error ? waiter.reject(new Error(event.data.error)) : waiter.resolve(event.data.status); }
     report = event.data.status;
-    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10'].includes(report.version)) return;
+    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11'].includes(report.version)) return;
     $('state').textContent = report.testing ? 'Testing synthetic audio locally…' : report.armed ? 'Local routing enabled · OpenAI disconnected' : 'Local routing disabled · OpenAI disconnected';
     $('arm').disabled = report.armed || report.testing;
-    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10'].includes(report.version) || report.voiceState !== 'disconnected';
-    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10'].includes(report.version);
+    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11'].includes(report.version) || report.voiceState !== 'disconnected';
+    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11'].includes(report.version);
     if (report.voiceState && report.voiceState !== 'disconnected') $('state').textContent = `Local routing enabled · Voice setup ${report.voiceState} · Check setup window for OpenAI status`;
     $('test').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
     $('rtc').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
@@ -168,11 +168,18 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
     if (!listPopup) $('error').textContent = 'Allow the local calling-list window to open.';
   };
   window.addEventListener('message', event => {
-    if (event.origin !== 'http://127.0.0.1:28431' || event.source !== listPopup || event.data?.source !== 'salesgod-campaign-v1' || event.data.token !== listToken || event.data.type !== 'hello' || listPort) return;
-    const channel = new MessageChannel(); listPort = channel.port1; dialer = new window.SalesGodCampaignDialer();
+    if (event.origin !== 'http://127.0.0.1:28431' || event.source !== listPopup || event.data?.source !== 'salesgod-campaign-v1' || event.data.token !== listToken || event.data.type !== 'hello') return;
+    const connectionId = event.data.connectionId || 'legacy';
+    if (listPort && (listConnectionId === connectionId || dialer?.owned)) return;
+    listPort?.close(); clearInterval(listWatch); listConnectionId = connectionId;
+    const channel = new MessageChannel(), commandPort = channel.port1; listPort = commandPort; dialer ??= new window.SalesGodCampaignDialer();
     let busy = false;
-    listPort.onmessage = async ({ data }) => {
-      if (!data || typeof data.id !== 'string' || busy) return;
+    commandPort.onmessage = async ({ data }) => {
+      if (!data || typeof data.id !== 'string') return;
+      if (data.command === 'ping') {
+        commandPort.postMessage({ id: data.id, ...(isContacts() ? { result: { ready: true } } : { error: 'Keep SalesGodCRM on Contacts, then reopen the calling list from its extension.' }) }); return;
+      }
+      if (busy) { commandPort.postMessage({ id: data.id, error: 'CRM is processing another command. Wait for it to finish.' }); return; }
       busy = true;
       try {
         let result;
@@ -188,8 +195,8 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
         else if (data.command === 'note') result = await dialer.saveNote(data);
         else if (data.command === 'release') { await dialer.release(data.attempt); await request('disarm'); result = { released: true }; }
         else throw new Error('Unknown list command.');
-        listPort.postMessage({ id: data.id, result });
-      } catch (error) { listPort.postMessage({ id: data.id, error: error.message }); }
+        commandPort.postMessage({ id: data.id, result });
+      } catch (error) { commandPort.postMessage({ id: data.id, error: error.message }); }
       finally { busy = false; }
     };
     listPort.start(); listPopup.postMessage({ source: 'salesgod-campaign-v1', type: 'paired', token: listToken }, event.origin, [channel.port2]);

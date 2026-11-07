@@ -4,6 +4,12 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-11-07 — Verify CRM readiness before Start (1.0.11 / extension 0.4.11)
+
+- Repaired idle calling-page reload pairing by replacing an old port for a fresh per-page connection ID, while preserving the driver/attempt map and refusing replacement during an owned call. Duplicate and foreign pairing requests are ignored.
+- Added a read-only ping, idle health checks and a three-second Start preflight before the worker/backend campaign start. Broken links disable Start and show reconnection steps without claiming/marking a contact failed. Re-pairing alone never starts calls. The reported older failed attempts are not modified or retried.
+- Synthetic regressions cover refresh repair, duplicate/foreign messages, owned-call protection, successful readiness and a lost acknowledgement preventing worker start. No calls were placed.
+
 ### 2026-11-07 — Searchable timezone choices (1.0.10)
 
 - Replaced free-text timezone entry with a searchable list of browser-supported identifiers and common choices first. San Diego/Los Angeles share America/Los_Angeles. Filtering retains the current selection until the user selects a row, including no-result searches; copied lists preserve older saved timezone identifiers.

@@ -47,7 +47,7 @@ test('panel hands a CRM-accepted file to the local list and never contains an up
 });
 function importPanel({ missing = false, neverOpens = false } = {}) {
   const nodes = new Map(), listeners = [], messages = [], timers = [];
-  let opened = false, submitted = false, focused = 0, clicks = 0, time = 0;
+  let opened = false, submitted = false, focused = 0, clicks = 0, time = 0, closedPorts = 0, pairings = 0, adapters = 0, adapter;
   const node = () => ({ disabled: false, textContent: '', style: {}, before() {}, after() {}, prepend() {} });
   const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
   const root = { innerHTML: '', querySelector: get, getElementById: get };
@@ -58,18 +58,30 @@ function importPanel({ missing = false, neverOpens = false } = {}) {
   const document = { getElementById() { return null; }, documentElement: { append() {} }, contains: () => !submitted,
     querySelectorAll(selector) { return selector.includes('input[type="button"]') ? missing ? [] : [native] : opened && !submitted ? [dialog] : []; },
     createElement() { return { ...node(), set id(value) { nodes.set(value, this); }, attachShadow: () => root }; } };
-  const popup = { closed: false, postMessage() {} }, port = { postMessage(data) { messages.push(data); }, start() {} };
+  const popup = { closed: false, postMessage() { pairings++; } }; let port;
   const window = { innerWidth: 1200, innerHeight: 900, postMessage() {}, focus() { focused++; }, open: () => popup,
-    SalesGodCampaignDialer: class { async inspect() {} }, addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
+    SalesGodCampaignDialer: class { constructor() { adapters++; adapter = this; } async inspect() {} }, addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
   vm.runInNewContext(panelSource, { document, window, location: { origin: 'https://www.salesgodcrm.net', pathname: '/contacts' },
-    crypto: { randomUUID: () => 'pair-token' }, URLSearchParams, MessageChannel: class { port1 = port; port2 = {}; },
+    crypto: { randomUUID: () => 'pair-token' }, URLSearchParams, MessageChannel: class { constructor() { this.port1 = port = { postMessage(data) { messages.push(data); }, start() {}, close() { closedPorts++; } }; this.port2 = {}; } },
     getComputedStyle: () => ({ display: 'block', visibility: 'visible' }), Date: { now: () => time },
     setTimeout(fn, ms) { if (ms === 100) { time += ms; queueMicrotask(fn); } else timers.push(fn); }, setInterval() {}, clearInterval() {} });
   get('callingList').onclick();
-  for (const fn of listeners) fn({ origin: 'http://127.0.0.1:28431', source: popup, data: { source: 'salesgod-campaign-v1', token: 'pair-token', type: 'hello' } });
+  const hello = (connectionId, extra = {}) => { for (const fn of listeners) fn({ origin: 'http://127.0.0.1:28431', source: popup, data: { source: 'salesgod-campaign-v1', token: 'pair-token', type: 'hello', connectionId }, ...extra }); };
+  hello('page-one');
   return { messages, fileInput, submit, timers, counts: () => ({ focused, clicks }),
-    send: data => port.onmessage({ data }), accept() { submitted = true; } };
+    send: data => port.onmessage({ data }), accept() { submitted = true; }, hello, connectionCounts: () => ({ pairings, closedPorts, adapters }), owned() { adapter.owned = { attempt: 'synthetic' }; } };
 }
+test('CRM pairing replaces a reloaded idle page port, ignores duplicates/foreign windows and never replaces an owned call', async () => {
+  const env = importPanel();
+  await env.send({ id: 'health', command: 'ping' });
+  assert.equal(env.messages.find(m => m.id === 'health').result.ready, true);
+  env.hello('page-one'); env.hello('foreign', { source: {} });
+  assert.deepEqual(env.connectionCounts(), { pairings: 1, closedPorts: 0, adapters: 1 });
+  env.hello('page-two');
+  assert.deepEqual(env.connectionCounts(), { pairings: 2, closedPorts: 1, adapters: 1 });
+  env.owned(); env.hello('page-three');
+  assert.deepEqual(env.connectionCounts(), { pairings: 2, closedPorts: 1, adapters: 1 });
+});
 test('paired calling-list import opens the CRM control, captures the selected file and hands it off only after Import', async () => {
   const env = importPanel();
   await env.send({ id: 'open', command: 'import-contacts' });

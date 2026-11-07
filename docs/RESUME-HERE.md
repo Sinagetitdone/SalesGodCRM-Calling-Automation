@@ -1,5 +1,9 @@
 # Resume here — 2026-11-07
 
+## CRM readiness / stale-pairing fix — 1.0.11 / extension 0.4.11
+
+Incident logs show owner_started/claimed followed by CRM acknowledgement timeouts before dispatch. A refreshed calling page could not replace the CRM panel's retained port. A fresh connection ID now replaces idle stale pairing while retaining the adapter's attempt history; owned calls cannot be rebound. Read-only ping confirms Contacts readiness initially, every five idle seconds and within three seconds before Start. Failure clears the usable connection and leaves contacts unclaimed; initial pairing can resume when the same authorized opener returns. A refreshed/closed CRM opener requires reopening from its Contacts extension. Reload extension 0.4.11, refresh idle CRM, reopen calling lists and wait for connection verified. No actual calls made and no historical contact outcomes changed.
+
 ## Searchable timezone list — 1.0.10
 
 Under Call settings, Search timezones filters the visible six-row timezone selector. It uses browser-supported identifiers plus common options; San Diego matches America/Los_Angeles. Selecting a row sets the actual identifier submitted in the existing list settings. Filtering itself does not change the selected timezone. Existing copied aliases are retained. Verified live Chrome filtering/selection without saving or starting calls. Refresh/reopen local pages for the UI update; extension 0.4.10 is unchanged.

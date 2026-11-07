@@ -6,6 +6,8 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **1.0.11** / extension **0.4.11** verifies the CRM connection before enabling Start and before starting a list. Idle page refreshes replace stale ports; missing acknowledgements show a clear error before any contact is claimed. Reload extension, refresh idle CRM and reopen from Contacts after updating.
+
 - Package **1.0.10** adds a searchable timezone list to Call settings, with common cities first and San Diego mapped to America/Los_Angeles. Extension 0.4.10 is unchanged.
 
 - Package **1.0.9** starts local lists immediately after explicit Start, at any time. Existing saved hour settings are ignored; Start/End Hour controls are removed. Restart bridge/reopen pages after updating; extension 0.4.10 is unchanged.

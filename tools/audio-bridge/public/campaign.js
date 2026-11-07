@@ -25,7 +25,8 @@
   const readAgentSettings = () => ({ turnSeconds: Number($('turnSeconds').value) });
   document.title = practice ? 'AI Agents Test Call · SalesGod' : 'Real calling lists · SalesGod';
   let selected, control, pairTimer, worker, starting = false, crmImportReady = practice, crmImportFile = '';
-  let detailContact, detailRequest = 0, crmImportBusy = false;
+  let detailContact, detailRequest = 0, crmImportBusy = false, controlReady = false, connectionCheck;
+  let connectionId;
   const showsLog = contact => ['failed', 'pending', 'unknown', 'needs_review', 'preparing', 'dispatching', 'connected'].includes(contact.state);
   const needsReview = contact => ['needs_review', 'failed', 'unknown'].includes(contact.state);
   let profileLoaded = practice, profileBusy = false;
@@ -115,11 +116,28 @@
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  function driver(command, data = {}) {
+  function disconnectControl(message) {
+    controlReady = false; control?.close(); control = undefined; connectionId = crypto.randomUUID();
+    $('driverState').textContent = message;
+    for (const pendingCommand of pending.values()) { clearTimeout(pendingCommand.timer); pendingCommand.reject(new Error(message)); }
+    pending.clear(); render();
+  }
+  async function checkConnection() {
+    if (connectionCheck) return connectionCheck;
+    connectionCheck = (async () => {
+      try {
+        const result = await driver('ping', {}, 3000);
+        if (!result?.ready) throw new Error('Reload the updated extension and reopen the calling list from SalesGodCRM Contacts.');
+        controlReady = true; $('driverState').textContent = 'CRM connection verified. Ready for Start.'; render();
+      } catch (e) { disconnectControl('CRM connection lost. Keep SalesGodCRM Contacts open and reopen the calling list from the extension. ' + e.message); throw e; }
+    })();
+    try { await connectionCheck; } finally { connectionCheck = undefined; }
+  }
+  function driver(command, data = {}, timeoutMs = 15000) {
     if (practice) return Promise.reject(new Error('Rehearsal cannot control the CRM dialer.'));
     const run = () => new Promise((resolve, reject) => {
-      if (!control) return reject(new Error('Open this list using extension version 0.4.0 in the CRM.'));
-      const id = crypto.randomUUID(), timer = setTimeout(() => { pending.delete(id); reject(new Error('CRM did not acknowledge. Check the dialer before resuming.')); }, 15000);
+      if (!control) return reject(new Error('Open this list through Open calling list in SalesGodCRM Contacts.'));
+      const id = crypto.randomUUID(), timer = setTimeout(() => { pending.delete(id); reject(new Error('CRM did not acknowledge. Check the dialer before resuming.')); }, timeoutMs);
       pending.set(id, { resolve, reject, timer }); control.postMessage({ id, command, ...data });
     });
     const result = serial.then(run); serial = result.catch(() => {}); return result;
@@ -127,14 +145,15 @@
   if (!practice && window.opener && token && ['https://www.salesgodcrm.net', 'https://salesgodcrm.net'].includes(origin)) {
     window.addEventListener('message', event => {
       if (control || event.source !== window.opener || event.origin !== origin || event.data?.source !== 'salesgod-campaign-v1' || event.data.type !== 'paired' || event.data.token !== token || !event.ports[0]) return;
-      control = event.ports[0]; clearInterval(pairTimer);
+      control = event.ports[0]; controlReady = false;
       control.onmessage = ({ data }) => {
         const p = pending.get(data?.id); if (!p) return; clearTimeout(p.timer); pending.delete(data.id); data.error ? p.reject(new Error(data.error)) : p.resolve(data.result);
       };
-      control.start(); $('driverState').textContent = 'CRM controls paired. No calls start until you choose Start.'; render();
+      control.onmessageerror = () => disconnectControl('CRM connection interrupted. Reopen the calling list from SalesGodCRM Contacts.');
+      control.start(); $('driverState').textContent = 'Checking CRM connection…'; render(); void checkConnection().catch(error);
     });
-    const hello = () => window.opener.postMessage({ source: 'salesgod-campaign-v1', type: 'hello', token }, origin);
-    pairTimer = setInterval(hello, 1000); hello(); setTimeout(() => clearInterval(pairTimer), 30000);
+    const hello = () => { if (!control) { connectionId ??= crypto.randomUUID(); window.opener.postMessage({ source: 'salesgod-campaign-v1', type: 'hello', token, connectionId }, origin); } };
+    pairTimer = setInterval(hello, 1000); hello();
   }
   async function transcript(contact) {
     const campaign = selected, request = ++detailRequest;
@@ -177,7 +196,7 @@
     const running = starting || Boolean(worker?.running);
     guidanceUsage();
     if (practice && $('applyRehearsalGuidance')) $('applyRehearsalGuidance').disabled = running || !selected || !['draft', 'paused'].includes(selected.state) || selected.contacts.some(c => ['preparing', 'dispatching', 'connected'].includes(c.state));
-    $('startList').disabled = !selected || selected.settings.simulation !== practice || running || (practice && window.SalesGodCall.status().active) || !['draft', 'paused'].includes(selected.state) || (!practice && !control);
+    $('startList').disabled = !selected || selected.settings.simulation !== practice || running || (practice && window.SalesGodCall.status().active) || !['draft', 'paused'].includes(selected.state) || (!practice && !controlReady);
     $('pauseList').disabled = $('stopList').disabled = !running;
     $('importList').disabled = $('savedLists').disabled = running;
     $('exportList').disabled = !selected;
@@ -299,7 +318,11 @@
     if (practice) { window.SalesGodRehearsalBusy = true; window.dispatchEvent(new CustomEvent('salesgod-rehearsal-state')); }
     starting = true; render();
     $('listError').textContent = ''; document.title = 'Calling list running · SalesGod';
-    try { if (selected.settings.simulation && selected.settings.simulationMode === 'agents') await rehearsal.unlock(); const task = worker.run(selected.id); render(); await task; } catch (e) { error(e); }
+    try {
+      if (!practice) { $('listState').textContent = 'Checking CRM connection before starting…'; await checkConnection(); }
+      if (selected.settings.simulation && selected.settings.simulationMode === 'agents') await rehearsal.unlock();
+      const task = worker.run(selected.id); render(); await task;
+    } catch (e) { error(e); $('listState').textContent = 'List did not start: ' + e.message; }
     finally { starting = false; if (practice) { await rehearsal.close().catch(() => {}); window.SalesGodRehearsalBusy = false; window.dispatchEvent(new CustomEvent('salesgod-rehearsal-state')); } await refresh().catch(error); render(); }
   };
   $('pauseList').onclick = () => void worker.pause().catch(error);
@@ -313,7 +336,7 @@
     $('checkRehearsalSound').onclick = () => void rehearsal.soundCheck().catch(soundError);
     $('rehearsalVolume').oninput = () => rehearsal.setVolume(Number($('rehearsalVolume').value) / 100);
   }
-  window.addEventListener('pagehide', () => { rehearsal?.stop(); void rehearsal?.close(); recordings.forEach(r => URL.revokeObjectURL(r.url)); });
+  window.addEventListener('pagehide', () => { clearInterval(pairTimer); rehearsal?.stop(); void rehearsal?.close(); recordings.forEach(r => URL.revokeObjectURL(r.url)); });
   window.addEventListener('salesgod-call-state', render);
   if (practice && $('applyRehearsalGuidance')) $('applyRehearsalGuidance').onclick = async () => {
     try {
@@ -348,4 +371,5 @@
   }
   void refresh().catch(error);
   setInterval(() => { if (worker.running) void refresh().catch(error); }, 5000);
+  if (!practice) setInterval(() => { if (control && !worker.running && !starting) void checkConnection().catch(error); }, 5000);
 })();

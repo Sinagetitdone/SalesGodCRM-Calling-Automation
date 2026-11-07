@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-11-07 — Verify the paired CRM before starting (1.0.11 / extension 0.4.11)
+
+The operator reported Start doing nothing. Local events established pre-dispatch acknowledgement timeouts, and inspection found the CRM panel refused new pairing while retaining an old MessagePort. Page-specific pairing IDs now allow idle replacement without losing adapter attempt history or rebinding an owned call. Readiness ping/idle health monitoring and a three-second pre-Start check prevent backend start/claim when disconnected. This preserves explicit Start after any reconnection and does not redial or rewrite historical failures. Synthetic port and page regressions cover the new transitions; no phone call was placed.
+
 ## 2026-11-07 — Owner Start replaces calling-hour policy (1.0.9)
 
 The owner explicitly requested removal of local list calling-hour restrictions after a 06:15 Los Angeles Start waited for the saved 09:00 window. Removed both claim and dispatch time gates so existing lists process immediately after Start without migration or reimport. New lists omit hour fields; legacy schema fields remain optional for compatibility. Removed obsolete controls/worker waits and updated the repository requirement to reflect the explicit owner decision. Suppression, Start authorization, CRM identity, one active attempt and failure handling remain. Regression coverage reproduces the incident and preserves unauthorized/duplicate dispatch rejection. No live calls were placed.

@@ -161,6 +161,32 @@ test('calling-list uploads and saves a local CSV without CRM pairing and rejects
     assert.ok(requests.every(path => path.startsWith('/'))); assert.equal(store.list().length, 1);
   } finally { store.close(); }
 });
+test('Start verifies CRM acknowledgement before starting a worker and keeps contacts pending on a lost link', async () => {
+  const source = await readFile(new URL('public/campaign.js', import.meta.url), 'utf8');
+  const nodes = new Map(), listeners = [], timers = new Map(); let nextTimer = 0, acknowledge = true, starts = 0, closed = 0;
+  const node = () => ({ children: [], value: '', hidden: true, append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; } });
+  const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
+  const campaign = { id: 'list', name: 'Synthetic', state: 'draft', settings: { simulation: false }, contacts: [{ id: 'contact', state: 'pending' }], events: [] };
+  const opener = { postMessage() {} }, port = { start() {}, close() { closed++; }, postMessage(data) { if (acknowledge) queueMicrotask(() => this.onmessage({ data: { id: data.id, result: { ready: true } } })); } };
+  const window = { opener, SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class { async run() { starts++; } }, addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
+  vm.runInNewContext(source, { window, document: { body: { dataset: { workspace: 'live' } }, getElementById: get, createElement: node },
+    location: { hash: '#token=test&origin=https%3A%2F%2Fwww.salesgodcrm.net' }, URLSearchParams, Option: class {}, crypto: { randomUUID },
+    setTimeout(fn, ms) { const id = ++nextTimer; timers.set(id, { fn, ms }); return id; }, clearTimeout(id) { timers.delete(id); }, setInterval() {}, clearInterval() {},
+    fetch: async path => ({ ok: true, json: async () => path === '/calling-profile' ? { background: '', guidance: '' } : path.includes('?') ? { campaigns: [campaign] } : campaign }) });
+  await new Promise(resolve => setImmediate(resolve));
+  get('savedLists').value = campaign.id; await get('savedLists').onchange();
+  assert.equal(get('startList').disabled, true);
+  for (const fn of listeners) fn({ source: opener, origin: 'https://www.salesgodcrm.net', data: { source: 'salesgod-campaign-v1', type: 'paired', token: 'test' }, ports: [port] });
+  await new Promise(resolve => setImmediate(resolve)); assert.equal(get('startList').disabled, false);
+  await get('startList').onclick(); assert.equal(starts, 1);
+  acknowledge = false;
+  const blockedStart = get('startList').onclick(); await new Promise(resolve => setImmediate(resolve));
+  const deadline = [...timers.values()].find(t => t.ms === 3000); assert.ok(deadline); deadline.fn();
+  await blockedStart;
+  assert.equal(starts, 1); assert.equal(closed, 1); assert.equal(get('startList').disabled, true);
+  assert.match(get('driverState').textContent, /CRM connection lost/); assert.match(get('listState').textContent, /List did not start/);
+  assert.equal(campaign.contacts[0].state, 'pending');
+});
 test('text counters follow typing, whitespace and programmatic upload/restore without changing text', async () => {
   const source = await readFile(new URL('public/text-counts.js', import.meta.url), 'utf8');
   const output = () => ({ classList: { add() {} } });
