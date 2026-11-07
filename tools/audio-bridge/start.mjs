@@ -1,4 +1,5 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import { startQuickTunnel } from './twilio-tunnel.mjs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
@@ -34,12 +35,27 @@ export function proxyEnvironment(env, settings) {
   return result;
 }
 
-export function startBridge() {
+export async function startBridge() {
   const env = proxyEnvironment(process.env, process.platform === 'win32' ? windowsProxy() : null);
   const proxied = Boolean(env.HTTPS_PROXY || env.https_proxy || env.HTTP_PROXY || env.http_proxy);
   console.log(proxied ? 'Bridge API requests use the configured HTTP/HTTPS proxy; localhost stays local.' : 'Bridge API requests use the direct connection.');
-  const result = spawnSync(process.execPath, ['--use-env-proxy', fileURLToPath(new URL('server.mjs', import.meta.url))], { env, stdio: 'inherit' });
+  // A helper process starts with --use-env-proxy before doing any network I/O.
+  const result = spawnSync(process.execPath, ['--use-env-proxy', fileURLToPath(new URL('start.mjs', import.meta.url)), '--configured'], { env, stdio: 'inherit' });
   if (result.error) throw new Error('The local bridge could not start. Check Node.js 24 and the setup guide.');
   process.exitCode = result.status ?? 1;
 }
-if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) startBridge();
+async function configuredStart() {
+  const env = { ...process.env }; let tunnel;
+  if (!env.TWILIO_PUBLIC_URL && env.TWILIO_TUNNEL !== 'manual' && env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.OPENAI_API_KEY) {
+    try { tunnel = await startQuickTunnel({ env }); env.TWILIO_PUBLIC_URL = tunnel.url; console.log('Temporary Twilio audio connection prepared. No calls placed.'); }
+    catch (e) { console.log(e.message); console.log('The local desk will open, but Start remains blocked until its public connection is configured.'); }
+  }
+  const child = spawn(process.execPath, ['--use-env-proxy', fileURLToPath(new URL('server.mjs', import.meta.url))], { env, stdio: ['inherit', 'inherit', 'inherit', 'ipc'], windowsHide: true });
+  const stop = () => { if (child.connected) child.send({ type: 'shutdown' }); else child.kill('SIGTERM'); };
+  process.once('SIGINT', stop); process.once('SIGTERM', stop);
+  tunnel?.child.once('exit', () => { if (child.exitCode === null) { console.log('Twilio public connection ended (' + tunnel.failureCategory() + '). Calling is blocked; the local desk stays open. Review Setup.'); if (child.connected) child.send({ type: 'twilio-tunnel-lost' }); } });
+  await new Promise(resolveExit => { child.once('exit', code => { tunnel?.child.kill(); process.exitCode = code ?? 1; resolveExit(); }); child.once('error', () => { tunnel?.child.kill(); process.exitCode = 1; resolveExit(); }); });
+}
+if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
+  (process.argv.includes('--configured') ? configuredStart() : startBridge()).catch(error => { console.error(error.message); process.exitCode = 1; });
+}

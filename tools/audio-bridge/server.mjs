@@ -8,13 +8,19 @@ import { rehearsalRoutes } from './rehearsal-routes.mjs';
 import { callVoices, defaultCallVoice, speakingStyle, apiVoice } from './voice-settings.mjs';
 import { textImportRoutes } from './text-import.mjs';
 import { audioTranscriptRoutes } from './audio-transcript-routes.mjs';
+import { TwilioService, twilioRoutes } from './twilio-service.mjs';
 
-export function createBridge({ env = process.env, fetchImpl = fetch, journal: suppliedJournal, campaignStore } = {}) {
+export function createBridge({ env = process.env, fetchImpl = fetch, journal: suppliedJournal, campaignStore, twilioIngress = false } = {}) {
   const app = Fastify({ logger: false, bodyLimit: 512 * 1024, ajv: { customOptions: { removeAdditional: false } } });
   textImportRoutes(app);
   const host = '127.0.0.1:28431';
   const origin = `http://${host}`;
   const campaigns = campaignRoutes(app, { env, store: campaignStore, journal: () => getJournal() });
+  const twilio = new TwilioService({ env, campaigns, fetchImpl });
+  app.decorate('twilioService', twilio);
+  twilioRoutes(app, twilio);
+  if (twilioIngress) app.addHook('onReady', () => twilio.listen());
+  app.addHook('preClose', () => twilio.close());
   rehearsalRoutes(app, { env, fetchImpl, campaigns });
   audioTranscriptRoutes(app, { env, fetchImpl, campaigns });
   let connecting = false;
@@ -53,6 +59,8 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
     ['/history', 'history.html', 'text/html; charset=utf-8'],
     ['/history.js', 'history.js', 'text/javascript; charset=utf-8'],
     ['/campaign-worker.js', 'campaign-worker.js', 'text/javascript; charset=utf-8'],
+    ['/twilio-worker.js', 'twilio-worker.js', 'text/javascript; charset=utf-8'],
+    ['/twilio-setup.js', 'twilio-setup.js', 'text/javascript; charset=utf-8'],
     ['/rehearsal.js', 'rehearsal.js', 'text/javascript; charset=utf-8'],
     ['/rehearsal-mp3.js', 'rehearsal-mp3.js', 'text/javascript; charset=utf-8'],
     ['/vendor/lame.min.js', 'vendor/lame.min.js', 'text/javascript; charset=utf-8'],
@@ -197,7 +205,13 @@ export function createBridge({ env = process.env, fetchImpl = fetch, journal: su
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const app = createBridge();
+  const app = createBridge({ twilioIngress: true });
+  process.on('message', message => {
+    if (message?.type === 'twilio-tunnel-lost') void app.twilioService.tunnelLost();
+    if (message?.type === 'shutdown') void app.close().then(() => process.exit(0));
+  });
   await app.listen({ host: '127.0.0.1', port: 28431 });
-  console.log('Local audio bridge: http://127.0.0.1:28431 — calling lists require explicit Start.');
+  console.log('Twilio calling desk: http://127.0.0.1:28431 — calling lists require explicit Start.');
+  console.log('Twilio callbacks only: http://127.0.0.1:28432 — point your public HTTPS tunnel here, never at the calling desk.');
+  for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { void app.close().then(() => process.exit(0)); });
 }

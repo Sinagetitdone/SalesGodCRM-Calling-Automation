@@ -1,298 +1,168 @@
-# SalesGod Team: step-by-step setup and calling guide
+# Team calling desk 2.0.0 — Twilio setup
 
-Use this guide in order. Steps 1–5 are for your first installation. For everyday use, go to Step 6. Keep this guide open while you work.
+This version replaces SalesGodCRM dialing with Twilio. No SalesGodCRM login, extension, virtual microphone, VB-CABLE or Docker is required. Your list, context, call results, transcripts and downloaded recordings remain on your computer.
 
-The local bridge runs the calling-list page on your computer. Uploading a CSV and creating a draft work independently. For calling, the Chrome extension connects the page to your logged-in SalesGodCRM dialer. You do not need Docker, VB-CABLE, or a separate Node.js installation.
+The launcher names **SalesGod Bridge.exe** and **SalesGod Bridge.app** are retained so existing shortcuts keep working. They now open the Twilio calling desk.
 
-**Double-click startup:** on Windows, open **SalesGod Bridge.exe**; on Mac, open **SalesGod Bridge.app**. These start the audio bridge, not the tests. The progress window opens automatically; you never need to open CMD yourself or type `npm run audio:bridge`. Keep the entire extracted folder together. Create a Windows shortcut or Finder alias if you want a desktop icon; do not move the executable/app alone. These internal launchers are unsigned/not notarized; if your organization blocks them, have IT review them. Do not disable security protections.
+## Step 1 — Extract the whole package
 
-Package **1.0.12** / extension **0.4.12** calls uploaded numbers directly through the global SalesGodCRM keypad. No CRM contact lookup, creation, form verification or contact-note update is performed. Any logged-in CRM page with the phone dialer can stay open, including Dashboard. Local names, call outcomes, transcripts, recordings and business-disposition events remain in Calling lists / Previous Conversations. Reload the updated extension, refresh idle CRM, and reopen the calling list. Start still requires a verified connection and never runs automatically.
+1. Windows: right-click the ZIP, choose **Extract All**, and extract it to a permanent private folder such as Documents.
+2. Mac: double-click the ZIP, then move the extracted **SalesGod-Team** folder to Documents.
+3. Keep the entire folder together. Do not run files inside the ZIP or move the launcher by itself.
+4. Open **SETUP.html** for the formatted guide.
+5. Updating an existing installation: finish/stop any current list and close the old bridge first. Back up your private **.env** and **data** folder. Replace program files with the new package while retaining those private files. Do not share them with colleagues.
 
-**Updating from an earlier package:** finish or stop the current list and close the bridge. Extract this ZIP and copy its contents into your existing installation, replacing program files; keep your existing `.env` and data folders. In `chrome://extensions`, reload SalesGod Local Audio Bridge and confirm **0.4.12**. If you extracted into a different folder, use **Load unpacked** to select that folder's `tools/audio-extension` instead of reloading the old copy. Refresh SalesGodCRM while idle, restart the bridge, and reopen the calling-list page from the extension. Select your existing paused list and press Start once. No CRM contact import is required.
+## Step 2 — Prepare Twilio and OpenAI
 
-## New settings: screening, file uploads and accurate call records
+1. Have an active Twilio account and a voice-enabled Twilio telephone number.
+2. In Twilio account home, find **Account SID** (starts with **AC**) and **Auth Token**. An API key SID starting with **SK** is a different field; do not use it as Account SID.
+3. Have a valid OpenAI API key with API billing and voice-model access. A ChatGPT subscription alone does not provide API credits.
+4. Trial Twilio accounts restrict destinations, usually to verified numbers, and may play a trial announcement. Upgrade decisions and billing are handled by your account owner; this app does not upgrade or buy numbers.
 
-**Voice choices:** Marin Calm, Coral Warm, Sage Measured, Shimmer Bright and Marin Confident. These use feminine-sounding delivery directions; perceived gender can vary. The two Marin options use one underlying voice with different styles. Choose independently for the office and customer rehearsal agents. The real-call selection also controls voicemail and the screening introduction. Earlier male selections use Marin when a new call is prepared; no active call's voice changes midway through a session.
+## Step 3A — Save settings on Windows
 
-**Make sure guidance is applied:** typing or uploading into the editor alone does not change a saved list. For real calls, use **Save for future calls** for new imports and **Apply to selected list** for an existing idle list. The new guide-status message says whether the editor matches the selected list. In AI Agents Test Call, use **Guide the rehearsal office AI** (optional; 6,000–20,000 characters when provided), then import or **Apply guide to selected rehearsal**. This long guide overrides conflicting short-brief details for the office AI; the fictional customer keeps its own persona. The separate **Send next-reply instruction** control is for an already-live supervised conversation, not the two-agent rehearsal.
-
-1. Start **SalesGod Bridge.exe** on Windows or **SalesGod Bridge.app** on Mac. Leave its window open. On any logged-in SalesGodCRM page with its dialer, choose **Open calling list** in the extension.
-2. In the saved calling context, fill **Call-screening introduction** with 10–300 characters, or leave it blank. This is a short answer for a screening assistant that asks for your name and reason for calling. Example: “Hi, this is Alex, an AI assistant calling on behalf of Example Office about an appointment.” Use your actual approved identity and reason. Keep the full voicemail in its separate box.
-3. Click **Save for future calls**. To update a list you already imported, select an idle real list and click **Apply to selected list**. Saving defaults does not change existing lists or an active call.
-4. To load text from a document, use the file picker beside its text box. Supported files: TXT, Markdown (.md), Word (.docx), and PDF; up to 5 MB and 100 PDF pages. Text is extracted locally. Scanned PDFs need OCR first. The existing box's character limit still applies. Long files are rejected, never silently cut off. Review the loaded text, then use the normal Save, Import or Send button. Upload alone does not save settings, send instructions or start calls.
-5. On a real call, the system listens for a screening request, gives the short introduction once, then waits for a person or a later voicemail greeting. With no introduction configured, a detected screening request pauses for review. Normal voicemail still waits for its recording window. Ambiguous speech is not a guaranteed human answer.
-6. When the call ends, keep the bridge and calling page open. The system first saves the complete MP3, then transcribes separate recordings of the AI and customer. This uses the local OpenAI key and adds transcription API usage after the call, without delaying live replies. Wait for the contact result before closing. The next call waits for this processing to finish.
-7. Open **Previous Conversations**, select the list and contact. New successful transcriptions say **Transcript from recorded audio** and include elapsed-time markers and speaker labels. They use captured audio rather than the AI's planned reply. Speech recognition can still make mistakes or normalize wording such as “four P M” to “4 p.m.”; listen to the MP3 for the exact sound. Older records and failed transcriptions are explicitly labeled **Live draft**. They are not automatically rewritten. JSON and ZIP exports retain the draft separately for review.
-8. If something fails, open its full details. The log includes the reported cause, stage, timeout duration, HTTP status or error code when available. A recording/transcription error preserves available audio and text and pauses for review. An older record without a saved cause says so instead of inventing one.
-
-Saved background, conversation guidance and five voice choices remain available. This release adds live rehearsal sound controls, whole-conversation MP3s, Previous Conversations with downloads/deletion, and a movable extension panel.
-
-Choose **Open calling list** in the extension. The **Import contacts for calling** button is now inside that page.
-
-## Listening, reviewing and downloading conversations
-
-**Real calls:** use **Open calling list** and start your real list as usual. Recording starts automatically before dialing and includes both voices, voicemail and greetings. Watch the recording status at the bottom of the page. Wait for the finished-contact result, including recorded-audio transcription. Then open **Previous Conversations**, choose the list and contact, press Play to listen, or **Download conversation MP3** to save the whole call. For a single saved call, import a one-contact real list; manual diagnostic sessions are not added to history.
-
-Keep the calling window and bridge open until saving completes. Closing Chrome, restarting the bridge or a computer crash before saving can lose the recording. Interrupted calls may have a partial MP3. If saving fails, the list pauses; if encoding completed, use **Download unsaved call MP3 before closing this window** on the calling page. Older unrecorded calls cannot be recovered. No new extension permissions or API key are required.
-
-1. To move the extension, drag any background or text area of the extension panel to the part of the page you prefer. Its position is remembered on that site. You can also focus the panel and use arrow keys; Home returns it to the default corner. There is no separate drag button.
-2. For a speaking simulation, open **AI Agents Test Call**, choose **Live AI rehearsal**, import your fictional list and click **Start rehearsal**. The offline workflow check does not speak. Both agents should play live through Chrome's output device.
-3. Before starting, click **Test speakers (short tone)**. If silent, unmute the tab, check your computer's output device/volume, and click **Enable / resume live sound**. **Live listening volume** changes what you hear without lowering the saved recording.
-4. When a contact finishes, use **Download whole conversation MP3 (both voices)**. One MP3 contains the entire exchange for that contact; interrupted runs are labeled partial. No individual reply downloads are needed.
-5. Click **Previous Conversations** in the extension, or open `http://127.0.0.1:28431/history` while the bridge runs. Select a saved list and then a contact to review its transcript and recorded events. Needs review, Failed and Unknown conversations show the whole saved transcript (including partial replies), call timestamps, failure/review details and all saved events together. In a calling list, choose View full details. Pending conversations still show their event log. Older attempts may lack a transcript or a detailed failure message; the page says when information is unavailable.
-6. Use **Download transcript and logs** for that contact's JSON file, or its MP3 link for saved real-call or rehearsal audio. **Download selected list (ZIP)** includes that list's records and recordings; **Download all history (ZIP)** includes everything saved in list history. Extract the ZIP to read JSON and play MP3s. New real calling-list calls save one MP3 containing customer audio, AI replies and voicemail.
-7. Records remain on this computer until you delete them. To delete one, choose **Delete this conversation**, review the warning, then **Permanently delete**. Active lists and conversations cannot be deleted. Downloaded copies remain outside the app. Opt-out suppression remains in force.
-8. New rehearsal MP3s are saved automatically. If saving fails, download the visible MP3 before closing or refreshing. Earlier browser-only recordings and data already cleared by older versions cannot be recovered. Back up the installation's private `data` folder if needed; do not include it or `.env` in a shared installation ZIP.
-
-## Step 1 — Prepare your computer and extract the ZIP
-
-1. Have Google Chrome installed, your own SalesGodCRM login ready, and a company-approved OpenAI API key available. A ChatGPT login alone does not supply API access.
-2. If your organization uses a VPN or proxy, connect it now. Hiddify is not required. Use your organization's approved connection.
-3. Download the original SalesGod Team ZIP supplied by your colleague.
-4. On Windows, right-click the ZIP, choose **Extract All**, choose a permanent local folder such as Documents, and click **Extract**. On Mac, double-click the ZIP and move the extracted folder to Documents.
-5. Open the extracted **SalesGod-Team** folder. You should see **SalesGod Bridge.exe**, **SalesGod Bridge.app**, **SETUP.html**, fallback Start scripts, and a **tools** folder. Run the files here, outside the ZIP.
-6. Double-click **SETUP.html** to open this guide in your browser. Keep all extracted files together. Use a private local folder rather than a shared or synced team folder: your key and conversation logs will be stored here.
-
-## Step 2A — Save your API key on Windows
-
-1. In the extracted folder, double-click **Configure OpenAI Windows.cmd**.
-2. A command window may appear. If it says **Preparing a private Node.js 24 runtime from nodejs.org**, wait. The launcher downloads and checks the required software automatically. You do not need to type any commands into this window.
-3. Wait for Notepad to open the local `.env` file. A message may say **Opening your LOCAL .env file**. This is expected.
-4. Find the line `OPENAI_API_KEY=`. Paste your API key immediately after the equals sign, on the same line. Do not add quotation marks or spaces. Do not change the model line.
-5. Press **Ctrl+S** to save, then close Notepad. The configuration command window may close automatically; that is normal. Configuring the key does not start the bridge or validate API access.
-6. Continue to Step 3A.
-
-Never paste the API key into a command prompt, Chrome extension, chat, GitHub, or a screenshot. Use only your local `.env` file.
-
-## Step 2B — Save your API key on Mac
-
-1. In the extracted folder, double-click **Configure OpenAI Mac.command**.
-2. Terminal may open and display **Preparing a private Node.js 24 runtime from nodejs.org**. Wait for automatic setup; no separate Node.js installation is needed.
-3. TextEdit opens the local `.env` file. Find `OPENAI_API_KEY=` and paste the key immediately after the equals sign on the same line, without quotation marks or spaces. Leave the model line unchanged.
-4. Press **Command+S** and close the TextEdit document. The Terminal command can then finish. Configuring the key does not start the bridge.
-5. If double-clicking the file does not work, use the Mac manual commands in Step 8. If macOS or your organization blocks the software, ask IT to review it. Do not disable security protections.
-6. Continue to Step 3B.
-
-## Step 3A — Start the bridge on Windows
-
-1. Double-click **SalesGod Bridge.exe** in the extracted folder. **Start Windows.cmd** remains an alternative double-click launcher.
-2. Leave the command window open. You may see automatic Node setup, **Installing required libraries from npm**, download progress, or a list of installed packages. First launch needs internet access and can take longer. Wait; no commands or API key need to be typed here.
-3. Look for **Bridge API requests use the configured HTTP/HTTPS proxy; localhost stays local.** or **Bridge API requests use the direct connection.** Either can be correct for your network.
-4. Wait for the ready message shown below. The extra words after the address are normal.
+1. Double-click **Configure OpenAI Windows.cmd**. Despite its older name, it opens the settings for both services.
+2. If the launcher says it is preparing Node.js 24, wait. It downloads a private verified runtime automatically; no separate Node installation or CMD commands are required.
+3. In Notepad, enter your real values after the equals signs in the **.env** file. Do not edit **.env.example**.
+4. Save with **Ctrl+S**, then close Notepad. Keep the filename exactly **.env**, not **.env.txt**.
 
 ```text
-Local audio bridge: http://127.0.0.1:28431 — calling lists require explicit Start.
+OPENAI_API_KEY=your real OpenAI key
+OPENAI_REALTIME_MODEL=gpt-realtime-2.1
+TWILIO_ACCOUNT_SID=your AC Account SID
+TWILIO_AUTH_TOKEN=your account Auth Token
+TWILIO_FROM_NUMBER=your voice-enabled Twilio number with country code
+TWILIO_PUBLIC_URL=
+TWILIO_TUNNEL=quick
 ```
 
-5. Keep this window open for the entire calling session. A window waiting at this message is working; it is not frozen. You can minimize it.
-6. Continue to Step 4. Starting the bridge never places a call.
+## Step 3B — Save settings on Mac
 
-## Step 3B — Start the bridge on Mac
+1. Double-click **Configure OpenAI Mac.command**.
+2. Wait for the private Node.js runtime setup if this is the first launch.
+3. The local **.env** opens in a plain-text editor. Enter the same settings shown above.
+4. Save with **Command+S**, then close the editor. Keep the exact filename **.env**.
 
-1. Double-click **SalesGod Bridge.app** in the extracted folder. It opens Terminal and starts **Start Mac.command** automatically. You can also double-click **Start Mac.command** directly.
-2. Leave Terminal open while software downloads or libraries install. You may see **Preparing a private Node.js 24 runtime from nodejs.org** or **Installing required libraries from npm**. Wait for setup to finish.
-3. Wait until Terminal shows **Local audio bridge: http://127.0.0.1:28431**. It may also show the direct/proxy connection message described in Step 3A.
-4. Keep Terminal open for the entire calling session. You can minimize it. Starting the bridge never places a call.
-5. Continue to Step 4.
+Never put keys in GitHub, AGENTS.md, this guide, a browser extension or a chat message. Give each colleague their own approved local credentials. The shared ZIP contains blank settings only.
 
-The launchers do not require an administrator password. Mac launcher syntax has been checked, but actual Mac startup and telephone audio still need testing on a Mac.
+## Step 4 — Start the calling desk
 
-## Step 4 — Install the Chrome extension
+1. Windows: double-click **SalesGod Bridge.exe**. Fallback: **Start Windows.cmd**.
+2. Mac: double-click **SalesGod Bridge.app**. Fallback: **Start Mac.command**.
+3. On first launch, wait while Node.js, required libraries and the private Cloudflare connection tool are prepared. Internet access is needed. Downloads are from official sources and checked where applicable.
+4. With **TWILIO_TUNNEL=quick** and no public URL, startup attempts a temporary HTTPS connection to the callback-only service. No Cloudflare account or router changes are required.
+5. Open **http://127.0.0.1:28431/** in your browser.
+6. Keep the progress/terminal window running. Closing it stops the backend. Do not stop or update it during a call.
+7. If your organization blocks an unsigned internal launcher, ask IT to review it. Do not disable security protections.
 
-1. Open the Chrome profile you use for SalesGodCRM. A different Chrome profile has separate extensions and logins.
-2. Type `chrome://extensions` in Chrome's address bar and press Enter.
-3. Turn on **Developer mode** in the top-right corner.
-4. Click **Load unpacked**.
-5. Browse into your extracted **SalesGod-Team** folder, then **tools**, then **audio-extension**. Select this folder, which contains `manifest.json`. Do not select the ZIP or the whole SalesGod-Team folder.
-6. Confirm Chrome shows **SalesGod Local Audio Bridge 0.4.8** and that it is enabled. Follow your company's Chrome policy; ask IT if installation is blocked.
-7. Open SalesGodCRM and log into your own account. Confirm no call is active, then refresh the dashboard.
-8. Look for the **SalesGod audio bridge** panel. Continue to Step 5.
+If you prefer manual startup in an existing repository, open PowerShell on Windows or Terminal on Mac in the project folder and run:
 
-## Step 5 — Check setup without calling anyone
+```text
+npm run audio:bridge
+```
 
-1. Confirm the bridge command window is still open and shows the ready message.
-2. Open `http://127.0.0.1:28431/voice-test` in Chrome.
-3. Click **Test AI voice without a microphone**. This uses a short OpenAI session and may incur API usage. It does not open your physical microphone or place a phone call.
-4. Wait for **AI audio test passed · disconnected**. If the test fails, go to Step 10. Do not start a live list until the voice check works.
-5. Return to the idle CRM. Enable local routing, then click **AI Agents Test Call** in the extension panel. Scroll to **Rehearsal setup**. You can also open `http://127.0.0.1:28431/supervised-call` directly for no-phone rehearsal; manual call controls require opening from the extension.
-6. Choose **Live AI rehearsal** for two speaking agents (uses API credits), or **Offline workflow check** for free canned replies.
-7. Click **Use simulated contacts**. Choose **Office AI voice** and **Simulated customer voice** from Marin Calm, Coral Warm, Sage Measured, Shimmer Bright and Marin Confident. The two Marin choices share a base voice; choose different underlying voices to distinguish speakers. Choose the customer personality, conversation length and timeout, then review the approved brief and optional long rehearsal guide. Click **Import and preview** to save these choices with the rehearsal. Confirm it says **LIVE AI REHEARSAL — no calls** or **OFFLINE SIMULATION**. Copy an old rehearsal to the editor and reimport to change its voices; use **Apply guide to selected rehearsal** to change just its guide while idle.
-8. Click **Start rehearsal**. Watch the live text and listen through your speakers/headset. No microphone or CRM connection is used by this practice workflow. Manual supervised AI preparation is disabled while a rehearsal runs. **Open calling list** is a separate page exclusively for real calling campaigns.
-9. For an additional local audio check, use **Enable local routing** and **Test local audio** in the idle CRM extension panel. **Test WebRTC** checks the local connection too. These tests use synthetic audio. Choose **Disable** afterward if you are finished testing.
+For the extracted team package, the equivalent command is:
 
-### Replay and save a Live AI rehearsal
+```text
+npm start
+```
 
-The **Reply timeout in seconds** field defaults to 20 and accepts 10–120. It limits one complete spoken reply, including playback; lowering it does not make the model think faster. The entire rehearsal still has a five-minute limit. Choose the setting before **Import and preview**. To revise an existing list, choose **Copy selected list to editor**, change the value, then import a new list.
+These commands require Node.js 24 and installed libraries. Double-click startup handles those prerequisites automatically.
 
-For **real calls**, open **Call settings** and use **Live-call pause before replying**. The default is 250 milliseconds (0.25 seconds), adjustable from 200 to 1000. This controls how much silence ends the customer's turn. Lower values can interrupt a hesitation; raise it if needed. Live AI answers are concise and spoken at 1.1× speed. Voicemail greeting/beep timing is separate and unchanged. Refresh idle controls after updating; these settings apply on the next session, not to a conversation already running.
+## Step 5 — Check the connection without calling anyone
 
-1. Wait for **Rehearsal completed** and **Finished processing every contact**, or use **Stop rehearsal** to stop the rehearsal immediately. **Pause after current rehearsal** lets the current fictional conversation finish.
-2. Under **Live AI rehearsal**, listen live or choose **Download whole conversation MP3 (both voices)** when the contact finishes. The last 10 recordings appear on this page; saved recordings remain accessible through **Previous Conversations** after refresh or close.
-3. Choose **View transcript** beside a contact for the saved dialogue. Use **Export rehearsal transcripts and event log** for the whole rehearsal list, or **Download visible transcript** for the currently displayed conversation, including partial text.
-4. Completed text replies, logs and new MP3s stay in the local database until you delete them. Rehearsal MP3 audio is generated by AI and is not a recording of a real phone call. This feature tests dialogue; it does not test telephone routing, voicemail detection or interruptions. It ends after the chosen reply count or five minutes. On connection failure it pauses with partial results; import a fresh draft to retry a failed fictional contact.
+1. On Setup, click **Check Twilio connection — no calls**.
+2. Wait for the result. This checks the account, owned calling number and public callback connection.
+3. It must report a successful connection before starting a real list.
+4. For a silent OpenAI voice authentication/configuration check in a terminal opened in this folder, run **npm run twilio:check**. This never dials a number or opens your physical microphone.
+5. On **AI rehearsal**, you can run a simulated conversation. This tests AI dialogue, not telephone delivery, answer detection or voicemail timing.
 
-## Step 6 — Start your normal workday
+A passing setup or synthetic test does not prove that a real recipient can hear the AI. Complete one explicitly authorized test call before using a customer list.
 
-1. Connect your approved VPN or proxy if your network requires one.
-2. Open the extracted SalesGod-Team folder and double-click **SalesGod Bridge.exe** (Windows) or **SalesGod Bridge.app** (Mac). If its bridge window is already running, use that window instead of opening a second copy.
-3. Wait for **Local audio bridge: http://127.0.0.1:28431**. Leave the command window open.
-4. Open your SalesGodCRM Chrome profile and log in. Check that no call is active. Any page with the global phone dialer works, including Dashboard. Refresh this idle page if the extension panel is missing.
-5. Keep the logged-in CRM tab open and click **Open calling list** in the extension. Upload the local CSV in Step 7; no SalesGodCRM contact import is needed.
-6. Continue to Step 7. If you changed the key, VPN, or proxy settings, restart the bridge while no call or list is active and repeat the no-call voice test first.
+## Step 6 — Set the background, guide and voicemail
 
-## Step 7 — Import your list and start calling
+1. Open **Calling lists**.
+2. Enter the approved office/person, background and conversation guide. The AI identifies itself as an AI assistant.
+3. Choose the voice, response pause and optional short introduction for automatic call screening.
+4. Click **Save for future calls** to use that context for new imports.
+5. To change an existing idle list, select it and use **Apply to selected list**. Typing alone does not change the saved list.
+6. Review the **Voicemail message**. The system prepares these exact words before dialing and waits for the voicemail greeting to end.
+7. Choose the timezone for dates and appointments. Los Angeles and San Diego use **America/Los_Angeles**.
+8. Review the calling number: it must exactly match **TWILIO_FROM_NUMBER** in .env.
 
-### Save your background, guide and voice once
+## Step 7 — Upload your list and preview it
 
-1. At the top of **Open calling list**, find **Saved calling context**.
-2. Choose **Voice for real calls and voicemail**: Marin Calm, Coral Warm, Sage Measured, Shimmer Bright or Marin Confident. Marin Calm is the default. These request feminine-sounding delivery; the two Marin options share a base voice with different styles. Listen in rehearsal before deciding. The selection also controls the screening introduction and is fixed when a session starts.
-3. In **Background: who the AI represents**, enter your company, represented person's name, business description and approved contact details. This field is optional and accepts up to **20,000 characters**.
-4. In **Guide the live conversation**, enter your detailed objectives, approved facts, questions, objections and closing instructions. This field requires **6,000–20,000 characters**, excluding leading/trailing spaces. The counter shows your current length. Shorter instructions cannot be saved as this guide.
-5. Click **Save for future calls** and wait for the saved confirmation. This stores the background, guide and voice on this computer, surviving bridge restarts. It does not share settings with a colleague or start calls. Context is sent to OpenAI when a call is prepared.
-6. On future visits, saved context loads automatically. **Load saved context** replaces the editor with the saved defaults. New imports copy the current editor values into the list. Defaults do not silently change lists already imported.
-7. To update an existing draft or paused list, select it under **Saved lists**, then click **Apply to selected list**. This applies the editor's context and voice to its remaining calls only while no attempt is active. To inspect a list's original context, use **Copy selected list to editor**. Saving defaults and applying to a list are separate actions.
-
-The **Guide the live conversation** area in **AI Agents Test Call** also requires **6,000–20,000 characters**. Its **Send next-reply instruction** button is available during a live human conversation and sends a one-off instruction, not the reusable defaults. Its **Supervised call voice** selector applies to the next prepared manual call and voicemail. The rehearsal roles below have their own voice selectors.
-
-### Import and call
-
-1. Prepare a CSV file with these exact column names in the first row:
+1. Click **Import contacts for calling** and choose a CSV on this computer.
+2. Use the columns **first_name,last_name,phone**. Include the country code for international numbers.
+3. Review the small file-content preview under the upload button.
+4. Enter the list name and review its settings, additional instructions and voicemail.
+5. Click **Create draft from uploaded file**. Review the resulting names and numbers.
+6. Duplicate normalized numbers are skipped. Invalid rows show an error. Creating a draft never starts calls.
+7. Existing CRM-era lists keep their original caller number. Use **Copy selected list to editor**, change the caller to your Twilio number and create a new draft before calling. Earlier completed/uncertain contacts are never automatically retried.
 
 ```csv
 first_name,last_name,phone
+Alex,Example,+12025550101
+Sam,Example,+12025550102
 ```
 
-2. Put one person's first name, last name, and phone number on each following row. A blank first name is rejected; do not substitute the phone number for a name. Include the country code, such as `+1` for US numbers. Ask your team lead if unsure about a number. If using Excel, save as CSV first; an `.xlsx` workbook cannot be imported directly. Check that the country codes survived the export.
-3. Open **Calling lists** at http://127.0.0.1:28431/campaigns. Click **Import contacts for calling** and choose the CSV directly from your Windows or Mac file picker. It loads locally; the SalesGodCRM import screen does not open. You can do this before connecting CRM.
-4. Wait for **[filename] loaded from your computer**. Review the **List name** and call settings, then click **Create draft from uploaded file** to validate and preview the names and numbers. The CSV needs first_name,last_name,phone columns (up to 1,000 rows / 400 KB). Creating the draft never calls anyone.
-5. Expand **Call settings**. Enter **Your CRM caller number**, including country code. This is the outgoing number assigned to your CRM account, not a customer's number.
-6. Under **Timezone for dates and appointments**, type a city or identifier in **Search timezones**, then select a matching row from the list. Search **San Diego** for **Los Angeles / San Diego — America/Los_Angeles**. The status underneath confirms your selected timezone. Clear the search to browse the full list. There are no Start/End Hour settings: pressing Start processes the list immediately at any time.
-7. Review **Additional instructions for this list** for any short list-specific details. Your saved Background and Guide define who the AI represents; no code change is needed for a different office identity. Older lists use their original brief until you explicitly apply new context.
-8. Review the **Voicemail message** and voicemail controls. The default voicemail refers to **Sina**. Confirm that this wording is appropriate for your list.
-9. **Open calling list is for real calls only.** For no-phone practice, return to **AI Agents Test Call** instead.
-10. Review the uploaded names, numbers and settings. Keep a logged-in SalesGodCRM page with the global dialer open, choose **Open calling list** in the extension, select the saved draft and wait for **CRM connection verified. Ready for Start.** Saved CRM contacts and the Contacts page are not required.
-11. If you need to change the caller, brief or voicemail after import, change the form and create a new draft. Changing the form does not update the previously saved list. Select the correct new draft before continuing.
-12. Before live calling, confirm the CRM microphone is **SalesGod AI Bridge (local audio)**. Keep the CRM speaker on your headset. If the microphone is missing, review the idle CRM's Settings/Refresh devices and repeat the local audio checks. Do not dial to work around a failed setup test.
-13. If you want a desktop completion notification, click **Enable completion notification** and allow Chrome notifications if your company permits them. The page itself shows completion even without notifications.
-14. Click **Start selected list** when ready. The system verifies the CRM connection, prepares AI audio, records the call and enters each local-list number into the global keypad using your selected caller number and the generated microphone. It handles human/voicemail responses and saves MP3, transcripts and results locally. No contact form is opened and no contact is created.
-15. After a call, review its technical outcome (such as Voicemail left, No answer or Needs review) and saved business-disposition events (such as Meeting set or Needs follow-up) in the local calling list / Previous Conversations. Meeting set requires an exact agreed date, time and timezone; it does not create a calendar event. No SalesGodCRM contact notes are written.
-16. The worker confirms the owned phone call ended and finishes recording/transcript saving before proceeding. Uncertain phone identity or cleanup failures stop the list for review; uncertain attempts are never automatically redialed.
-17. Leave the bridge, CRM tab and calling-list page open. Do not refresh or navigate while a call is active. No specific CRM page or calling-hour window is required. Suppression, explicit Start, selected caller/microphone and once-only dispatch checks remain.
-18. Wait for **Finished processing every contact. Review the results below.** This means processing is finished; it does not mean every person answered. If the list pauses with an uncertain result, review the CRM before taking another action. Uncertain attempts are not automatically redialed.
+The example numbers above are fictional. Do not use them for real calls.
 
-## Step 8 — Manual commands if double-click does not work
+## Step 8 — Start, pause and stop
 
-Run only the commands for your operating system. Do not type the `C:\...>` or `%` prompt shown by your computer. Do not put your API key in a command.
+1. Select the saved list you reviewed.
+2. Click **Start selected list** once. This authorizes real calls to pending contacts. There is no calling-hours restriction.
+3. The backend checks the Twilio account and public connection, then prepares OpenAI audio and the exact voicemail before each dial attempt.
+4. It dials contacts one at a time and saves the result before advancing. You do not need to press Start between contacts.
+5. **Pause after current contact** finishes the current attempt and stops before the next.
+6. **Stop current call and pause** requests hangup of the verified owned Twilio call and pauses the list.
+7. You can close/reopen the browser page without ending the backend worker. Reopen Calling lists to recover its current controls. Keep the bridge and public tunnel running.
+8. Completion appears in the list window. Optionally enable the completion notification. Review every result before considering the list finished.
 
-### Windows: Command Prompt
+Human answers use a live conversation. Speech interrupts buffered AI audio. Voicemail uses Twilio answer detection; playback is logged complete only after Twilio acknowledges it. A person speaking during or just after voicemail can switch to a live conversation. Answer detection is not perfect; ambiguous cases are marked for review rather than claimed successful.
 
-1. Open the extracted **SalesGod-Team** folder in File Explorer.
-2. Click the address bar at the top, type `cmd`, and press Enter. Command Prompt opens in the correct folder. You do not need to type a `cd` command or your username.
-3. To configure the key, type the following command and press Enter. Complete Step 2A when Notepad opens.
+## Step 9 — Read or export the results
 
-```bat
-call "Configure OpenAI Windows.cmd"
+1. Open **Previous Conversations** at **http://127.0.0.1:28431/history**.
+2. Choose the list and contact to view names, status, conversation transcript, disposition events and logs.
+3. For an answered call, the app requests a Twilio recording and saves a local MP3. Recording availability can be delayed; failures are shown for review. Live transcript text is a draft and may differ from the recording.
+4. Download the contact report/MP3, the selected-list ZIP, or the whole-history ZIP using the controls provided.
+5. **meeting_set** means a date/time was verbally agreed; this app does not create a calendar event. Other dispositions include follow_up, not_interested, wrong_number, completed and opt_out.
+6. Local records remain until you delete them. Twilio separately retains its call logs and recordings under its own account settings. Deleting locally does not delete the Twilio copy.
+7. Back up the private **data** folder and **.env** securely. Do not include them in installation ZIPs.
+
+## Step 10 — A stable public connection for team use
+
+Quick tunnels are temporary development/test connections. Their URL changes each launch and availability is not guaranteed. For dependable daily calling, have IT configure a stable managed HTTPS/WSS tunnel.
+
+1. Set **TWILIO_TUNNEL=manual**.
+2. Point the trusted tunnel to **http://127.0.0.1:28432**.
+3. Set **TWILIO_PUBLIC_URL=https://your-public-host** and restart the bridge.
+4. Do not expose port **28431**. That is your private list/history/control desk.
+5. The public service on **28432** accepts signed Twilio callbacks and media for known attempts; it does not expose your lists, keys or Start controls.
+
+For an existing Cloudflare installation, the same temporary callback connection can be started manually on Windows PowerShell or Mac Terminal:
+
+```text
+cloudflared tunnel --url http://127.0.0.1:28432
 ```
 
-4. To start the bridge, type this command and press Enter:
+Copy the printed HTTPS origin into **TWILIO_PUBLIC_URL**, set **TWILIO_TUNNEL=manual**, restart the bridge, and keep both processes open.
 
-```bat
-call "Start Windows.cmd"
-```
+## Troubleshooting
 
-5. Wait for the bridge ready message. These commands include automatic Node setup. Leave Command Prompt open while working.
+**Twilio rejects authentication:** recheck the AC Account SID and the account Auth Token on Twilio account home. An SK API key and its secret are not interchangeable with these settings.
 
-### Mac: Terminal
+**OpenAI expired_secret_key / authentication error:** replace OPENAI_API_KEY with a valid key locally and restart. Never paste it into chat or GitHub.
 
-1. Open **Terminal** using Spotlight: press **Command+Space**, type `Terminal`, and press Return.
-2. Type `cd `, including the space after `cd`. Drag the extracted **SalesGod-Team folder** from Finder into Terminal. Press Return. Terminal is now inside the correct folder; this also handles spaces in its path.
-3. To configure the key, type this command and press Return. Complete Step 2B when TextEdit opens.
+**Public callback unreachable:** keep the tunnel running and target port 28432. Confirm the public hostname reaches this installation. Use a stable managed tunnel if the quick service is unavailable.
 
-```sh
-bash "Configure OpenAI Mac.command"
-```
+**No sound / no voicemail:** inspect that contact’s full details and recording. A complete voicemail log requires an acknowledged playback mark. Failed AI preparation blocks dialing; missing media stops the attempt. Do not assume a completed telephone connection means the person heard the AI.
 
-4. To start the bridge, type this command and press Return:
+**Uncertain dial result:** check Twilio Call Logs before proceeding. The app never automatically redials an uncertain attempt. An unresolved attempt blocks another list until its telephone state can be verified.
 
-```sh
-bash "Start Mac.command"
-```
+**Port already in use:** use the already-running bridge, or stop it while idle before opening another. The launcher does not terminate unrelated programs.
 
-5. Wait for the bridge ready message. These commands include automatic Node setup. Leave Terminal open while working.
+**Network/proxy:** Hiddify is not required. Use your organization’s approved network. Windows system HTTP/HTTPS proxy settings are detected; Mac or other setups can use HTTPS_PROXY and NO_PROXY in the local .env. HTTP requests and the OpenAI WebSocket use this configuration. Localhost stays local. Regional access restrictions must be resolved with the provider or your IT team, not by changing keys or reinstalling.
 
-## Step 9 — Pause, read logs, and finish safely
-
-1. To finish the current call and then pause, click **Pause after current contact**.
-2. To stop the system's current call and pause, click **Stop current call and pause**. Check that the CRM phone actually ended. If the system cannot identify its owned call, inspect the CRM manually.
-3. To read a conversation, select its list under **Saved lists**, then click **View transcript** beside the contact. Expand **List event log** to see what happened.
-4. Click **Export transcripts and event log** to save a copy, or use **Previous Conversations** to download individual records or ZIPs with saved conversation MP3s. Keep exports private. Records are stored separately on each computer; there is no shared team dashboard. New real calling-list calls are recorded automatically. Wait for the contact to finish saving before closing the calling window or stopping the bridge.
-5. Conversation history stays until you explicitly delete it in **Previous Conversations**. Standalone manual diagnostic logs still expire after seven days. Suppression records persist independently of conversation deletion.
-6. When no list or phone call is active, click the bridge's command/Terminal window and press **Ctrl+C**. On Mac, use **Control+C**, not Command+C. If Windows asks **Terminate batch job (Y/N)?**, type `Y` and press Enter.
-7. Once the command returns to a prompt or the launcher exits, close its window. Next time, repeat Step 6. Closing the bridge during a call interrupts the AI and may leave the CRM phone connected; inspect the phone if that happens.
-
-## Step 10 — Understand prompts and fix common problems
-
-### The command window is open but nothing else happens
-
-If you see the bridge address, it is ready. The launcher does not automatically open Chrome. Leave the window open and continue to Step 4 or Step 6. No typing is needed at the ready message.
-
-### “Preparing a private Node.js 24 runtime” or “Installing required libraries from npm”
-
-This is normal on first use. Keep internet connected and wait for the ready message. Node is downloaded from the official nodejs.org site and checked before use. Do not open multiple setup windows while it is working.
-
-### “Node setup failed”, checksum failure, or library installation failure
-
-Read the error above the final prompt. Check internet access and that the extracted folder is writable. If asked **Press any key to continue . . .** on Windows or **Press Return to close.** on Mac, that means setup stopped; pressing a key only closes the window. It does not fix the error. Retry the launcher after resolving the cause. Ask IT about checksum errors, blocked downloads, or an interrupted setup lock. Do not delete caches or disable security controls blindly. If your organization prohibits automatic downloads, IT can install Node.js 24 with npm instead.
-
-### “Port 28431 is already in use or unavailable”
-
-Look for an existing bridge window. If it is already running, use it and close only the duplicate failed launcher. If there is no working bridge, ask IT to identify what owns the port. Do not stop an unknown process.
-
-### “Open calling list” opens a page that cannot load
-
-Start the bridge and wait for its ready message. The current address is `http://127.0.0.1:28431/`, not the older port 4318. Close the failed calling-list window and click **Open calling list** again from CRM. Keep the bridge running.
-
-### The page does not say “CRM controls paired”
-
-Open the calling list using the CRM extension panel, not a bookmark or a manually typed local address. Confirm the extension is enabled in this Chrome profile. If no call is active, refresh CRM and reopen the controls. Never refresh an active call.
-
-### The voice test fails, or ChatGPT works but the extension does not
-
-Read the specific error on the voice-test page. ChatGPT and this bridge use separate connections. A missing/invalid key requires saving the local key and restarting the idle bridge. Quota, billing, model access, and project permissions must be reviewed by your API administrator. Do not paste a key into an error report. Use **Save test report** to export safe connection diagnostics; older reports may have less detail.
-
-### You use a VPN or proxy
-
-Hiddify is optional. A VPN that routes all computer traffic generally needs no extra bridge settings. On Windows, the bridge reads an enabled Windows user HTTP/HTTPS proxy at startup. Keep that proxy app running and look for the proxy message in the bridge window. A Chrome-only VPN may not route the bridge at all.
-
-On Mac, or for an explicit proxy configuration, ask IT to set `HTTPS_PROXY` in the local `.env` file using your approved HTTP/HTTPS proxy address. Explicit environment proxy settings take precedence. Do not guess the address or copy another person's proxy credentials. Mac system-proxy discovery, PAC scripts, and SOCKS-only configuration are not supported by the launcher. Restart the idle bridge after any proxy change and repeat Step 5. Local signaling stays on your computer.
-
-A confirmed `unsupported_country_region_territory` error means OpenAI denied API access for the detected region. Reinstalling the extension or replacing the key does not remove that restriction. If you are in a supported location, ask OpenAI Support or IT to review detection: https://developers.openai.com/api/docs/supported-countries. A VPN does not guarantee service availability.
-
-### Mac will not open a .command file
-
-Try the `bash` commands in Step 8. If macOS or company policy blocks the download, ask IT to review it. Do not disable Gatekeeper, certificate checks, or other security protections.
-
-### A call rang but no voicemail was left
-
-Earlier versions used CRM contact imports, name verification and note forms. Version 0.4.12 removes those dependencies and uses the global keypad directly. Upload names/numbers locally and keep any logged-in CRM page with the phone dialer open. A voicemail-played result means local playback finished; carrier mailbox storage requires separate confirmation.
-
-### Chrome shows no audio device, or a local audio/WebRTC test fails
-
-Confirm the bridge is running and no CRM call is active. Check extension status, enable local routing, review CRM audio devices, and repeat the idle local audio checks. Ask your administrator if it still fails; do not change Chrome privacy flags or firewall rules to force it through. The standalone OpenAI test does not verify telephone media.
-
-### You need help from your team lead
-
-Send the exact error text, whether you are on Windows or Mac, your package version, and the step that failed. A screenshot of the error or the safe voice-test report can help. Exclude API keys, proxy credentials, contact details, and conversation transcripts from screenshots.
-
-## Step 11 — Install a future update
-
-1. Finish or safely stop all calls and lists, then stop the bridge with **Ctrl+C**.
-2. Keep a private backup of your current local `.env` and `data` folder. Never send that backup to colleagues.
-3. Replace application files with the new package while preserving your `.env` and `data` folder in the installed folder. Ask your team lead if unsure which files to replace.
-4. In `chrome://extensions`, click **Reload** for SalesGod Local Audio Bridge. If the extension now lives in a different folder, load the new `tools/audio-extension` folder instead and remove the old duplicate.
-5. Start the updated bridge, refresh only idle CRM, reopen the calling list from its panel, and repeat Step 5 before live calling.
-6. Share only the original clean ZIP. Do not zip your installed folder: it contains your key, downloaded runtime, and call records.
-
-## What this version has been checked for
-
-Windows startup, proxy-based OpenAI audio, simulation, and individual telephone tests have been observed. Multiple-contact live reliability and actual Mac telephone audio still need validation. The AI session has a five-minute limit, including preparation. Use a supervised approved test before relying on a new installation for a live list.
+**Costs and call length:** Twilio telephone/answer-detection/recording and OpenAI usage may be billed. Calls are bounded to 330 seconds. Reaching a limit is a review condition, not proof of a completed business conversation.

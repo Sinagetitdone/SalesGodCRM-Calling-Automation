@@ -1,18 +1,22 @@
 {
   "name": "salesgod-local-audio-bridge",
-  "version": "1.0.12",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Local SalesGodCRM audio bridge and Chrome extension",
+  "description": "Local Twilio and OpenAI calling desk",
   "engines": {
     "node": ">=24 <25"
   },
   "scripts": {
-    "start": "node --env-file-if-exists=.env tools/audio-bridge/start.mjs"
+    "start": "node --env-file-if-exists=.env tools/audio-bridge/start.mjs",
+    "twilio:check": "node tools/audio-bridge/twilio-diagnostic.mjs"
   },
   "dependencies": {
     "fastify": "5.12.6",
+    "https-proxy-agent": "9.1.0",
     "mammoth": "1.13.0",
-    "pdf-parse": "2.4.5"
+    "pdf-parse": "2.4.5",
+    "twilio": "6.3.0",
+    "ws": "8.22.1"
   }
 }

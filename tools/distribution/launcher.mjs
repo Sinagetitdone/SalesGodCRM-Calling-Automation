@@ -25,7 +25,7 @@ export async function launch(action = 'start') {
   process.chdir(root);
   await ensureEnvironment(root);
   if (action === 'configure') {
-    console.log('Opening your LOCAL .env file. Paste the key after OPENAI_API_KEY=, save, and close the editor.');
+    console.log('Opening your LOCAL .env file. Set OPENAI_API_KEY, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER, then save and close the editor.');
     console.log('Keep this file on this computer. Restart the bridge after changing the key.');
     const editor = process.platform === 'win32' ? ['notepad.exe', [resolve(root, '.env')]] : ['open', ['-W', '-e', resolve(root, '.env')]];
     const result = spawnSync(editor[0], editor[1], { stdio: 'inherit' });
@@ -47,8 +47,8 @@ export async function launch(action = 'start') {
     await writeFile(resolve(root, 'node_modules/.salesgod-lock'), digest);
   }
   await mkdir(resolve(root, 'data'), { recursive: true, mode: 0o700 });
-  console.log('\nSalesGod Local Audio Bridge');
-  console.log('Keep this window open while using the extension. Stop only when no call is active (Ctrl+C).');
+  console.log('\nJay Marketing Lab — Twilio calling desk');
+  console.log('Keep this window open while calling. Stop only when no call is active (Ctrl+C). No CRM extension is required.');
   console.log('Open in Chrome: http://127.0.0.1:28431/');
   console.log('To set your key, use Configure OpenAI. Starting the bridge does not place calls.\n');
   const server = spawnSync(process.execPath, ['--env-file-if-exists=.env', 'tools/audio-bridge/start.mjs'], { stdio: 'inherit' });

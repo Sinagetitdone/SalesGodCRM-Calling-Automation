@@ -73,7 +73,9 @@ export class CampaignStore {
   saveRecording(id, contactId, worker, audio) {
     const { row } = this.contact(id, contactId, worker);
     if (!row.session || !['dispatching', 'connected'].includes(row.state)) throw new Error('Recording is not associated with an active conversation.');
-    if (!audio.length || audio.length > 12000000 || !(audio[0] === 0xff && (audio[1] & 0xe0) === 0xe0)) throw new Error('Expected an MP3 recording.');
+    const mp3 = audio[0] === 0xff && (audio[1] & 0xe0) === 0xe0;
+    const id3 = audio.length >= 10 && Buffer.from(audio).subarray(0, 3).toString() === 'ID3';
+    if (!audio.length || audio.length > 12000000 || !(mp3 || id3)) throw new Error('Expected an MP3 recording.');
     this.db.prepare('INSERT INTO campaign_recordings VALUES(?,?) ON CONFLICT(contact) DO UPDATE SET audio=excluded.audio').run(contactId, audio);
     return { saved: true };
   }

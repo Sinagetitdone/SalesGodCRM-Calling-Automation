@@ -1,3 +1,7 @@
+# Current work: Twilio migration — 2026-11-08
+
+The active integration is now Twilio (ADR-0008); older CRM continuation notes below are historical. Local calling desk: port 28431. Signed Twilio ingress: port 28432. Start is explicit and backend-owned. The extension is not required. Package 2.0.0 contains updated setup and Windows/Mac launchers with verified optional quick-tunnel setup. No migration telephone calls have been placed. Live acceptance is pending valid Twilio account Auth Token, valid OpenAI key and a successful public callback check. Do not claim synthetic tests prove telephone delivery. Never print .env or credentials while resuming.
+
 # Resume here — 2026-11-07
 
 ## No CRM contact dependency — 1.0.12 / extension 0.4.12

@@ -1,3 +1,5 @@
+**Current live integration (2026-11-08): Twilio + OpenAI.** Start with [the team setup guide](tools/distribution/SETUP.md) and [ADR-0008](docs/architecture/ADR-0008-TWILIO-TELEPHONY.md). Live lists no longer require SalesGodCRM, CRM contacts, browser microphone routing or a Chrome extension. The shipped runtime is `tools/audio-bridge`; the earlier `src` provider prototype and older CRM notes below are historical. `npm run twilio:check` is a no-call credential/voice check. Live acceptance is still required with working credentials and an authorized test destination.
+
 # SalesGodCRM Calling Automation
 
 For colleagues: build the clean installation ZIP using `npm run package:team`. It includes Windows/Mac launchers and a [simple setup guide](tools/distribution/SETUP.md). See [package maintenance and validation](tools/distribution/README.md). Launchers automatically download a checksum-verified private Node.js 24 runtime when needed; Mac runtime compatibility has not yet been tested.

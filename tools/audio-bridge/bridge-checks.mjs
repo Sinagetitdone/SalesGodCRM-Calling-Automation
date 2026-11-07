@@ -115,7 +115,7 @@ test('panel serves with restrictions and has no dial endpoint', async () => {
   const app = createBridge({ env: {} });
   const response = await app.inject({ url: '/', headers });
   assert.equal(response.statusCode, 200); assert.match(response.headers['content-security-policy'], /frame-ancestors 'none'/);
-  assert.match(response.body, /No dialing controls/);
+  assert.match(response.body, /Setup never calls anyone/);
   assert.equal((await app.inject({ method: 'POST', url: '/calls', headers })).statusCode, 404);
   await app.close();
 });

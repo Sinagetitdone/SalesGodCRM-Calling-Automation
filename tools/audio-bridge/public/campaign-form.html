@@ -14,13 +14,13 @@
 <div id="contactFilePreview" class="file-preview" hidden aria-labelledby="contactFilePreviewTitle"><p id="contactFilePreviewTitle"></p><pre id="contactFileContents" tabindex="0" aria-label="Uploaded CSV contents"></pre></div>
 <label for="listName">List name</label><input id="listName" maxlength="120" value="My calling list">
 <input id="contactFile" type="file" accept=".csv,text/csv" hidden><textarea id="contactCsv" hidden></textarea>
-<p id="crmImportStatus" role="status">Choose a CSV from your computer. No SalesGodCRM connection is needed to upload or create a draft.</p>
-<p>Starting calls requires the paired SalesGodCRM extension. Any logged-in CRM page with the global dialer can stay open; the Contacts page and saved CRM contacts are not required. Numbers are entered directly into the keypad. Names, call results, transcripts and recordings are saved locally in this list and Previous Conversations. CRM contacts and contact notes are not created or changed.</p>
-<p><strong>Real calls only.</strong> Creating the draft never calls anyone. Each call uses the imported number, selected caller and generated AI microphone; another active call or uncertain target stops the attempt.</p>
+<p id="crmImportStatus" role="status">Choose a CSV from your computer. Uploading and creating a draft never starts calls.</p>
+<p>Calls use Twilio directly. No CRM contact import, open CRM page or Chrome extension is required. Names, outcomes, transcripts and downloaded recordings stay in this local calling list and Previous Conversations.</p>
+<p><strong>Real calls only.</strong> Creating the draft never calls anyone. Each call uses the imported number and configured Twilio caller number. AI audio connects directly through Twilio; an uncertain attempt pauses the list without redialing.</p>
 <details><summary>Call settings</summary>
 <label for="responsePauseMs">Live-call pause before replying (milliseconds, 200–1000)</label><input id="responsePauseMs" type="number" min="200" max="1000" value="250">
 <p>250 ms means 0.25 seconds of silence before the AI treats the customer’s turn as finished. Lower values respond sooner but may interrupt a hesitation. This applies to human conversations; voicemail detection keeps its own timing.</p>
-<label for="callerNumber">Your CRM caller number (with country code)</label><input id="callerNumber" placeholder="+1…">
+<label for="callerNumber">Your Twilio caller number (with country code)</label><input id="callerNumber" placeholder="+1…">
 <label for="listTimeZone">Timezone for dates and appointments</label>
 <input id="timeZoneSearch" type="search" aria-label="Search timezones" aria-controls="listTimeZone" placeholder="Search a city or timezone, e.g. San Diego, New York, London">
 <select id="listTimeZone" size="6" aria-describedby="timeZoneStatus">
@@ -41,10 +41,10 @@
 <button id="importList">Create draft from uploaded file</button><p id="listError" role="alert"></p>
 <label for="savedLists">Saved lists</label><select id="savedLists"><option value="">Choose a list</option></select><button id="refreshLists">Refresh</button>
 <button id="copyList" disabled>Copy selected list to editor</button>
-<p id="listMode">No list selected.</p><p id="driverState">Open this page through Open calling list in the CRM extension to connect the dialer.</p>
+<p id="listMode">No list selected.</p><p id="driverState">Checking Twilio configuration…</p>
 <button id="startList" disabled>Start selected list</button><button id="pauseList" disabled>Pause after current contact</button><button id="stopList" disabled class="stop">Stop current call and pause</button>
 <button id="allowNotification">Enable completion notification</button><button id="exportList" disabled>Export transcripts and event log</button>
 <p id="listState" role="status" aria-live="polite">Nothing is running.</p>
 <div class="list-scroll"><table><thead><tr><th>Name</th><th>Phone</th><th>Result</th><th>Conversation</th></tr></thead><tbody id="contactRows"></tbody></table></div>
 <pre id="selectedTranscript" hidden></pre><details><summary>List event log</summary><pre id="listEvents">No events yet.</pre></details>
-<p>Transcripts, contact details and saved events stay on this computer until you delete them in <a href="/history" target="_blank" rel="noopener">Previous Conversations</a>. New real calls save a whole-conversation MP3. An uncertain attempt pauses the list and is never automatically dialed again.</p></section>
+<p>Transcripts, contact details and saved events stay on this computer until you delete them in <a href="/history" target="_blank" rel="noopener">Previous Conversations</a>. New answered calls request a Twilio recording and save a local MP3. Twilio also retains its own copy under your account settings. An uncertain attempt pauses the list and is never automatically dialed again.</p></section>

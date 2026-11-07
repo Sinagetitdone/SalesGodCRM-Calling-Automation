@@ -91,7 +91,7 @@ test('real and rehearsal review panels show saved conversation and all logs toge
     const contact = { id: 'contact', firstName: 'Synthetic', lastName: 'Example', state: 'pending', session: null };
     const campaign = { id: 'list', name: 'Synthetic', state: 'draft', settings: { simulation: practice }, contacts: [contact], events: [{ contact: null, time: '2026-10-23T12:00:00Z', event: 'imported' }] };
     vm.runInNewContext(source, { document: { body: { dataset: { workspace: practice ? 'rehearsal' : 'live' } }, getElementById: get, createElement: node },
-      window: { addEventListener() {}, SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class {}, SalesGodRehearsal: class {} },
+      window: { addEventListener() {}, SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class {}, TwilioCampaignWorker: class {}, SalesGodRehearsal: class {} },
       location: { hash: '' }, URLSearchParams, Option: class {}, setInterval() {},
       fetch: async path => {
         requests.push(path); let data = {};
@@ -126,13 +126,13 @@ test('calling-list uploads and saves a local CSV without CRM pairing and rejects
   const nodes = new Map(), requests = [], store = new CampaignStore(':memory:'); let pickerClicks = 0;
   const node = () => ({ children: [], value: '', hidden: true, click() { pickerClicks++; }, reportValidity: () => true, append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; } });
   const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
-  const window = { SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class {}, addEventListener() {} };
+  const window = { SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class {}, TwilioCampaignWorker: class {}, addEventListener() {} };
   vm.runInNewContext(source, { window, document: { body: { dataset: { workspace: 'live' } }, getElementById: get, createElement: node },
     location: { hash: '' }, URLSearchParams, Option: class {}, crypto: { randomUUID },
     setTimeout: () => 1, clearTimeout() {}, setInterval() {}, clearInterval() {},
     fetch: async (path, options) => {
       requests.push(path);
-      const data = path === '/calling-profile' ? { background: '', guidance: 'Approved synthetic guidance. '.repeat(250) }
+      const data = path === '/twilio/status' ? { ready: false, activeCampaign: null } : path === '/calling-profile' ? { background: '', guidance: 'Approved synthetic guidance. '.repeat(250) }
         : path === '/campaigns-api/import' ? store.create(JSON.parse(options.body))
         : path.includes('?') ? { campaigns: store.list() } : store.read(path.split('/').at(-1));
       return { ok: true, json: async () => data };
@@ -161,32 +161,26 @@ test('calling-list uploads and saves a local CSV without CRM pairing and rejects
     assert.ok(requests.every(path => path.startsWith('/'))); assert.equal(store.list().length, 1);
   } finally { store.close(); }
 });
-test('Start verifies CRM acknowledgement before starting a worker and keeps contacts pending on a lost link', async () => {
+test('Start verifies Twilio readiness without CRM pairing and keeps contacts pending on configuration failure', async () => {
   const source = await readFile(new URL('public/campaign.js', import.meta.url), 'utf8');
-  const nodes = new Map(), listeners = [], timers = new Map(); let nextTimer = 0, acknowledge = true, starts = 0, closed = 0;
+  const nodes = new Map(); let ready = true, starts = 0;
   const node = () => ({ children: [], value: '', hidden: true, append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; } });
   const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
   const campaign = { id: 'list', name: 'Synthetic', state: 'draft', settings: { simulation: false }, contacts: [{ id: 'contact', state: 'pending' }], events: [] };
-  const opener = { postMessage() {} }, port = { start() {}, close() { closed++; }, postMessage(data) { if (acknowledge) queueMicrotask(() => this.onmessage({ data: { id: data.id, result: { ready: true, dialMode: 'direct-keypad' } } })); } };
-  const window = { opener, SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class { async run() { starts++; } }, addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
+  const window = { TwilioCampaignWorker: class { async run() { starts++; } }, addEventListener() {} };
   vm.runInNewContext(source, { window, document: { body: { dataset: { workspace: 'live' } }, getElementById: get, createElement: node },
-    location: { hash: '#token=test&origin=https%3A%2F%2Fwww.salesgodcrm.net' }, URLSearchParams, Option: class {}, crypto: { randomUUID },
-    setTimeout(fn, ms) { const id = ++nextTimer; timers.set(id, { fn, ms }); return id; }, clearTimeout(id) { timers.delete(id); }, setInterval() {}, clearInterval() {},
-    fetch: async path => ({ ok: true, json: async () => path === '/calling-profile' ? { background: '', guidance: '' } : path.includes('?') ? { campaigns: [campaign] } : campaign }) });
+    Option: class {}, setInterval() {},
+    fetch: async path => ({ ok: true, json: async () => path === '/twilio/status' ? { ready, ingressListening: ready, fromNumber: '+12025550100', error: ready ? '' : 'Twilio credentials are missing.' } : path === '/calling-profile' ? { background: '', guidance: '' } : path.includes('?') ? { campaigns: [campaign] } : campaign }) });
   await new Promise(resolve => setImmediate(resolve));
   get('savedLists').value = campaign.id; await get('savedLists').onchange();
-  assert.equal(get('startList').disabled, true);
-  for (const fn of listeners) fn({ source: opener, origin: 'https://www.salesgodcrm.net', data: { source: 'salesgod-campaign-v1', type: 'paired', token: 'test' }, ports: [port] });
-  await new Promise(resolve => setImmediate(resolve)); assert.equal(get('startList').disabled, false);
+  assert.equal(get('startList').disabled, false);
   await get('startList').onclick(); assert.equal(starts, 1);
-  acknowledge = false;
-  const blockedStart = get('startList').onclick(); await new Promise(resolve => setImmediate(resolve));
-  const deadline = [...timers.values()].find(t => t.ms === 3000); assert.ok(deadline); deadline.fn();
-  await blockedStart;
-  assert.equal(starts, 1); assert.equal(closed, 1); assert.equal(get('startList').disabled, true);
-  assert.match(get('driverState').textContent, /CRM connection lost/); assert.match(get('listState').textContent, /List did not start/);
+  ready = false; await get('startList').onclick();
+  assert.equal(starts, 1); assert.equal(get('startList').disabled, true);
+  assert.match(get('driverState').textContent, /Twilio credentials are missing/);
   assert.equal(campaign.contacts[0].state, 'pending');
 });
+
 test('text counters follow typing, whitespace and programmatic upload/restore without changing text', async () => {
   const source = await readFile(new URL('public/text-counts.js', import.meta.url), 'utf8');
   const output = () => ({ classList: { add() {} } });
@@ -284,7 +278,7 @@ test('Start claims and dispatches immediately before opening and after closing h
 });
 test('new live lists need no hour fields and dispatch through the API after explicit Start', async () => {
   const store = new CampaignStore(':memory:', () => new Date('2026-11-07T14:15:32Z'));
-  const app = createBridge({ campaignStore: store, env: {} });
+  const app = createBridge({ campaignStore: store, env: { CALLING_PROVIDER: 'salesgod-legacy' } });
   const headers = { host: '127.0.0.1:28431', origin: 'http://127.0.0.1:28431' };
   const post = (url, payload) => app.inject({ method: 'POST', url, headers, payload });
   const { startHour, endHour, ...noHours } = settings;
@@ -342,7 +336,7 @@ test('restart retains transcript and converts interrupted dispatch to unknown; h
 });
 test('campaign API rejects cross-origin/start without authorization and exposes tools only to active real preparations', async () => {
   const f = fixture(); let calls = 0;
-  const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-test-key' }, campaignStore: f.store, fetchImpl: async (_url, options) => {
+  const app = createBridge({ env: { OPENAI_API_KEY: 'synthetic-test-key', CALLING_PROVIDER: 'salesgod-legacy' }, campaignStore: f.store, fetchImpl: async (_url, options) => {
     calls++; const session = JSON.parse(options.body.get('session')); assert.equal(session.tools[0].name, 'finish_call');
     assert.deepEqual(session.tools[0].parameters.required, ['reason', 'disposition']);
     assert.deepEqual(session.tools[0].parameters.properties.disposition.enum, ['meeting_set', 'follow_up', 'not_interested', 'wrong_number', 'completed', 'opt_out']);

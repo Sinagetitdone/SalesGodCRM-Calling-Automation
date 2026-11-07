@@ -45,7 +45,10 @@ export function campaignRoutes(app, { env, store: supplied, journal }) {
   route('POST', '/campaigns-api/:id/rehearsal-guidance', object({ guidance: { type: 'string', maxLength: 20000, anyOf: [{ maxLength: 0 }, { minLength: 6000 }] } }), (s, r) => s.applyRehearsalGuidance(r.params.id, r.body.guidance));
   route('POST', '/campaigns-api/import', object({ name: { type: 'string', minLength: 1, maxLength: 120 }, csv: { type: 'string', minLength: 1, maxLength: contactImportLimits.csvCharacters }, settings: settingsSchema }), (s, r) => s.create(r.body));
   route('GET', '/campaigns-api/:id', null, (s, r) => s.read(r.params.id));
-  route('POST', '/campaigns-api/:id/start', object({ ...worker, authorized: { const: true } }), (s, r) => s.start(r.params.id, r.body.workerId));
+  route('POST', '/campaigns-api/:id/start', object({ ...worker, authorized: { const: true } }), (s, r) => {
+    if (!s.read(r.params.id).settings.simulation && env.CALLING_PROVIDER !== 'salesgod-legacy') throw new Error('Real calling now uses Twilio. Reopen the updated calling-list page.');
+    return s.start(r.params.id, r.body.workerId);
+  });
   route('POST', '/campaigns-api/:id/heartbeat', object(worker), (s, r) => s.heartbeat(r.params.id, r.body.workerId));
   route('POST', '/campaigns-api/:id/pause', object(worker), (s, r) => s.pause(r.params.id, r.body.workerId));
   route('POST', '/campaigns-api/:id/next', object(worker), (s, r) => s.claim(r.params.id, r.body.workerId));

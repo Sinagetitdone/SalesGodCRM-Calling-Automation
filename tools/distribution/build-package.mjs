@@ -7,8 +7,8 @@ import { buildSetupGuide } from './build-setup-guide.mjs';
 import { desktopEntries } from './build-desktop.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const bridgeFiles = ['server.mjs', 'start.mjs', 'text-import.mjs', 'text-import-worker.mjs', 'audio-transcript-routes.mjs', 'openai-errors.mjs', 'voice-settings.mjs', 'history-export.mjs', 'session-journal.mjs', 'campaign-store.mjs', 'contact-import.mjs', 'diagnostics.mjs', 'campaign-routes.mjs', 'rehearsal-routes.mjs'];
-const publicFiles = ['brand/JML-Logo-Full-Dark.svg', 'brand/JML-Logo-J-Dark.svg', 'setup.html', 'style.css', 'panel.css', 'voice.html', 'voice.js', 'call.html', 'call.js', 'call-recording.js', 'text-import.js', 'text-counts.js', 'audio-transcript.js', 'voicemail.js', 'simulator.html', 'simulator.js', 'campaign.js', 'campaign-worker.js', 'campaign-form.html', 'campaign.html', 'history.html', 'history.js', 'rehearsal-form.html', 'rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt', 'vendor/LGPL-3.0.txt', 'vendor/GPL-3.0.txt'];
+const bridgeFiles = ['server.mjs', 'start.mjs', 'twilio-provider.mjs', 'twilio-audio.mjs', 'twilio-service.mjs', 'twilio-tunnel.mjs', 'twilio-diagnostic.mjs', 'text-import.mjs', 'text-import-worker.mjs', 'audio-transcript-routes.mjs', 'openai-errors.mjs', 'voice-settings.mjs', 'history-export.mjs', 'session-journal.mjs', 'campaign-store.mjs', 'contact-import.mjs', 'diagnostics.mjs', 'campaign-routes.mjs', 'rehearsal-routes.mjs'];
+const publicFiles = ['brand/JML-Logo-Full-Dark.svg', 'brand/JML-Logo-J-Dark.svg', 'setup.html', 'style.css', 'panel.css', 'voice.html', 'voice.js', 'call.html', 'call.js', 'call-recording.js', 'text-import.js', 'text-counts.js', 'audio-transcript.js', 'voicemail.js', 'simulator.html', 'simulator.js', 'campaign.js', 'campaign-worker.js', 'twilio-worker.js', 'twilio-setup.js', 'campaign-form.html', 'campaign.html', 'history.html', 'history.js', 'rehearsal-form.html', 'rehearsal.js', 'rehearsal-mp3.js', 'vendor/lame.min.js', 'vendor/lame.all.js', 'vendor/NOTICE.txt', 'vendor/LAME-LICENSE.txt', 'vendor/LGPL-3.0.txt', 'vendor/GPL-3.0.txt'];
 const extensionFiles = ['brand/JML-Logo-Full-Dark.svg', 'manifest.json', 'local-rtc.js', 'window-rtc.js', 'audio-hook.js', 'campaign-driver.js', 'panel.js', 'tests/lab.html', 'tests/lab.js'];
 const launchers = ['Start Windows.cmd', 'Configure OpenAI Windows.cmd', 'Start Mac.command', 'Configure OpenAI Mac.command'];
 export async function packageEntries(sourceRoot = root) {
@@ -35,7 +35,7 @@ export async function packageEntries(sourceRoot = root) {
   }));
   // Generate the blank template; never derive it from the owner's environment.
   entries.push(...await desktopEntries());
-  entries.push({ name: '.env.example', data: Buffer.from('OPENAI_API_KEY=\nOPENAI_REALTIME_MODEL=gpt-realtime-2.1\n'), mode: 0o100600 });
+  entries.push({ name: '.env.example', data: Buffer.from('OPENAI_API_KEY=\nOPENAI_REALTIME_MODEL=gpt-realtime-2.1\nTWILIO_ACCOUNT_SID=\nTWILIO_AUTH_TOKEN=\nTWILIO_FROM_NUMBER=\nTWILIO_PUBLIC_URL=\nTWILIO_TUNNEL=quick\n'), mode: 0o100600 });
   const checksums = entries.map(entry => createHash('sha256').update(entry.data).digest('hex') + '  ' + entry.name).join('\n') + '\n';
   entries.push({ name: 'CONTENTS.sha256', data: Buffer.from(checksums), mode: 0o100644 });
   return entries;
