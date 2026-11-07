@@ -70,65 +70,8 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
   const historyButton = document.createElement('button'); historyButton.id = 'previousConversations'; historyButton.textContent = 'Previous Conversations'; listButton.after(historyButton);
   historyButton.onclick = () => { window.open('http://127.0.0.1:28431/history', '_blank', 'noopener'); };
   const voiceResult = document.createElement('p'); voiceResult.id = 'voiceResult'; $('rtcResult').after(voiceResult);
-  const importResult = document.createElement('p'); importResult.id = 'crmImportResult'; importResult.textContent = 'No CRM import captured for a new calling list.'; listButton.after(importResult);
-  let report, listPopup, listToken, listPort, listConnectionId, dialer, listWatch, crmImport;
-  const handoffCrmImport = () => { if (listPort && crmImport?.confirmed) listPort.postMessage({ type: 'crm-import', fileName: crmImport.fileName, name: crmImport.name, csv: crmImport.csv }); };
-  const importStatus = (message, error = false) => { importResult.textContent = message; listPort?.postMessage({ type: 'crm-import-status', message, error }); };
-  const isContacts = () => location.pathname === '/contacts';
-  const visible = element => !element.hidden && getComputedStyle(element).display !== 'none' && getComputedStyle(element).visibility !== 'hidden' && element.getClientRects().length > 0;
-  const importDialog = () => [...document.querySelectorAll('[role="dialog"],[aria-modal="true"],.modal,.modal-content,.modal-dialog')].find(dialog => visible(dialog) && /Import Contacts/i.test(dialog.textContent || '') && dialog.querySelector('input[type="file"]'));
-  const bindCrmImport = () => {
-    const dialog = importDialog(), input = dialog?.querySelector('input[type="file"]');
-    if (!input || input.dataset.salesgodCallingCapture) return;
-    input.dataset.salesgodCallingCapture = 'true';
-    input.addEventListener('change', async () => {
-      try {
-        const file = input.files?.[0]; if (!file) return;
-        if (file.size > 400000) throw new Error('CSV file exceeds 400 KB.');
-        const csv = await file.text();
-        crmImport = { fileName: file.name, name: file.name.replace(/\.csv$/i, '').slice(0, 120) || 'CRM import', csv, confirmed: false };
-        importStatus(`Captured ${file.name}. Complete Import in SalesGodCRM, then return to this calling-list tab.`);
-        const submit = [...dialog.querySelectorAll('button')].find(button => compact(button.textContent) === 'Import');
-        if (!submit) throw new Error('SalesGodCRM Import submit control is unavailable.');
-        const captured = crmImport;
-        submit.addEventListener('click', () => {
-          const deadline = Date.now() + 20000;
-          const verifyAccepted = () => {
-            if (crmImport !== captured) return;
-            crmImport.confirmed = !document.contains(dialog) || dialog.hidden || getComputedStyle(dialog).display === 'none';
-            if (crmImport.confirmed) {
-              importStatus(`SalesGodCRM accepted ${crmImport.fileName}. Return to the calling-list tab to review it.`);
-              handoffCrmImport(); return;
-            }
-            if (Date.now() < deadline) return setTimeout(verifyAccepted, 250);
-            importStatus('SalesGodCRM has not accepted the import yet. Resolve its import dialog, then try again.', true);
-          };
-          setTimeout(verifyAccepted, 250);
-        }, { once: true });
-      } catch (error) { crmImport = undefined; importStatus('Import was not captured: ' + error.message, true); }
-    });
-  };
-  const compact = value => String(value || '').trim().replace(/\s+/g, ' ');
-  if (typeof MutationObserver !== 'undefined') new MutationObserver(bindCrmImport).observe(document.documentElement, { childList: true, subtree: true });
-  const openCrmImport = async () => {
-    if (!isContacts()) throw new Error('Open Contacts from the SalesGodCRM left menu before importing.');
-    if (dialer.owned) throw new Error('Finish the current list contact before importing.');
-    await dialer.inspect();
-    if (!importDialog()) {
-      const open = [...document.querySelectorAll('button,a,[role="button"],input[type="button"]')].find(button => visible(button) && !button.disabled &&
-        [button.textContent, button.getAttribute('aria-label'), button.getAttribute('title'), button.value].some(label => compact(label).toLowerCase() === 'import contacts') && !button.closest('[role="dialog"],.modal,[aria-modal="true"]'));
-      if (!open) throw new Error('SalesGodCRM Import Contacts control was not found. Open Contacts and check that Import Contacts is available.');
-      open.click();
-    }
-    const deadline = Date.now() + 8000;
-    while (!importDialog()) {
-      if (Date.now() >= deadline) throw new Error('SalesGodCRM did not open its Import Contacts file dialog. Return to Contacts and try its native Import Contacts control.');
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    bindCrmImport(); window.focus();
-    importStatus('Import dialog opened in SalesGodCRM. Choose your CSV and complete Import there, then return to this calling-list tab.');
-    return { opened: true };
-  };
+  let report, listPopup, listToken, listPort, listConnectionId, dialer, listWatch;
+  const hasDialer = () => Boolean(document.getElementById('page-header-call-control-dropdown'));
   const pending = new Map();
   const request = (name, data = {}) => new Promise((resolve, reject) => {
     const requestId = crypto.randomUUID(); const timer = setTimeout(() => { pending.delete(requestId); reject(new Error('Audio hook did not acknowledge.')); }, 6000);
@@ -140,11 +83,11 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
     const waiter = pending.get(event.data.requestId);
     if (waiter) { clearTimeout(waiter.timer); pending.delete(event.data.requestId); event.data.error ? waiter.reject(new Error(event.data.error)) : waiter.resolve(event.data.status); }
     report = event.data.status;
-    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11'].includes(report.version)) return;
+    if (!report || !['0.1.0', '0.1.1', '0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11', '0.4.12'].includes(report.version)) return;
     $('state').textContent = report.testing ? 'Testing synthetic audio locally…' : report.armed ? 'Local routing enabled · OpenAI disconnected' : 'Local routing disabled · OpenAI disconnected';
     $('arm').disabled = report.armed || report.testing;
-    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11'].includes(report.version) || report.voiceState !== 'disconnected';
-    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11'].includes(report.version);
+    voiceButton.disabled = !report.armed || report.testing || !['0.2.0', '0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11', '0.4.12'].includes(report.version) || report.voiceState !== 'disconnected';
+    callButton.disabled = voiceButton.disabled || !['0.3.0', '0.3.2', '0.4.0', '0.4.1', '0.4.2', '0.4.3', '0.4.4', '0.4.5', '0.4.6', '0.4.7', '0.4.8', '0.4.9', '0.4.10', '0.4.11', '0.4.12'].includes(report.version);
     if (report.voiceState && report.voiceState !== 'disconnected') $('state').textContent = `Local routing enabled · Voice setup ${report.voiceState} · Check setup window for OpenAI status`;
     $('test').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
     $('rtc').disabled = !report.armed || report.testing || (report.voiceState && report.voiceState !== 'disconnected');
@@ -161,7 +104,7 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
   $('rtc').onclick = () => command('peer-test');
   $('stop').onclick = () => command('disarm');
   listButton.onclick = () => {
-    if (!isContacts()) { $('error').textContent = 'Open Contacts from the SalesGodCRM left menu, then click Open calling list again. Imported names are verified there before each call.'; return; }
+    if (!hasDialer()) { $('error').textContent = 'Keep a logged-in SalesGodCRM page with its phone dialer open.'; return; }
     if (listPopup && !listPopup.closed) { $('error').textContent = 'Use the existing calling-list window.'; return; }
     listToken = crypto.randomUUID();
     listPopup = window.open('http://127.0.0.1:28431/campaigns#' + new URLSearchParams({ token: listToken, origin: location.origin }), 'salesgod-list-' + listToken);
@@ -177,22 +120,19 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
     commandPort.onmessage = async ({ data }) => {
       if (!data || typeof data.id !== 'string') return;
       if (data.command === 'ping') {
-        commandPort.postMessage({ id: data.id, ...(isContacts() ? { result: { ready: true } } : { error: 'Keep SalesGodCRM on Contacts, then reopen the calling list from its extension.' }) }); return;
+        commandPort.postMessage({ id: data.id, ...(hasDialer() ? { result: { ready: true, dialMode: 'direct-keypad' } } : { error: 'Keep a logged-in SalesGodCRM page with its phone dialer open.' }) }); return;
       }
       if (busy) { commandPort.postMessage({ id: data.id, error: 'CRM is processing another command. Wait for it to finish.' }); return; }
       busy = true;
       try {
         let result;
-        if (data.command === 'import-contacts') result = await openCrmImport();
-        else if (data.command === 'inspect') result = await dialer.inspect();
-        else if (data.command === 'contact') { const contact = await dialer.requireImportedContact(data); result = { verified: true, name: contact.name }; }
+        if (data.command === 'inspect') result = await dialer.inspect();
         else if (data.command === 'prepare') { await dialer.inspect(); await request('arm'); await request('prepare-voice', { mode: 'live', token: data.token }); result = { prepared: true }; }
         else if (data.command === 'dial') {
           if (!report?.armed || report.voiceState !== 'audio-connected') throw new Error('Prepare silent AI audio first.');
           result = await dialer.dial(data);
         } else if (data.command === 'status') result = await dialer.status();
         else if (data.command === 'hangup') result = await dialer.hangup(data.attempt);
-        else if (data.command === 'note') result = await dialer.saveNote(data);
         else if (data.command === 'release') { await dialer.release(data.attempt); await request('disarm'); result = { released: true }; }
         else throw new Error('Unknown list command.');
         commandPort.postMessage({ id: data.id, result });
@@ -200,7 +140,6 @@ button:focus-visible,summary:focus-visible{outline:3px solid var(--jml-purple);o
       finally { busy = false; }
     };
     listPort.start(); listPopup.postMessage({ source: 'salesgod-campaign-v1', type: 'paired', token: listToken }, event.origin, [channel.port2]);
-    handoffCrmImport();
     listWatch = setInterval(() => {
       if (!listPopup.closed) return;
       if (dialer.owned) void dialer.hangup(dialer.owned.attempt).catch(() => { $('error').textContent = 'Calling-list window closed; check the CRM call and hang up manually if needed.'; });

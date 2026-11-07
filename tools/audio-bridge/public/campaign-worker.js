@@ -63,7 +63,7 @@
           if (next.finished) { this.onState({ state: 'finished', campaignId: id }); return; }
           this.simulation = next.settings.simulation;
           this.current = next.contact; this.onState({ state: 'preparing', contact: this.current });
-          const contactPath = '/' + this.current.id; let dispatchAttempted = false, callObserved = false, noteAttempted = false, outcome, diagnostic;
+          const contactPath = '/' + this.current.id; let dispatchAttempted = false, callObserved = false, outcome, diagnostic;
           const saveRecording = async blob => {
             const response = await fetch('/campaigns-api/' + id + contactPath + '/recording', {
               method: 'POST', headers: { 'Content-Type': 'audio/mpeg', 'X-Worker-Id': this.workerId }, body: blob,
@@ -90,9 +90,6 @@
               }
             } else {
               await this.driver('inspect');
-              // Provider-native import is a prerequisite, not part of dispatch.
-              // Keep this check ahead of AI preparation and the durable permit.
-              await this.driver('contact', { phone: this.current.phone, firstName: this.current.firstName, lastName: this.current.lastName });
               this.audio.configure({ automatic: true, voice: next.settings.voice || 'marin', responsePauseMs: next.settings.responsePauseMs ?? 250, campaignId: id, contactId: this.current.id, workerId: this.workerId,
                 screeningIntroduction: next.settings.screeningIntroduction || '', saveTurn: turn => this.post(contactPath + '/transcript', turn), saveRecording,
                 saveAudioTranscript: body => this.post(contactPath + '/audio-transcript', body) });
@@ -146,48 +143,23 @@
               }
               await stopped;
               if (this.audio.status().recordingState === 'failed' || this.audio.status().transcriptState === 'failed') { outcome = 'needs_review'; diagnostic = this.diagnostic(); }
-              if (callObserved) {
-                const completedOutcome = outcome; noteAttempted = true;
-                try {
-                  await this.driver('note', { attempt: this.current.id, phone: this.current.phone, outcome,
-                    disposition: this.audio.status().callDisposition });
-                } catch (error) {
-                  outcome = 'needs_review';
-                  diagnostic = this.diagnostic(`Call ended as ${completedOutcome || 'unknown'}, but its SalesGodCRM note was not confirmed: ${error.message || 'No cause reported.'}`);
-                }
-              }
               await this.driver('release', { attempt: this.current.id });
             }
             await this.post(contactPath + '/finish', { outcome, ...(needsReview(outcome) ? { diagnostic: diagnostic || this.diagnostic() } : {}) });
             this.onState({ state: 'contact_finished', outcome, contact: this.current });
           } catch (error) {
-            const importNotReady = !dispatchAttempted && /^CRM import not ready:/i.test(error.message || '');
             const diagnostic = this.diagnostic(error.message || 'Attempt failed without an error message.');
-            if (importNotReady) {
-              await this.post(contactPath + '/defer', { message: error.message });
-              this.pauseRequested = true; this.onState({ state: 'import_waiting', contact: this.current });
-            } else if (this.simulation) this.rehearsal?.stop();
+            if (this.simulation) this.rehearsal?.stop();
             else {
               const stopped = this.audio.stop('failed', diagnostic.message || 'Attempt failed without a reported cause').catch(() => {});
               if (dispatchAttempted) await this.driver('hangup', { attempt: this.current.id }).catch(() => {});
-              else await this.driver('release', { attempt: this.current.id }).catch(() => {});
               await stopped;
-              if (callObserved && !noteAttempted) {
-                const phone = await this.driver('status').catch(() => ({ state: 'unknown' }));
-                if (phoneEnded(phone.state)) {
-                  noteAttempted = true;
-                  await this.driver('note', { attempt: this.current.id, phone: this.current.phone, outcome: dispatchAttempted ? 'unknown' : 'failed' })
-                    .catch(noteError => { diagnostic.message = [diagnostic.message, `CRM note was not confirmed: ${noteError.message || 'No cause reported.'}`].filter(Boolean).join(' · ').slice(0, 1500); });
-                  await this.driver('release', { attempt: this.current.id }).catch(() => {});
-                }
-              }
+              await this.driver('release', { attempt: this.current.id }).catch(() => {});
               if (this.audio.status().recordingState === 'failed') diagnostic.message = [diagnostic.message, this.audio.status().stopReason].filter(Boolean).join(' · ').slice(0, 1500);
             }
-            if (!importNotReady) {
-              await this.post(contactPath + '/finish', { outcome: dispatchAttempted ? 'unknown' : 'failed', diagnostic }).catch(() => {});
-              await this.post('/pause').catch(() => {}); this.pauseRequested = true;
-              this.onState({ state: 'needs_review', contact: this.current });
-            }
+            await this.post(contactPath + '/finish', { outcome: dispatchAttempted ? 'unknown' : 'failed', diagnostic }).catch(() => {});
+            await this.post('/pause').catch(() => {}); this.pauseRequested = true;
+            this.onState({ state: 'needs_review', contact: this.current });
           }
           this.current = null;
         }

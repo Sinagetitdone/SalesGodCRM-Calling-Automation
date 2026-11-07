@@ -6,6 +6,8 @@ Local calling-list prototype using the owner's logged-in SalesGodCRM dialer, a c
 
 ## Current behavior
 
+- Package **1.0.12** / extension **0.4.12** uses the global CRM keypad from any logged-in CRM page with its dialer. It no longer looks up, creates, verifies or edits CRM contacts/notes. Names, call outcomes, transcripts, recordings and business-disposition events stay local. This supersedes contact-import/row-call/note requirements in earlier release entries below.
+
 - Package **1.0.11** / extension **0.4.11** verifies the CRM connection before enabling Start and before starting a list. Idle page refreshes replace stale ports; missing acknowledgements show a clear error before any contact is claimed. Reload extension, refresh idle CRM and reopen from Contacts after updating.
 
 - Package **1.0.10** adds a searchable timezone list to Call settings, with common cities first and San Diego mapped to America/Los_Angeles. Extension 0.4.10 is unchanged.
@@ -62,7 +64,7 @@ Optional synthetic demonstrations:
 
     npm run audio:bridge
 
-Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.10**; reload and refresh the CRM only while idle. Open CRM **Contacts**, choose **Open calling list** in the extension, then **Import contacts for calling** inside the calling-list page. Choose the CSV directly from your computer and create a local draft. Uploading also works by opening /campaigns directly; only calling requires pairing and existing CRM contacts. Opening/importing never starts calls. `/campaigns` is exclusively for real calling lists. **AI Agents Test Call** opens `/supervised-call` with manual controls and no-phone Live AI rehearsal (or free Offline workflow check). The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
+Open http://127.0.0.1:28431 for setup instructions. The [calling-list workflow](tools/audio-extension/CALLING-LISTS.md) uses extension **0.4.10**; reload and refresh the CRM only while idle. Open any logged-in CRM page with its dialer, choose **Open calling list** in the extension, then **Import contacts for calling** inside the calling-list page. Choose the CSV directly from your computer and create a local draft. Uploading also works by opening /campaigns directly; only calling requires the paired global CRM dialer. Opening/importing never starts calls. `/campaigns` is exclusively for real calling lists. **AI Agents Test Call** opens `/supervised-call` with manual controls and no-phone Live AI rehearsal (or free Offline workflow check). The [supervised procedure](tools/audio-extension/SUPERVISED-FIRST-CALL.md) and [voicemail procedure](tools/audio-extension/VOICEMAIL.md) describe manual controls. `/voice-test` and `/call-simulator` can incur API usage. VB-CABLE is not required.
 
 - [Extension setup and limits](tools/audio-extension/README.md)
 - [Observed no-call test results](tools/audio-extension/TEST-RESULTS.md)

@@ -1,4 +1,6 @@
-# Calling lists — package 1.0.9 / extension 0.4.10
+# Calling lists — package 1.0.12 / extension 0.4.12
+
+Current workflow (1.0.12): upload names/numbers locally and call them directly through the global keypad. Any logged-in SalesGodCRM page with the dialer works, including Dashboard. No CRM contact import, contact lookup, form verification or contact-note writes occur. Names, call outcomes, business disposition events, transcripts and MP3s stay in local Calling lists / Previous Conversations. This supersedes all contact-row/Contacts-page/note requirements in older entries below. The dialer confirms the entered number, caller and generated microphone, retains once-only dispatch and requires exact phone-target evidence for call control. No real call was placed to verify this change.
 
 Current policy (1.0.9): pressing Start processes pending contacts immediately at any time. Start/End Hour controls and backend calling-hour gates have been removed, including for older lists with saved hour settings. Any hour-window requirements in older release notes below are superseded. Explicit Start, suppression, CRM identity and one-attempt dispatch checks remain.
 

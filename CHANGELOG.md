@@ -4,6 +4,12 @@ All notable project changes will be documented here.
 
 ## Unreleased
 
+### 2026-11-07 — Call directly without CRM contacts (1.0.12 / extension 0.4.12)
+
+- Removed contact preflight, contact forms, import gating and post-call CRM note writes from real list execution. The dialer now enters the local-list number into the global keypad, confirms the exact echoed number and clicks its Call control. No contact creation is performed.
+- Open calling list and health checks now work on any logged-in CRM page with the dialer. Names, results, transcripts, recordings and business disposition events remain local. Dispatch permits, selected caller/generated microphone, busy-call protection, exact target ownership, cleanup and no-redial rules remain.
+- Inspected the idle keypad and closed the stalled verification dialog without saving. Synthetic tests cover Dashboard/Calendar/Messenger, missing contacts, number mismatch, disabled Call, duplicate/uncertain dispatch and refusal to hang up foreign or name-only targets. No phone call was placed.
+
 ### 2026-11-07 — Verify CRM readiness before Start (1.0.11 / extension 0.4.11)
 
 - Repaired idle calling-page reload pairing by replacing an old port for a fresh per-page connection ID, while preserving the driver/attempt map and refusing replacement during an owned call. Duplicate and foreign pairing requests are ignored.

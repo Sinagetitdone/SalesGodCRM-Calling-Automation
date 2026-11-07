@@ -167,7 +167,7 @@ test('Start verifies CRM acknowledgement before starting a worker and keeps cont
   const node = () => ({ children: [], value: '', hidden: true, append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; } });
   const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
   const campaign = { id: 'list', name: 'Synthetic', state: 'draft', settings: { simulation: false }, contacts: [{ id: 'contact', state: 'pending' }], events: [] };
-  const opener = { postMessage() {} }, port = { start() {}, close() { closed++; }, postMessage(data) { if (acknowledge) queueMicrotask(() => this.onmessage({ data: { id: data.id, result: { ready: true } } })); } };
+  const opener = { postMessage() {} }, port = { start() {}, close() { closed++; }, postMessage(data) { if (acknowledge) queueMicrotask(() => this.onmessage({ data: { id: data.id, result: { ready: true, dialMode: 'direct-keypad' } } })); } };
   const window = { opener, SalesGodCall: { status: () => ({}) }, SalesGodCampaignWorker: class { async run() { starts++; } }, addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
   vm.runInNewContext(source, { window, document: { body: { dataset: { workspace: 'live' } }, getElementById: get, createElement: node },
     location: { hash: '#token=test&origin=https%3A%2F%2Fwww.salesgodcrm.net' }, URLSearchParams, Option: class {}, crypto: { randomUUID },
@@ -393,9 +393,9 @@ test('stopped call outcomes retain evidence priority for voicemail, opt-out, par
     assert.equal(decide(status, phoneState), expected, label);
   }
 });
-function workerFixture(simulation = true, failDial = false, terminal = {}, failNote = false) {
-  const f = fixture(simulation), window = {}, states = [], commands = [], dialPayloads = [], notePayloads = [];
-  const { phoneEndsAfterPoll = false, importNotReady = false, ...terminalStatus } = terminal;
+function workerFixture(simulation = true, failDial = false, terminal = {}) {
+  const f = fixture(simulation), window = {}, states = [], commands = [], dialPayloads = [];
+  const { phoneEndsAfterPoll = false, ...terminalStatus } = terminal;
   let now = 0, session = randomUUID(), statusReads = 0, status = { canPrepare: true, prepared: true, sessionId: session, phase: 'waiting' }, phone = 'idle';
   vm.runInNewContext(workerSource, { window, crypto: { randomUUID }, setInterval, clearInterval, document: { getElementById: () => ({}) } });
   const api = async (path, body) => {
@@ -416,9 +416,8 @@ function workerFixture(simulation = true, failDial = false, terminal = {}, failN
   const audio = { configure(options) { this.options = options; status = { canPrepare: true, prepared: true, sessionId: randomUUID(), phase: 'waiting' }; }, startRecording() { commands.push('record'); }, pair() {}, async prepare() {}, status: () => status, async stop() { status = { ...status, phase: 'stopped', stopping: false }; } };
   const driver = async (command, data) => {
     commands.push(command);
-    if (command === 'contact' && importNotReady) throw new Error('CRM import not ready: synthetic contact is still processing.');
+    if (['contact', 'note', 'import-contacts'].includes(command)) throw new Error('Calling must not access CRM contacts or notes.');
     if (command === 'dial') { dialPayloads.push(data); phone = 'active'; statusReads = 0; if (failDial) throw new Error('Lost acknowledgement'); status = { ...status, phase: phoneEndsAfterPoll ? 'waiting' : 'stopped', humanAnswered: true, conversationOutcome: 'completed', ...terminalStatus }; }
-    if (command === 'note') { notePayloads.push(data); if (failNote) throw new Error('CRM note save rejected'); }
     if (command === 'hangup') phone = 'ended';
     if (command === 'status') {
       if (phoneEndsAfterPoll && phone === 'active' && statusReads++ > 0) phone = 'ended';
@@ -427,7 +426,7 @@ function workerFixture(simulation = true, failDial = false, terminal = {}, failN
     return {};
   };
   const worker = new window.SalesGodCampaignWorker({ api, audio, driver, onState: s => states.push(s.state), wait: async ms => { now += ms; }, now: () => now });
-  return { ...f, worker, commands, dialPayloads, notePayloads, states, audio };
+  return { ...f, worker, commands, dialPayloads, states, audio };
 }
 test('simulated list finishes sequentially, saves transcripts and notifies without touching audio or dialer', async () => {
   const f = workerFixture(); try {
@@ -490,47 +489,34 @@ test('fake live driver hangs up before next dispatch, and lost dispatch acknowle
   const f = workerFixture(false, false, { callDisposition: 'meeting_set' }); try {
     await f.worker.run(f.id); assert.equal(f.commands.filter(x => x === 'dial').length, 2);
     assert.deepEqual(f.dialPayloads.map(({ firstName, lastName }) => ({ firstName, lastName })), [{ firstName: 'Alex', lastName: 'Example' }, { firstName: 'Sam', lastName: 'Example' }]);
-    assert.deepEqual(f.notePayloads.map(({ outcome, disposition }) => ({ outcome, disposition })), [
-      { outcome: 'completed', disposition: 'meeting_set' }, { outcome: 'completed', disposition: 'meeting_set' },
-    ]);
-    const dial = f.commands.indexOf('dial'), note = f.commands.indexOf('note', dial), release = f.commands.indexOf('release', note), next = f.commands.indexOf('dial', dial + 1);
-    assert.ok(f.commands.indexOf('hangup', dial) < note); assert.ok(note < release && release < next); assert.equal(f.states.at(-1), 'finished');
+    assert.equal(f.commands.includes('note'), false); assert.equal(f.commands.includes('contact'), false);
+    const dial = f.commands.indexOf('dial'), release = f.commands.indexOf('release', dial), next = f.commands.indexOf('dial', dial + 1);
+    assert.ok(f.commands.indexOf('hangup', dial) < release); assert.ok(release < next); assert.equal(f.states.at(-1), 'finished');
   } finally { f.store.close(); }
   const uncertain = workerFixture(false, true); try {
     await uncertain.worker.run(uncertain.id); assert.equal(uncertain.commands.filter(x => x === 'dial').length, 1);
     assert.deepEqual(uncertain.store.read(uncertain.id).contacts.map(c => c.state), ['unknown', 'pending']); assert.equal(uncertain.store.read(uncertain.id).state, 'paused');
   } finally { uncertain.store.close(); }
 });
-test('unfinished CRM import returns the uncalled contact to pending and pauses before preparation or dispatch', async () => {
-  const f = workerFixture(false, false, { importNotReady: true });
+test('missing CRM import does not block a local list and no contact or form commands are sent', async () => {
+  const f = workerFixture(false);
   try {
     await f.worker.run(f.id); const list = f.store.read(f.id);
-    assert.deepEqual(list.contacts.map(contact => contact.state), ['pending', 'pending']);
-    assert.equal(list.state, 'paused'); assert.deepEqual(f.commands, ['inspect', 'contact']);
-    assert.ok(list.events.some(event => event.event === 'crm_import_waiting'));
-    assert.ok(list.events.some(event => /failure_detail: CRM import not ready/.test(event.event)));
-    assert.ok(f.states.includes('import_waiting'));
+    assert.deepEqual(list.contacts.map(contact => contact.state), ['completed', 'completed']);
+    assert.equal(list.state, 'finished'); assert.equal(f.commands.filter(command => command === 'dial').length, 2);
+    assert.equal(f.commands.some(command => ['contact', 'note', 'import-contacts'].includes(command)), false);
+    assert.equal(list.events.some(event => event.event === 'crm_import_waiting'), false);
   } finally { f.store.close(); }
 });
-test('voicemail and no-answer outcomes are written to CRM notes before the list advances', async () => {
+test('voicemail and no-answer outcomes persist locally while the list advances without CRM note access', async () => {
   for (const [terminal, expected] of [
     [{ voicemailOutcome: 'playback_completed', humanAnswered: false, conversationOutcome: undefined }, 'voicemail_played'],
     [{ humanAnswered: false, conversationOutcome: undefined, customerTurns: 0, phoneEndsAfterPoll: true }, 'no_answer'],
   ]) {
     const f = workerFixture(false, false, terminal);
-    try { await f.worker.run(f.id); assert.deepEqual(f.notePayloads.map(item => item.outcome), [expected, expected]); }
+    try { await f.worker.run(f.id); assert.deepEqual(f.store.read(f.id).contacts.map(item => item.state), [expected, expected]); assert.equal(f.commands.includes('note'), false); }
     finally { f.store.close(); }
   }
-});
-test('an unconfirmed CRM note is logged and the list advances without another Start click', async () => {
-  const f = workerFixture(false, false, { callDisposition: 'follow_up' }, true);
-  try {
-    await f.worker.run(f.id); const list = f.store.read(f.id);
-    assert.equal(f.notePayloads.length, 2); assert.ok(f.notePayloads.every(item => item.disposition === 'follow_up'));
-    assert.deepEqual(list.contacts.map(contact => contact.state), ['needs_review', 'needs_review']);
-    assert.match(list.events.find(event => /failure_detail/.test(event.event))?.event || '', /CRM note save rejected/);
-    assert.equal(list.state, 'finished');
-  } finally { f.store.close(); }
 });
 test('real worker starts recording before dialing, and logs MP3 failures while advancing the list', async () => {
   const f = workerFixture(false, false, { recordingState: 'failed', stopReason: 'Call recording could not be saved' });

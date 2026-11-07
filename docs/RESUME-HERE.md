@@ -1,5 +1,9 @@
 # Resume here — 2026-11-07
 
+## No CRM contact dependency — 1.0.12 / extension 0.4.12
+
+The owner removed contact lookup/create/verify and the Contacts-page requirement. Real list calls now use the global keypad on any logged-in CRM page with the dialer, confirming the exact phone value before dispatch. Contact forms, native import capture and CRM note commands have been removed. Local names, technical outcomes, business-disposition audio events, transcripts and recordings remain saved. Reload extension 0.4.12, refresh idle CRM and reopen the local list after updating. Older extension pings lack direct-keypad capability and are rejected before Start. Existing failed/uncertain attempts are not silently reset or redialed. Synthetic tests and idle keypad inspection only; no real call was made.
+
 ## CRM readiness / stale-pairing fix — 1.0.11 / extension 0.4.11
 
 Incident logs show owner_started/claimed followed by CRM acknowledgement timeouts before dispatch. A refreshed calling page could not replace the CRM panel's retained port. A fresh connection ID now replaces idle stale pairing while retaining the adapter's attempt history; owned calls cannot be rebound. Read-only ping confirms Contacts readiness initially, every five idle seconds and within three seconds before Start. Failure clears the usable connection and leaves contacts unclaimed; initial pairing can resume when the same authorized opener returns. A refreshed/closed CRM opener requires reopening from its Contacts extension. Reload extension 0.4.11, refresh idle CRM, reopen calling lists and wait for connection verified. No actual calls made and no historical contact outcomes changed.

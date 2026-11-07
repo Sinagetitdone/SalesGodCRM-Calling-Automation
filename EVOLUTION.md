@@ -1,5 +1,9 @@
 # Evolution
 
+## 2026-11-07 — Global-keypad calling without CRM contacts (1.0.12 / extension 0.4.12)
+
+The owner explicitly removed the Contacts-page and provider-contact requirements after a contact-verification Close timeout. Read-only inspection confirmed the closed CRM modal remains mounted with display:none, so the prior removal-based wait was invalid. Removed the entire contact-form workflow instead of retaining it in dispatch. Calls now use the inspected global #contactNumber field and Call control, checking the echoed number and selected caller/microphone before consuming the attempt. Readiness and opening work on any CRM page with the global phone control. Local names, outcomes and conversation archives remain authoritative; CRM contact notes are no longer written. Exact phone target evidence is required to control/hang up a call; a name-only target requires review. No live phone call was placed.
+
 ## 2026-11-07 — Verify the paired CRM before starting (1.0.11 / extension 0.4.11)
 
 The operator reported Start doing nothing. Local events established pre-dispatch acknowledgement timeouts, and inspection found the CRM panel refused new pairing while retaining an old MessagePort. Page-specific pairing IDs now allow idle replacement without losing adapter attempt history or rebinding an owned call. Readiness ping/idle health monitoring and a three-second pre-Start check prevent backend start/claim when disconnected. This preserves explicit Start after any reconnection and does not redial or rewrite historical failures. Synthetic port and page regressions cover the new transitions; no phone call was placed.

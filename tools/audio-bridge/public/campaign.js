@@ -127,16 +127,16 @@
     connectionCheck = (async () => {
       try {
         const result = await driver('ping', {}, 3000);
-        if (!result?.ready) throw new Error('Reload the updated extension and reopen the calling list from SalesGodCRM Contacts.');
+        if (!result?.ready || result.dialMode !== 'direct-keypad') throw new Error('Reload the updated extension and reopen the calling list from SalesGodCRM.');
         controlReady = true; $('driverState').textContent = 'CRM connection verified. Ready for Start.'; render();
-      } catch (e) { disconnectControl('CRM connection lost. Keep SalesGodCRM Contacts open and reopen the calling list from the extension. ' + e.message); throw e; }
+      } catch (e) { disconnectControl('CRM connection lost. Keep a logged-in SalesGodCRM page open and reopen the calling list from the extension. ' + e.message); throw e; }
     })();
     try { await connectionCheck; } finally { connectionCheck = undefined; }
   }
   function driver(command, data = {}, timeoutMs = 15000) {
     if (practice) return Promise.reject(new Error('Rehearsal cannot control the CRM dialer.'));
     const run = () => new Promise((resolve, reject) => {
-      if (!control) return reject(new Error('Open this list through Open calling list in SalesGodCRM Contacts.'));
+      if (!control) return reject(new Error('Open this list through Open calling list in SalesGodCRM.'));
       const id = crypto.randomUUID(), timer = setTimeout(() => { pending.delete(id); reject(new Error('CRM did not acknowledge. Check the dialer before resuming.')); }, timeoutMs);
       pending.set(id, { resolve, reject, timer }); control.postMessage({ id, command, ...data });
     });
@@ -149,7 +149,7 @@
       control.onmessage = ({ data }) => {
         const p = pending.get(data?.id); if (!p) return; clearTimeout(p.timer); pending.delete(data.id); data.error ? p.reject(new Error(data.error)) : p.resolve(data.result);
       };
-      control.onmessageerror = () => disconnectControl('CRM connection interrupted. Reopen the calling list from SalesGodCRM Contacts.');
+      control.onmessageerror = () => disconnectControl('CRM connection interrupted. Reopen the calling list from SalesGodCRM.');
       control.start(); $('driverState').textContent = 'Checking CRM connection…'; render(); void checkConnection().catch(error);
     });
     const hello = () => { if (!control) { connectionId ??= crypto.randomUUID(); window.opener.postMessage({ source: 'salesgod-campaign-v1', type: 'hello', token, connectionId }, origin); } };

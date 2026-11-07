@@ -30,6 +30,7 @@ Do not silently resolve material conflicts. Record the decision or surface the a
 - Do not allow an AI agent to invent business facts, pricing, contractual terms, or policies.
 - Preserve an auditable trail for material campaign and call-state changes.
 - Browser automation of the owner's logged-in SalesGodCRM dialer is an explicitly requested integration path. Keep browser actions behind the provider adapter and verify observable call state before retrying dispatch.
+- Local list dialing uses the global CRM keypad from any logged-in page with the dialer. Do not require, create, verify or edit CRM contacts or contact notes. Keep names, outcomes, transcripts, recordings and event logs local; retain selected-microphone/caller checks, once-only dispatch and verified phone-target ownership.
 - Add deterministic tests for state transitions and integration contracts.
 - Update Engineering Memory when a reusable lesson or bug is discovered.
 - Update Evolution or ADR documentation when system direction or an architecture decision changes.

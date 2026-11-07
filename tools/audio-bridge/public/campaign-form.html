@@ -15,8 +15,8 @@
 <label for="listName">List name</label><input id="listName" maxlength="120" value="My calling list">
 <input id="contactFile" type="file" accept=".csv,text/csv" hidden><textarea id="contactCsv" hidden></textarea>
 <p id="crmImportStatus" role="status">Choose a CSV from your computer. No SalesGodCRM connection is needed to upload or create a draft.</p>
-<p>Starting calls requires the paired SalesGodCRM extension. Contacts must already exist there with matching names and numbers so the CRM can display their names and save call notes. This local upload does not import or change CRM contacts.</p>
-<p><strong>Real calls only.</strong> Creating the draft never calls anyone. Before every call, the extension must find the exact imported phone and name in SalesGodCRM; otherwise the list pauses before dialing.</p>
+<p>Starting calls requires the paired SalesGodCRM extension. Any logged-in CRM page with the global dialer can stay open; the Contacts page and saved CRM contacts are not required. Numbers are entered directly into the keypad. Names, call results, transcripts and recordings are saved locally in this list and Previous Conversations. CRM contacts and contact notes are not created or changed.</p>
+<p><strong>Real calls only.</strong> Creating the draft never calls anyone. Each call uses the imported number, selected caller and generated AI microphone; another active call or uncertain target stops the attempt.</p>
 <details><summary>Call settings</summary>
 <label for="responsePauseMs">Live-call pause before replying (milliseconds, 200–1000)</label><input id="responsePauseMs" type="number" min="200" max="1000" value="250">
 <p>250 ms means 0.25 seconds of silence before the AI treats the customer’s turn as finished. Lower values respond sooner but may interrupt a hesitation. This applies to human conversations; voicemail detection keeps its own timing.</p>

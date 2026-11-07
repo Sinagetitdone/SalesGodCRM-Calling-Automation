@@ -38,69 +38,31 @@ test('panel accepts the installed manifest version and enables supervised contro
   tile.onkeydown({ target: get('arm'), key: 'ArrowRight' });
   assert.equal(get('salesgod-local-audio-panel').style.left, before, 'control keyboard input must not drag');
 });
-test('panel hands a CRM-accepted file to the local list and never contains an upload endpoint or provider API', () => {
-  assert.match(panelSource, /type: 'crm-import'/);
-  assert.match(panelSource, /crmImport\?\.confirmed/);
-  assert.match(panelSource, /input\[type="file"\]/);
-  assert.doesNotMatch(panelSource, /fetch\(|XMLHttpRequest|\/api\/contacts/i);
-  assert.match(panelSource, /result = \{ verified: true, name: contact\.name \}/, 'message-port replies must not contain DOM elements');
+test('panel contains no contact import, lookup or note commands', () => {
+  assert.doesNotMatch(panelSource, /crm-import|requireImportedContact|saveNote|contactTable|first_name/);
 });
-function importPanel({ missing = false, neverOpens = false } = {}) {
-  const nodes = new Map(), listeners = [], messages = [], timers = [];
-  let opened = false, submitted = false, focused = 0, clicks = 0, time = 0, closedPorts = 0, pairings = 0, adapters = 0, adapter;
-  const node = () => ({ disabled: false, textContent: '', style: {}, before() {}, after() {}, prepend() {} });
+test('global dialer pairing repairs idle reloads and pings on Dashboard without contact access', async () => {
+  const nodes = new Map(), listeners = [], messages = [];
+  let pairings = 0, closes = 0, adapters = 0, adapter, port;
+  const node = () => ({ style: {}, textContent: '', before() {}, after() {}, prepend() {} });
   const get = id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); };
   const root = { innerHTML: '', querySelector: get, getElementById: get };
-  const fileInput = { dataset: {}, files: [], addEventListener(type, fn) { this[type] = fn; } };
-  const submit = { textContent: 'Import', addEventListener(type, fn) { this[type] = fn; } };
-  const dialog = { textContent: 'Import Contacts', hidden: false, getClientRects: () => [1], querySelector: () => fileInput, querySelectorAll: () => [submit] };
-  const native = { textContent: 'Import Contacts', getAttribute: () => null, getClientRects: () => [1], closest: () => null, click() { clicks++; if (!neverOpens) opened = true; } };
-  const document = { getElementById() { return null; }, documentElement: { append() {} }, contains: () => !submitted,
-    querySelectorAll(selector) { return selector.includes('input[type="button"]') ? missing ? [] : [native] : opened && !submitted ? [dialog] : []; },
-    createElement() { return { ...node(), set id(value) { nodes.set(value, this); }, attachShadow: () => root }; } };
-  const popup = { closed: false, postMessage() { pairings++; } }; let port;
-  const window = { innerWidth: 1200, innerHeight: 900, postMessage() {}, focus() { focused++; }, open: () => popup,
-    SalesGodCampaignDialer: class { constructor() { adapters++; adapter = this; } async inspect() {} }, addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
-  vm.runInNewContext(panelSource, { document, window, location: { origin: 'https://www.salesgodcrm.net', pathname: '/contacts' },
-    crypto: { randomUUID: () => 'pair-token' }, URLSearchParams, MessageChannel: class { constructor() { this.port1 = port = { postMessage(data) { messages.push(data); }, start() {}, close() { closedPorts++; } }; this.port2 = {}; } },
-    getComputedStyle: () => ({ display: 'block', visibility: 'visible' }), Date: { now: () => time },
-    setTimeout(fn, ms) { if (ms === 100) { time += ms; queueMicrotask(fn); } else timers.push(fn); }, setInterval() {}, clearInterval() {} });
+  const document = { getElementById: id => id === 'page-header-call-control-dropdown' ? {} : null, documentElement: { append() {} },
+    createElement() { return { ...node(), set id(v) { nodes.set(v, this); }, attachShadow: () => root }; } };
+  const popup = { closed: false, postMessage() { pairings++; } };
+  const window = { innerWidth: 1200, innerHeight: 900, postMessage() {}, open: () => popup,
+    SalesGodCampaignDialer: class { constructor() { adapter = this; adapters++; } },
+    addEventListener(type, fn) { if (type === 'message') listeners.push(fn); } };
+  vm.runInNewContext(panelSource, { document, window, location: { origin: 'https://www.salesgodcrm.net', pathname: '/dashboard' },
+    crypto: { randomUUID: () => 'token' }, URLSearchParams, setInterval() {}, clearInterval() {},
+    MessageChannel: class { constructor() { this.port1 = port = { postMessage(data) { messages.push(data); }, close() { closes++; }, start() {} }; this.port2 = {}; } } });
   get('callingList').onclick();
-  const hello = (connectionId, extra = {}) => { for (const fn of listeners) fn({ origin: 'http://127.0.0.1:28431', source: popup, data: { source: 'salesgod-campaign-v1', token: 'pair-token', type: 'hello', connectionId }, ...extra }); };
-  hello('page-one');
-  return { messages, fileInput, submit, timers, counts: () => ({ focused, clicks }),
-    send: data => port.onmessage({ data }), accept() { submitted = true; }, hello, connectionCounts: () => ({ pairings, closedPorts, adapters }), owned() { adapter.owned = { attempt: 'synthetic' }; } };
-}
-test('CRM pairing replaces a reloaded idle page port, ignores duplicates/foreign windows and never replaces an owned call', async () => {
-  const env = importPanel();
-  await env.send({ id: 'health', command: 'ping' });
-  assert.equal(env.messages.find(m => m.id === 'health').result.ready, true);
-  env.hello('page-one'); env.hello('foreign', { source: {} });
-  assert.deepEqual(env.connectionCounts(), { pairings: 1, closedPorts: 0, adapters: 1 });
-  env.hello('page-two');
-  assert.deepEqual(env.connectionCounts(), { pairings: 2, closedPorts: 1, adapters: 1 });
-  env.owned(); env.hello('page-three');
-  assert.deepEqual(env.connectionCounts(), { pairings: 2, closedPorts: 1, adapters: 1 });
-});
-test('paired calling-list import opens the CRM control, captures the selected file and hands it off only after Import', async () => {
-  const env = importPanel();
-  await env.send({ id: 'open', command: 'import-contacts' });
-  assert.equal(env.messages.find(m => m.id === 'open').result.opened, true);
-  assert.deepEqual(env.counts(), { focused: 1, clicks: 1 });
-  env.fileInput.files = [{ name: 'synthetic.csv', size: 80, text: async () => 'first_name,last_name,phone\nTest,Person,+12025550101' }];
-  await env.fileInput.change();
-  assert.equal(env.messages.some(m => m.type === 'crm-import'), false);
-  env.submit.click(); env.accept(); env.timers.shift()();
-  const handoff = env.messages.find(m => m.type === 'crm-import');
-  assert.equal(handoff.fileName, 'synthetic.csv'); assert.match(handoff.csv, /Test,Person/);
-});
-test('paired import returns a visible error for missing controls or a dialog that never opens', async () => {
-  for (const options of [{ missing: true }, { neverOpens: true }]) {
-    const env = importPanel(options);
-    await env.send({ id: 'open', command: 'import-contacts' });
-    assert.match(env.messages.find(m => m.id === 'open').error, /not found|did not open/);
-    assert.equal(env.messages.some(m => m.type === 'crm-import'), false);
-  }
+  const hello = (connectionId, overrides = {}) => { for (const fn of listeners) fn({ source: popup, origin: 'http://127.0.0.1:28431', data: { source: 'salesgod-campaign-v1', token: 'token', type: 'hello', connectionId }, ...overrides }); };
+  hello('one'); await port.onmessage({ data: { id: 'ping', command: 'ping' } });
+  assert.equal(messages[0].result.ready, true); assert.equal(messages[0].result.dialMode, 'direct-keypad');
+  hello('one'); hello('foreign', { source: {} }); assert.equal(pairings, 1);
+  hello('two'); assert.equal(pairings, 2); assert.equal(closes, 1); assert.equal(adapters, 1);
+  adapter.owned = {}; hello('three'); assert.equal(pairings, 2);
 });
 function environment() {
   const listeners = new Map(); const messages = []; const originals = { requests: 0 };

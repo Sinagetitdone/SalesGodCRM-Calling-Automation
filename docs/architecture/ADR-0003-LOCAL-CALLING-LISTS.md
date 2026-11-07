@@ -21,3 +21,7 @@ Browser/computer suspension can interrupt a foreground worker; a thirty-second l
 ## 2026-11-07 policy update — package 1.0.9
 
 The owner explicitly removed calling-hour restrictions from the local list workflow. This supersedes earlier scheduling clauses in this ADR: explicit Start permits immediate processing at any time, and saved hour fields are ignored for existing lists. Both claim and dispatch gates were removed, with hour settings optional for API compatibility. Start authorization, suppression, once-only dispatch, identity checks and recovery behavior continue. This policy applies to the local bridge/calling-list runtime shipped in the team package.
+
+## 2026-11-07 global-keypad update — package 1.0.12
+
+The owner removed provider contact and Contacts-page dependencies. Global-keypad number entry replaces row-based dialing; no CRM contact lookup/create/verify/note operations are permitted in the live call path. Readiness requires the global phone control on a logged-in CRM page. Local names, outcomes, disposition events, transcripts and recordings remain authoritative. Exact phone evidence, selected caller/generated microphone, one-use dispatch, safe hangup/release and explicit Start remain. This supersedes earlier provider-contact/note requirements. Inspecting the idle keypad and synthetic tests do not constitute a live phone test.
