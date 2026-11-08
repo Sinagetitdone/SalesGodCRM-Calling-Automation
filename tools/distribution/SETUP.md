@@ -1,4 +1,4 @@
-# Team calling desk 2.0.1 — Twilio setup
+# Team calling desk 2.0.2 — Twilio setup
 
 This version replaces SalesGodCRM dialing with Twilio. No SalesGodCRM login, extension, virtual microphone, VB-CABLE or Docker is required. Your list, context, call results, transcripts and downloaded recordings remain on your computer.
 
@@ -14,10 +14,10 @@ The launcher names **SalesGod Bridge.exe** and **SalesGod Bridge.app** are retai
 
 ## Step 2 — Prepare Twilio and OpenAI
 
-1. Have an upgraded Twilio account and an owned voice-enabled Twilio telephone number.
+1. Have an active Twilio account and a configured calling number. Normal lists require an owned voice-enabled number. A one-contact trial test can submit the configured shared trial number for Twilio to validate.
 2. In Twilio account home, find **Account SID** (starts with **AC**) and **Auth Token**. An API key SID starting with **SK** is a different field; do not use it as Account SID.
 3. Have a valid OpenAI API key with API billing and voice-model access. A ChatGPT subscription alone does not provide API credits.
-4. Twilio’s current trial blocks Media Streams, which this live AI workflow requires, and uses shared trial numbers rather than an owned calling number. The account owner must upgrade and obtain a voice-enabled number before using this workflow. The app does not upgrade accounts, buy numbers or change billing. Source: https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs
+4. Twilio’s official trial guidance conflicts: the current new-trial guide lists Stream as blocked, while its AI-calling tutorial describes trial tests with verified destinations. The app does not reject calls solely because the account type is Trial. A one-contact trial test delegates validation of the configured shared caller to Twilio. This does not guarantee that Twilio accepts the caller, recipient or streaming features. The app does not upgrade accounts, buy numbers or change billing.
 
 ## Step 3A — Save settings on Windows
 
@@ -151,7 +151,7 @@ Copy the printed HTTPS origin into **TWILIO_PUBLIC_URL**, set **TWILIO_TUNNEL=ma
 
 ## Troubleshooting
 
-**Twilio trial blocks Media Streams:** authentication is working, but the account cannot use this live audio workflow yet. Ask the account owner to upgrade and obtain a voice-enabled Twilio number. Update TWILIO_FROM_NUMBER locally and restart. Do not use the shared trial-panel number as an owned number.
+**Trial account test:** create an explicitly reviewed one-contact list to test a configured shared trial caller. Normal multi-contact lists retain owned voice-number validation. A provider rejection is logged with its actual HTTP/code and safe error detail; the app does not automatically retry an uncertain request. Do not infer that an upgrade is required from account type alone.
 
 **Twilio rejects authentication:** recheck the AC Account SID and the account Auth Token on Twilio account home. An SK API key and its secret are not interchangeable with these settings.
 
@@ -168,3 +168,30 @@ Copy the printed HTTPS origin into **TWILIO_PUBLIC_URL**, set **TWILIO_TUNNEL=ma
 **Network/proxy:** Hiddify is not required. Use your organization’s approved network. Windows system HTTP/HTTPS proxy settings are detected; Mac or other setups can use HTTPS_PROXY and NO_PROXY in the local .env. HTTP requests and the OpenAI WebSocket use this configuration. Localhost stays local. Regional access restrictions must be resolved with the provider or your IT team, not by changing keys or reinstalling.
 
 **Costs and call length:** Twilio telephone/answer-detection/recording and OpenAI usage may be billed. Calls are bounded to 330 seconds. Reaching a limit is a review condition, not proof of a completed business conversation.
+
+## Optional proxy-compatible test tunnel
+
+If the Cloudflare test connection times out, IT can use the included temporary SSH tunnel while testing. It forwards only the signed Twilio callback service on port 28432.
+
+1. Open PowerShell (Windows) or Terminal (Mac) in the extracted package folder after the Node.js setup.
+2. Run the command below. It uses built-in OpenSSH, an isolated private test key and known-hosts file in the ignored .runtime folder, and your approved HTTP/HTTPS proxy when configured.
+3. Leave that window open. The HTTPS origin is saved in .runtime/test-tunnel.json.
+4. Put that HTTPS origin into TWILIO_PUBLIC_URL in the local .env and set TWILIO_TUNNEL=manual. Restart the bridge.
+5. Run the no-call connection check. A URL is usable only after it reaches the exact bridge instance.
+6. The free tunnel expires, normally within an hour. This is a supervised test connection, not a stable team deployment. Never share its private .runtime files or expose port 28431.
+
+```text
+node tools/audio-bridge/start-test-tunnel.mjs
+```
+
+Read the saved public origin on Windows:
+
+```text
+Get-Content .runtime/test-tunnel.json
+```
+
+Read it on Mac:
+
+```text
+cat .runtime/test-tunnel.json
+```

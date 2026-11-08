@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SalesGod Team — Step-by-step guide</title>
 <style>body{font:17px/1.65 system-ui,sans-serif;color:#173c34;background:#f2f6f3;margin:0}main{max-width:880px;margin:32px auto;background:white;padding:40px;border-radius:18px}h1{font-size:36px;line-height:1.2}h2{border-top:1px solid #d7e5de;padding-top:28px;margin-top:38px;font-size:25px;scroll-margin-top:20px}h3{font-size:20px;margin-top:30px}li{margin:14px 0;padding-left:5px}code{background:#edf3f0;border-radius:4px;padding:2px 5px;overflow-wrap:anywhere}pre{background:#173c34;color:white;padding:18px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}pre code{background:transparent;color:inherit;padding:0}a{color:#166454}p{overflow-wrap:anywhere}nav{background:#edf3f0;padding:20px;border-radius:10px}nav ul{padding-left:20px}nav li{margin:6px 0}nav a{text-decoration:none}@media(max-width:600px){main{margin:0;padding:20px;border-radius:0}h1{font-size:29px}}@media print{body{background:white}main{margin:0;padding:0;max-width:none}nav{display:none}h2,h3{break-after:avoid}pre{border:1px solid #ccc;background:white;color:black}a{color:inherit}}</style></head>
-<body><main><h1>Team calling desk 2.0.1 — Twilio setup</h1>
-<nav aria-label="Guide contents"><strong>Jump to a step</strong><ul><li><a href="#section-0">Step 1 — Extract the whole package</a></li><li><a href="#section-1">Step 2 — Prepare Twilio and OpenAI</a></li><li><a href="#section-2">Step 3A — Save settings on Windows</a></li><li><a href="#section-3">Step 3B — Save settings on Mac</a></li><li><a href="#section-4">Step 4 — Start the calling desk</a></li><li><a href="#section-5">Step 5 — Check the connection without calling anyone</a></li><li><a href="#section-6">Step 6 — Set the background, guide and voicemail</a></li><li><a href="#section-7">Step 7 — Upload your list and preview it</a></li><li><a href="#section-8">Step 8 — Start, pause and stop</a></li><li><a href="#section-9">Step 9 — Read or export the results</a></li><li><a href="#section-10">Step 10 — A stable public connection for team use</a></li><li><a href="#section-11">Troubleshooting</a></li></ul></nav>
+<body><main><h1>Team calling desk 2.0.2 — Twilio setup</h1>
+<nav aria-label="Guide contents"><strong>Jump to a step</strong><ul><li><a href="#section-0">Step 1 — Extract the whole package</a></li><li><a href="#section-1">Step 2 — Prepare Twilio and OpenAI</a></li><li><a href="#section-2">Step 3A — Save settings on Windows</a></li><li><a href="#section-3">Step 3B — Save settings on Mac</a></li><li><a href="#section-4">Step 4 — Start the calling desk</a></li><li><a href="#section-5">Step 5 — Check the connection without calling anyone</a></li><li><a href="#section-6">Step 6 — Set the background, guide and voicemail</a></li><li><a href="#section-7">Step 7 — Upload your list and preview it</a></li><li><a href="#section-8">Step 8 — Start, pause and stop</a></li><li><a href="#section-9">Step 9 — Read or export the results</a></li><li><a href="#section-10">Step 10 — A stable public connection for team use</a></li><li><a href="#section-11">Troubleshooting</a></li><li><a href="#section-12">Optional proxy-compatible test tunnel</a></li></ul></nav>
 <p>This version replaces SalesGodCRM dialing with Twilio. No SalesGodCRM login, extension, virtual microphone, VB-CABLE or Docker is required. Your list, context, call results, transcripts and downloaded recordings remain on your computer.</p>
 <p>The launcher names <strong>SalesGod Bridge.exe</strong> and <strong>SalesGod Bridge.app</strong> are retained so existing shortcuts keep working. They now open the Twilio calling desk.</p>
 <h2 id="section-0">Step 1 — Extract the whole package</h2>
@@ -15,10 +15,10 @@
 </ol>
 <h2 id="section-1">Step 2 — Prepare Twilio and OpenAI</h2>
 <ol start="1">
-<li>Have an upgraded Twilio account and an owned voice-enabled Twilio telephone number.</li>
+<li>Have an active Twilio account and a configured calling number. Normal lists require an owned voice-enabled number. A one-contact trial test can submit the configured shared trial number for Twilio to validate.</li>
 <li>In Twilio account home, find <strong>Account SID</strong> (starts with <strong>AC</strong>) and <strong>Auth Token</strong>. An API key SID starting with <strong>SK</strong> is a different field; do not use it as Account SID.</li>
 <li>Have a valid OpenAI API key with API billing and voice-model access. A ChatGPT subscription alone does not provide API credits.</li>
-<li>Twilio’s current trial blocks Media Streams, which this live AI workflow requires, and uses shared trial numbers rather than an owned calling number. The account owner must upgrade and obtain a voice-enabled number before using this workflow. The app does not upgrade accounts, buy numbers or change billing. Source: <a href="https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs">https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs</a></li>
+<li>Twilio’s official trial guidance conflicts: the current new-trial guide lists Stream as blocked, while its AI-calling tutorial describes trial tests with verified destinations. The app does not reject calls solely because the account type is Trial. A one-contact trial test delegates validation of the configured shared caller to Twilio. This does not guarantee that Twilio accepts the caller, recipient or streaming features. The app does not upgrade accounts, buy numbers or change billing.</li>
 </ol>
 <h2 id="section-2">Step 3A — Save settings on Windows</h2>
 <ol start="1">
@@ -126,7 +126,7 @@ Sam,Example,+12025550102</code></pre>
 <pre><code>cloudflared tunnel --url http://127.0.0.1:28432</code></pre>
 <p>Copy the printed HTTPS origin into <strong>TWILIO_PUBLIC_URL</strong>, set <strong>TWILIO_TUNNEL=manual</strong>, restart the bridge, and keep both processes open.</p>
 <h2 id="section-11">Troubleshooting</h2>
-<p><strong>Twilio trial blocks Media Streams:</strong> authentication is working, but the account cannot use this live audio workflow yet. Ask the account owner to upgrade and obtain a voice-enabled Twilio number. Update TWILIO_FROM_NUMBER locally and restart. Do not use the shared trial-panel number as an owned number.</p>
+<p><strong>Trial account test:</strong> create an explicitly reviewed one-contact list to test a configured shared trial caller. Normal multi-contact lists retain owned voice-number validation. A provider rejection is logged with its actual HTTP/code and safe error detail; the app does not automatically retry an uncertain request. Do not infer that an upgrade is required from account type alone.</p>
 <p><strong>Twilio rejects authentication:</strong> recheck the AC Account SID and the account Auth Token on Twilio account home. An SK API key and its secret are not interchangeable with these settings.</p>
 <p><strong>OpenAI expired_secret_key / authentication error:</strong> replace OPENAI_API_KEY with a valid key locally and restart. Never paste it into chat or GitHub.</p>
 <p><strong>Public callback unreachable:</strong> keep the tunnel running and target port 28432. Confirm the public hostname reaches this installation. Use a stable managed tunnel if the quick service is unavailable.</p>
@@ -134,4 +134,19 @@ Sam,Example,+12025550102</code></pre>
 <p><strong>Uncertain dial result:</strong> check Twilio Call Logs before proceeding. The app never automatically redials an uncertain attempt. An unresolved attempt blocks another list until its telephone state can be verified.</p>
 <p><strong>Port already in use:</strong> use the already-running bridge, or stop it while idle before opening another. The launcher does not terminate unrelated programs.</p>
 <p><strong>Network/proxy:</strong> Hiddify is not required. Use your organization’s approved network. Windows system HTTP/HTTPS proxy settings are detected; Mac or other setups can use HTTPS_PROXY and NO_PROXY in the local .env. HTTP requests and the OpenAI WebSocket use this configuration. Localhost stays local. Regional access restrictions must be resolved with the provider or your IT team, not by changing keys or reinstalling.</p>
-<p><strong>Costs and call length:</strong> Twilio telephone/answer-detection/recording and OpenAI usage may be billed. Calls are bounded to 330 seconds. Reaching a limit is a review condition, not proof of a completed business conversation.</p></main></body></html>
+<p><strong>Costs and call length:</strong> Twilio telephone/answer-detection/recording and OpenAI usage may be billed. Calls are bounded to 330 seconds. Reaching a limit is a review condition, not proof of a completed business conversation.</p>
+<h2 id="section-12">Optional proxy-compatible test tunnel</h2>
+<p>If the Cloudflare test connection times out, IT can use the included temporary SSH tunnel while testing. It forwards only the signed Twilio callback service on port 28432.</p>
+<ol start="1">
+<li>Open PowerShell (Windows) or Terminal (Mac) in the extracted package folder after the Node.js setup.</li>
+<li>Run the command below. It uses built-in OpenSSH, an isolated private test key and known-hosts file in the ignored .runtime folder, and your approved HTTP/HTTPS proxy when configured.</li>
+<li>Leave that window open. The HTTPS origin is saved in .runtime/test-tunnel.json.</li>
+<li>Put that HTTPS origin into TWILIO_PUBLIC_URL in the local .env and set TWILIO_TUNNEL=manual. Restart the bridge.</li>
+<li>Run the no-call connection check. A URL is usable only after it reaches the exact bridge instance.</li>
+<li>The free tunnel expires, normally within an hour. This is a supervised test connection, not a stable team deployment. Never share its private .runtime files or expose port 28431.</li>
+</ol>
+<pre><code>node tools/audio-bridge/start-test-tunnel.mjs</code></pre>
+<p>Read the saved public origin on Windows:</p>
+<pre><code>Get-Content .runtime/test-tunnel.json</code></pre>
+<p>Read it on Mac:</p>
+<pre><code>cat .runtime/test-tunnel.json</code></pre></main></body></html>

@@ -1,4 +1,10 @@
-# Current work: Twilio migration — 2026-11-08
+# Current work: supervised trial probe — 2026-11-08
+
+Package 2.0.2 / ADR-0009 removes automatic denial by Trial account type. The owner's single-contact call request was submitted once to Twilio after OpenAI voice/voicemail preparation and public HTTPS/WSS ingress checks passed. Twilio rejected it with HTTP 400, code 0 and no Call SID; no phone call was created. The attempt and no-call-created event remain in local Previous Conversations. The discarded original provider message could not be recovered; safe provider error details are now preserved for future attempts. Do not claim this proves an account upgrade is required.
+
+The new OpenAI key works. Twilio authentication works. Cloudflare timed out on the current network; an optional Pinggy SSH tunnel through the existing approved proxy successfully reached the exact callback service and correctly rejected an unsigned WebSocket. It forwards only 28432, never admin port 28431, and is a temporary test connection. Its current runtime address/key/logs are private under ignored .runtime. No automatic retries or further calls are authorized by this completed single request; obtain a new explicit test instruction before dialing again.
+
+# Previous work: Twilio migration — 2026-11-08
 
 The active integration is now Twilio (ADR-0008); older CRM continuation notes below are historical. Local calling desk: port 28431. Signed Twilio ingress: port 28432. Start is explicit and backend-owned. The extension is not required. Package 2.0.1 contains updated setup and Windows/Mac launchers with verified optional quick-tunnel setup. No migration telephone calls have been placed. The Twilio Auth Token was saved privately and authenticated successfully. Live acceptance is pending an upgraded account with an owned voice number (current trial blocks Media Streams), a valid OpenAI key and a successful public callback check. See TWILIO-2.0.1-VALIDATION.md. Do not claim synthetic tests prove telephone delivery. Never print .env or credentials while resuming.
 

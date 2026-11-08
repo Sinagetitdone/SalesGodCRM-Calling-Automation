@@ -1,3 +1,5 @@
+**Superseded trial policy:** 2.0.2 removes the automatic Trial-type block at the owner's request. See ADR-0009 for the actual test result. The OpenAI key was subsequently replaced and authenticated successfully.
+
 # Twilio 2.0.1 — corrected authentication and trial detection
 
 Date: 2026-11-08.

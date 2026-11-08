@@ -1,6 +1,7 @@
 import twilio from 'twilio';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import WebSocket from 'ws';
+import { diagnosticDetail } from './diagnostics.mjs';
 
 export const terminalCalls = new Set(['completed', 'busy', 'failed', 'no-answer', 'canceled']);
 export function twilioConfiguration(env) {
@@ -36,22 +37,27 @@ export class TwilioProvider {
     } catch { throw new Error('Twilio request did not return a confirmed result. Check the connection; a dial request must never be retried automatically.'); }
     if (!response.ok) {
       const detail = await response.json().catch(() => ({}));
-      const error = new Error(`Twilio rejected the request (HTTP ${response.status}${Number.isInteger(detail.code) ? ', code ' + detail.code : ''}). Check account permissions, trial restrictions, caller number and destination. No automatic retry.`);
+      let providerMessage = typeof detail.message === 'string' ? detail.message : '';
+      const secretValues = [this.env.OPENAI_API_KEY, this.env.TWILIO_AUTH_TOKEN, this.env.TWILIO_API_KEY_SECRET, Buffer.from(account + ':' + this.env.TWILIO_AUTH_TOKEN).toString('base64')].filter(Boolean);
+      for (const value of secretValues) providerMessage = providerMessage.split(value).join('[redacted]');
+      providerMessage = diagnosticDetail(providerMessage);
+      const error = new Error(diagnosticDetail(`Twilio rejected the request (HTTP ${response.status}${Number.isInteger(detail.code) ? ', code ' + detail.code : ''}). ${providerMessage ? 'Provider detail: ' + providerMessage + ' ' : 'Check account permissions, trial restrictions, caller number and destination. '}No automatic retry.`));
       error.definiteRejection = response.status >= 400 && response.status < 500; throw error;
     }
     return binary ? Buffer.from(await response.arrayBuffer()) : response.json();
   }
-  async check() {
+  async check({ allowTrialSharedCaller = false } = {}) {
     // Account checks are read-only and can explain authentication/trial problems
     // before a public tunnel has been configured. Dial still requires the real URL.
     const config = twilioConfiguration({ ...this.env, TWILIO_PUBLIC_URL: this.env.TWILIO_PUBLIC_URL || 'https://not-configured.invalid' });
     if (!config.ready) throw new Error(config.error);
     const account = await this.request('.json');
     if (account.status !== 'active') throw new Error('The Twilio account is not active.');
-    if (account.type === 'Trial') throw new Error('Twilio authentication succeeded, but this trial account blocks Media Streams required for live AI audio. The account owner must upgrade Twilio and add a voice-enabled Twilio number before this workflow can call. No call was placed.');
     const numbers = await this.request('/IncomingPhoneNumbers.json?PhoneNumber=' + encodeURIComponent(config.fromNumber));
-    if (!numbers.incoming_phone_numbers?.some(n => n.phone_number === config.fromNumber && n.capabilities?.voice)) throw new Error('TWILIO_FROM_NUMBER must be a voice-enabled number owned by this Twilio account.');
-    return { ready: true, fromNumber: config.fromNumber, trial: account.type === 'Trial' };
+    const callerOwned = numbers.incoming_phone_numbers?.some(n => n.phone_number === config.fromNumber && n.capabilities?.voice);
+    const trialSharedCaller = !callerOwned && account.type === 'Trial' && allowTrialSharedCaller;
+    if (!callerOwned && !trialSharedCaller) throw new Error('The configured caller is not an owned voice-enabled number. A trial shared number can be submitted for Twilio validation only in an explicitly started one-contact test list.');
+    return { ready: true, fromNumber: config.fromNumber, trial: account.type === 'Trial', trialSharedCaller, callerOwned: Boolean(callerOwned) };
   }
   dial(attempt) {
     const config = this.configuration(); if (!config.ready) throw new Error(config.error);

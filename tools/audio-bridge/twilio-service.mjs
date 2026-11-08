@@ -26,8 +26,8 @@ export class TwilioService {
     this.networkError = 'The public Twilio audio connection ended. Restart the bridge or configure a stable HTTPS/WSS tunnel. No calls will be retried.';
     if (this.run) { this.run.pause = this.run.stop = true; if (this.run.attempt) { this.run.attempt.diagnostic = this.networkError; await this.end(this.run.attempt, 'needs_review'); } }
   }
-  async check() {
-    const result = await this.provider.check();
+  async check(options) {
+    const result = await this.provider.check(options);
     if (this.networkError) throw new Error(this.networkError);
     if (!this.ingress?.listening) throw new Error('The Twilio callback service is not running.');
     let response;
@@ -62,9 +62,10 @@ export class TwilioService {
       const campaign = this.store().read(id);
       if (campaign.settings.simulation) throw new Error('Use the rehearsal workspace for simulated lists.');
       if (campaign.settings.callerNumber !== this.env.TWILIO_FROM_NUMBER) throw new Error('This list uses a different caller number. Copy it to a new draft and select the Twilio calling number shown here.');
-      await this.check();
+      const connection = await this.check({ allowTrialSharedCaller: campaign.contacts.length === 1 });
       if (run.stop) throw new Error('Start cancelled.');
       this.store().start(id, run.worker); run.phase = 'running';
+      if (connection.trialSharedCaller) this.store().event(id, null, 'trial_shared_caller_submitted_for_provider_validation_one_contact_only');
       run.task = this.loop(run).catch(error => { this.safeEvent(run, null, 'twilio.worker_failed: ' + diagnosticDetail(error.message)); }).finally(() => { if (this.run === run) this.run = null; });
       return { started: true };
     } catch (error) { if (this.run === run) this.run = null; throw error; }
@@ -108,7 +109,7 @@ export class TwilioService {
                 const call = await this.provider.dial(attempt); this.bind(attempt, call.sid); this.callStatus(attempt, call.status);
               } catch (error) {
                 attempt.diagnostic = error.message;
-                if (error.definiteRejection && !attempt.sid) { attempt.ended = true; attempt.outcome = 'failed'; this.store().db.prepare("UPDATE twilio_attempts SET state='ended' WHERE session=?").run(session); }
+                if (error.definiteRejection && !attempt.sid) { attempt.ended = attempt.terminalConfirmed = true; attempt.outcome = 'failed'; event('twilio.dispatch_rejected_no_call_created'); this.store().db.prepare("UPDATE twilio_attempts SET state='ended' WHERE session=?").run(session); }
                 else { attempt.outcome = 'unknown'; run.pause = true; await this.end(attempt, 'unknown'); }
               }
               const deadline = Date.now() + 370000; let lastPoll = 0;

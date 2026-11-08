@@ -53,11 +53,21 @@ test('human hello starts live conversation without waiting for AMD; interruption
   assert(f.socket.sent.some(e => e.type === 'conversation.item.truncate' && e.audio_end_ms === 50));
   f.audio.close();
 });
-test('a current Twilio trial is reported explicitly before number lookup, tunnel setup or any dial request', async () => {
+test('Trial account type alone never blocks calling; configured caller verification still applies', async () => {
   const requests = [];
-  const provider = new TwilioProvider({ env: { ...env, TWILIO_PUBLIC_URL: '' }, fetchImpl: async (url, options) => { requests.push({ url, options }); return { ok: true, json: async () => ({ status: 'active', type: 'Trial' }) }; } });
-  await assert.rejects(provider.check(), /authentication succeeded.*trial account blocks Media Streams/);
-  assert.equal(requests.length, 1); assert.equal(requests[0].options.method, 'GET'); assert(!requests[0].url.includes('/Calls'));
+  let ownsCaller = true;
+  const provider = new TwilioProvider({ env: { ...env, TWILIO_PUBLIC_URL: '' }, fetchImpl: async (url, options) => { requests.push({ url, options }); return { ok: true, json: async () => url.includes('/IncomingPhoneNumbers') ? { incoming_phone_numbers: ownsCaller ? [{ phone_number: env.TWILIO_FROM_NUMBER, capabilities: { voice: true } }] : [] } : { status: 'active', type: 'Trial' } }; } });
+  assert.equal((await provider.check()).trial, true);
+  ownsCaller = false; await assert.rejects(provider.check(), /not an owned voice-enabled number/);
+  assert.equal((await provider.check({ allowTrialSharedCaller: true })).trialSharedCaller, true);
+  assert.equal(requests.length, 6); assert(requests.every(r => r.options.method === 'GET' && !r.url.includes('/Calls')));
+});
+test('Twilio rejection detail survives in the error while credentials are redacted', async () => {
+  const provider = new TwilioProvider({ env, fetchImpl: async () => ({ ok: false, status: 400, json: async () => ({ code: 0, message: 'Synthetic provider rejection; token=' + env.TWILIO_AUTH_TOKEN + ' key=' + env.OPENAI_API_KEY }) }) });
+  await assert.rejects(provider.request('/Calls.json', { To: '+12025550101' }), error => {
+    assert.equal(error.definiteRejection, true); assert.match(error.message, /HTTP 400, code 0.*Synthetic provider rejection/);
+    assert(!error.message.includes(env.TWILIO_AUTH_TOKEN)); assert(!error.message.includes('key=' + env.OPENAI_API_KEY)); return true;
+  });
 });
 test('voicemail is delivered only after greeting end and playback acknowledgment; cleared marks never count as delivery', () => {
   const f = audioFixture(); f.audio.decision('machine_end_beep');
@@ -96,6 +106,16 @@ function workerFixture() {
   service.ingress = { listening: true }; service.prepareVoicemail = async () => Buffer.alloc(160);
   return { store, campaign, provider, service };
 }
+test('shared trial caller permission is restricted to one-contact lists', async () => {
+  const f = workerFixture(), observed = [];
+  f.service.check = async options => { observed.push(options.allowTrialSharedCaller); throw new Error('Stop before any dispatch.'); };
+  try {
+    await assert.rejects(f.service.start(f.campaign.id), /Stop before/);
+    const one = f.store.create({ name: 'One supervised test', csv: 'first_name,last_name,phone\nOne,Test,+12025550101', settings: f.campaign.settings });
+    await assert.rejects(f.service.start(one.id), /Stop before/);
+    assert.deepEqual(observed, [false, true]); assert(f.store.read(one.id).contacts.every(c => !c.dispatched));
+  } finally { f.store.close(); }
+});
 test('a lost dial response pauses without retry and blocks another Start until the unknown attempt is resolved', async () => {
   const f = workerFixture(); let dials = 0;
   f.provider.dial = async () => { dials++; throw new Error('Synthetic lost response.'); };

@@ -10,4 +10,6 @@
 - Voice recording MP3s can include ID3 tags. Accept supported MP3 headers instead of assuming every file starts at its first audio frame.
 - Pin and verify tool downloads. Generate the distribution dependency lock from tested production dependencies; never globally replace version-like strings in lockfiles.
 
-- Current Twilio trials use shared Twilio-owned trial numbers and block the Stream verb. A trial-panel calling number is not evidence of an owned programmable voice number. Detect this account restriction explicitly before looking up numbers or attempting calls; never bypass it by removing provider eligibility checks. Source: https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs
+- Twilio's official trial documents conflict with its AI-calling tutorial. Do not equate Account.type=Trial with observed feature rejection. Keep normal owned caller checks, but an explicitly started one-contact trial test may submit the configured shared caller for Twilio to validate. Keep exact provider evidence distinct from application preflight conclusions. See ADR-0009.
+
+- Preserve safe upstream rejection text before discarding a failed response. HTTP 400/code 0 without its message is insufficient to identify caller, parameter or entitlement failures. A definite 4xx with no bound Call SID is a failed/no-call-created attempt; never mark it as an uncertain created call. Redact actual credential values as well as common token patterns.
