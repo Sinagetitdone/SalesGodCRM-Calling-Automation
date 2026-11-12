@@ -18,3 +18,14 @@ Common detailed-message and name-and-number invitations are now recognized direc
 - No live calls, OpenAI requests, CRM actions or changes to private .env/data were made during this validation.
 
 Close old calling-list windows and stop the bridge before applying this package. Preserve the installation's .env and data folder, restart the updated bridge, refresh idle CRM and reopen the calling list. A previously opened calling-list window retains old JavaScript until reloaded. Read SETUP.html for Windows/Mac update steps.
+
+## Additional simulated mailbox audio check — 2026-11-13
+
+At the owner's request to test a fake number, two isolated local browser calls were simulated instead of dialing any telephone number. The unmodified call engine, voicemail detector and local WebRTC signaling modules were loaded from the actual 1.0.13 ZIP. Chrome used a separate temporary test profile. Real Web Audio and two real local WebRTC connections carried the prepared message to a captured receiver stream. The extension's media gate/phone endpoint and OpenAI control/transcription events were simulated; no CRM session, physical microphone, OpenAI API or telephone provider was used.
+
+Offline Windows speech synthesis spoke the owner's approved test voicemail. Three short measurement tones bracketed its beginning, middle and end without removing any words. Total reference audio was 11.52 seconds including tones. The receiver captured all three tones in order, and playback_completed occurred exactly once before normal shutdown in both cases:
+
+- Completed acoustic beep, followed by a delayed beep transcript during playback: the message paused and resumed; all 20 non-silent half-second reference windows matched receiver energy envelopes in order (minimum normalized correlation 0.7437).
+- Missed acoustic beep plus a trailing recorded hangup instruction: fresh silence started playback; all 20 reference windows matched in order (minimum normalized correlation 0.8282).
+
+Envelope comparison accounts for Opus compression and jitter-buffer timing; raw PCM phase equality is not an appropriate transport test. Receiver WAVs and detailed reports remain under the ignored .runtime test folder. No production source or package bytes changed in this additional test. This is stronger evidence of complete local audio transmission than a success event alone, but it does not establish real SalesGodCRM routing, actual OpenAI recognition/voice generation or carrier mailbox storage.
