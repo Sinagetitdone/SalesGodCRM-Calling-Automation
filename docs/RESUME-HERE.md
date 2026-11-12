@@ -1,4 +1,8 @@
-# Resume here — 2026-11-07
+# CRM package voicemail maintenance — 2026-11-13
+
+The owner supplied SalesGod-Team-1.0.12.zip and reported mailbox prompts saying no message was recorded. Repair the CRM package on branch fix/crm-voicemail-1.0.13 based on af7634f, independently of the current Twilio development branch. Package 1.0.13 preserves voicemail approval across known mailbox instruction tails and resumes paused prepared audio when delayed beep/prompt transcription proves it was not a human pickup. Extension routing is unchanged at 0.4.12. See LESSON-2026-11-13-voicemail-resume.md. No live calls were placed; carrier storage remains unverified. Close old calling windows and restart the updated bridge before evaluating the new runtime.
+
+# Previous work — 2026-11-07
 
 ## No CRM contact dependency — 1.0.12 / extension 0.4.12
 

@@ -92,7 +92,7 @@
     }, 2000);
   }
   const shortHumanGreeting = text => /^(?:hello|hello there|hi|hi there|hey|yes|yeah|yep|speaking|go ahead)[.!? ]*$/i.test(String(text || '').trim());
-  const voicemailTransitionArtifact = text => window.SalesGodVoicemail.greetingInvitation(text) || /^(?:beep|tone|recording)[.!? ]*$/i.test(String(text || '').trim());
+  const voicemailTransitionArtifact = text => window.SalesGodVoicemail.greetingInvitation(text) || window.SalesGodVoicemail.mailboxContinuation(text);
   function clearShortGreeting(current) {
     clearTimeout(current.shortGreetingTimer); current.shortGreetingTimer = undefined; current.shortGreetingCheck = undefined;
   }
@@ -106,6 +106,9 @@
   }
   function classifyAnswer(current, text) {
     if (!current.config.automatic || current.humanPending || !answerPhases.includes(report.phase) || typeof text !== 'string' || !text.trim()) return;
+    if (current.detector?.confirmed && window.SalesGodVoicemail.mailboxContinuation(text)) {
+      clearShortGreeting(current); void log('voicemail.transition_audio_ignored'); return;
+    }
     clearTimeout(current.classifyTimer); current.classificationCheck = String(++current.answerRevision);
     const check = current.classificationCheck;
     current.classificationEvidence = { check, unavailable: window.SalesGodVoicemail.mailboxUnavailable(text), invitation: window.SalesGodVoicemail.greetingInvitation(text), shortGreeting: shortHumanGreeting(text) };
@@ -208,21 +211,31 @@
     if (run !== current || !answerPhases.includes(report.phase) || current.stopping || !current.humanPending || current.customerSpeaking) return;
     void confirmAnswer(true);
   }
-  function stopVoicemailAudio(current) {
+  function stopVoicemailAudio(current, preservePosition = false) {
     clearTimeout(current.drainTimer); clearTimeout(current.voicemailEndTimer); clearTimeout(current.vadTimer);
     current.voicemailStarting = false;
+    if (!preservePosition) { current.voicemailResumeOffset = undefined; current.voicemailResumeApproved = false; }
+    else if (current.voicemailSource) current.voicemailResumeOffset = Math.min(current.voicemailBuffer.duration, (current.voicemailOffset || 0) + Math.max(0, current.context.currentTime - current.voicemailStartedAt));
     if (current.voicemailSource) { current.voicemailSource.onended = null; current.voicemailSource.stop(); current.voicemailSource = undefined; }
     if (report.voicemailOutcome === 'playing') { report.voicemailOutcome = 'incomplete'; void log('voicemail.incomplete'); }
   }
   function checkVoicemailInterruption(current) {
     if (!current.config.automatic || !['voicemail-playing', 'voicemail-complete'].includes(report.phase)) return;
-    stopVoicemailAudio(current); current.takeoverPending = true; report.takeoverPending = true;
+    stopVoicemailAudio(current, true); current.takeoverPending = true; report.takeoverPending = true;
     if (report.voicemailOutcome === 'playback_completed') report.voicemailOutcome = 'needs_review';
     phase('voicemail-complete', 'Speech detected · voicemail stopped · listening for a person');
     if (!current.takeoverTimer) current.takeoverTimer = setTimeout(() => {
       if (current.stopping || report.phase !== 'voicemail-complete' || !current.takeoverPending) return;
       report.voicemailOutcome = 'needs_review'; void log('voicemail.takeover_unconfirmed'); mute(); phase('paused', 'Speech after voicemail could not be confirmed · review required');
     }, 30000);
+  }
+  function resumeVoicemail(current) {
+    if (run !== current || current.stopping || !current.voicemailResumeApproved || current.voicemailResumeOffset === undefined || current.customerSpeaking || current.unclassifiedSpeech.size || current.humanPending || report.phase !== 'voicemail-complete') return;
+    current.voicemailResumeApproved = false; current.takeoverPending = false; report.takeoverPending = false;
+    clearTimeout(current.takeoverTimer); current.takeoverTimer = undefined;
+    current.classificationCheck = undefined; clearTimeout(current.classifyTimer);
+    phase('voicemail-playing', 'Mailbox prompt confirmed · resuming the remaining message');
+    void playVoicemail(current).catch(() => void finish('failed', 'Voicemail resume failed · end the phone call'));
   }
   function awaitVoicemailSilence(current) {
     clearTimeout(current.voicemailEndTimer);
@@ -369,9 +382,11 @@
   }
   async function playVoicemail(current) {
     clearTimeout(current.vadTimer); current.voicemailStarting = false;
-    await log('voicemail.playback_started');
+    const offset = current.voicemailResumeOffset ?? 0;
+    await log(current.voicemailResumeOffset === undefined ? 'voicemail.playback_started' : 'voicemail.playback_resumed');
     if (run !== current || current.stopping || current.logFailed || report.phase !== 'voicemail-playing' || current.media.state !== 'ready') return;
     const source = current.context.createBufferSource(); source.buffer = current.voicemailBuffer;
+    current.voicemailResumeOffset = undefined; current.voicemailOffset = offset; current.voicemailStartedAt = current.context.currentTime;
     source.connect(current.ai); current.nodes.push(source); current.voicemailSource = source;
     report.voicemailOutcome = 'playing'; $('voicemailState').textContent = 'Playing your prepared voicemail message once'; render();
     source.onended = () => {
@@ -388,7 +403,7 @@
         } else await finish('stopped', 'Voicemail message played · hang up SalesGodCRM now');
       }, 1000);
     };
-    source.start();
+    source.start(0, offset);
   }
   async function confirmAnswer(automatic = false) {
     if (!run || $('answer').disabled) return;
@@ -572,6 +587,10 @@
               current.pendingScreeningGreeting = String(message.transcript || ''); await screenVoicemail(); return;
             }
             const text = String(message.transcript || '');
+            if (current.voicemailResumeOffset !== undefined && voicemailTransitionArtifact(text) && !window.SalesGodVoicemail.mailboxUnavailable(text) && !explicitHumanQuestion(current, text)) {
+              current.voicemailResumeApproved = true; void log('voicemail.transition_audio_ignored'); resumeVoicemail(current); return;
+            }
+            current.voicemailResumeApproved = false;
             const transitionArtifact = current.voicemailGateItems.delete(message.item_id) && voicemailTransitionArtifact(text) && !explicitHumanQuestion(current, text) && !shortHumanGreeting(text);
             if (transitionArtifact) { void log('voicemail.transition_audio_ignored'); return; }
             const lateGreeting = current.voicemailAttempted && current.preVoicemailItems.has(message.item_id) && !explicitHumanQuestion(current, text) && !shortHumanGreeting(text);
@@ -622,6 +641,7 @@
           send({ type: 'response.create', response: {} });
         }
         if (message.type === 'input_audio_buffer.speech_started') {
+          current.voicemailResumeApproved = false;
           clearShortGreeting(current);
           clearTimeout(current.screeningTimer);
           if (current.screeningPending && report.phase === 'call-screening-speaking') {
@@ -643,6 +663,7 @@
         if (message.type === 'input_audio_buffer.speech_stopped') {
           if (report.phase === 'talking') current.replyWaitStarted = Date.now();
           current.customerSpeaking = false; void log('customer.speech_stopped'); scheduleHumanStart(current); scheduleScreeningIntroduction(current);
+          resumeVoicemail(current);
         }
         if (message.type === 'response.created') { current.responseActive = true; report.aiTurns++; void log('ai.response_started'); }
         if (message.type === 'response.done') {

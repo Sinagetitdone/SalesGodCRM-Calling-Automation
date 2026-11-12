@@ -20,7 +20,7 @@ function environment({ headless = false, failJournal = false, voicemail = false,
   const tracks = [], contexts = [], peers = [], requests = [], listeners = new Map(), links = [], timers = new Set(), callbacks = new Map();
   class Stream { constructor() { this.track = { kind: 'audio', enabled: true, stop() { this.stopped = true; } }; tracks.push(this.track); } getTracks() { return [this.track]; } getAudioTracks() { return this.getTracks(); } }
   class Node { gain = { value: 1 }; connect() { return this; } disconnect() {} getFloatTimeDomainData() {} }
-  class Context { sampleRate = 48000; sources = []; constructor() { contexts.push(this); this.destination = new Node(); } createMediaStreamDestination() { const node = new Node(); node.stream = new Stream(); return node; } createGain() { return new Node(); } createMediaStreamSource() { return new Node(); } createAnalyser() { return new Node(); } async decodeAudioData() { return { duration: 2 }; } createBufferSource() { const source = { connect() {}, disconnect() {}, start() { this.started = true; }, stop() { this.stopped = true; } }; this.sources.push(source); return source; } async resume() {} async close() { this.closed = true; } }
+  class Context { sampleRate = 48000; currentTime = 0; sources = []; constructor() { contexts.push(this); this.destination = new Node(); } createMediaStreamDestination() { const node = new Node(); node.stream = new Stream(); return node; } createGain() { return new Node(); } createMediaStreamSource() { return new Node(); } createAnalyser() { return new Node(); } async decodeAudioData() { return { duration: 2 }; } createBufferSource() { const source = { connect() {}, disconnect() {}, start(_when, offset = 0) { this.started = true; this.startOffset = offset; }, stop() { this.stopped = true; } }; this.sources.push(source); return source; } async resume() {} async close() { this.closed = true; } }
   class Channel extends EventTarget {
     readyState = 'connecting'; sent = [];
     send(body) { this.sent.push(JSON.parse(body)); } close() { this.readyState = 'closed'; this.dispatchEvent(new Event('close')); }
@@ -462,6 +462,57 @@ test('a clear voicemail invitation with a missed beep plays once after fresh sil
   } finally { await env.cleanup(); }
 });
 
+test('a delayed beep transcript after playback starts resumes the remaining voicemail instead of abandoning it', async () => {
+  const env = await automaticMailbox();
+  try {
+    const first = await env.play(); env.contexts[0].currentTime = 0.7;
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'delayed-tone' });
+    assert.equal(first.stopped, true); // Be silent immediately in case a person picked up.
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'delayed-tone' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'delayed-tone', transcript: 'Tone.' });
+    await tick(); await tick(); await tick();
+    assert.equal(env.api.status().phase, 'voicemail-playing');
+    const resumed = env.contexts[0].sources[1]; assert.equal(resumed.started, true);
+    assert.equal(resumed.startOffset, 0.7);
+    assert.notEqual(env.api.status().humanAnswered, true);
+    first.onended?.(); assert.notEqual(env.api.status().voicemailOutcome, 'playback_completed');
+    resumed.onended(); await env.fireTimers(1000); await env.fireTimers(8000);
+    assert.equal(env.api.status().voicemailOutcome, 'playback_completed');
+    assert.equal(env.api.status().phase, 'stopped');
+  } finally { await env.cleanup(); }
+});
+
+test('a person supersedes a pending mailbox-artifact resume before speech stops', async () => {
+  const env = await automaticMailbox();
+  try {
+    const first = await env.play(); env.contexts[0].currentTime = 0.5;
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'tone' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'tone', transcript: 'Tone.' });
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'person' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'person', transcript: 'Hello, can you hear me?' });
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'person' });
+    await tick(); await tick(); await env.liveGate();
+    assert.equal(env.api.status().phase, 'talking'); assert.equal(first.stopped, true);
+    assert.equal(env.contexts[0].sources.length, 1);
+    assert.equal(env.api.status().voicemailOutcome, 'human_takeover');
+  } finally { await env.cleanup(); }
+});
+
+test('known mailbox continuation preserves missed-beep fallback after the recording invitation', async () => {
+  const env = await automaticMailbox();
+  try {
+    env.dc.message({ type: 'input_audio_buffer.speech_started', item_id: 'tail' });
+    env.dc.message({ type: 'input_audio_buffer.speech_stopped', item_id: 'tail' });
+    env.dc.message({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'tail', transcript: 'When you have finished recording, you may hang up.' });
+    await tick(); await tick();
+    env.setTime(100); env.detectors[0].samples(new Float32Array(2048), 48000);
+    env.setTime(2800); env.detectors[0].samples(new Float32Array(2048), 48000); await tick(); await tick();
+    assert.equal(env.api.status().phase, 'voicemail-playing');
+    await env.links[0].options.onMessage({ type: 'gate-state', open: true }); await tick(); await tick();
+    assert.equal(env.contexts[0].sources[0].started, true);
+  } finally { await env.cleanup(); }
+});
+
 test('voicemail beep-tail speech cannot cancel playback while its gate is opening', async () => {
   const env = await automaticMailbox();
   try {
@@ -786,7 +837,7 @@ test('voicemail synthesis validates input, preserves owner text, exposes no upst
     fail = true;
     const failed = await app.inject({ method: 'POST', url: '/voicemail-speech', headers, payload: { message } });
     assert.equal(failed.statusCode, 502); assert.doesNotMatch(failed.body, /private upstream|synthetic-private-key/);
-    for (const [sequence, event] of ['session.started', 'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.transition_audio_ignored', 'voicemail.playback_started', 'voicemail.playback_completed', 'voicemail.human_takeover', 'voicemail.takeover_unconfirmed', 'answer.transcript_received', 'answer.explicit_human_detected', 'answer.short_greeting_detected', 'answer.classification_requested', 'answer.classification_timeout', 'answer.classified_human', 'answer.classified_voicemail', 'answer.classified_unavailable', 'answer.classified_unknown'].entries()) {
+    for (const [sequence, event] of ['session.started', 'voicemail.listening', 'voicemail.greeting_detected', 'voicemail.beep_detected', 'voicemail.transition_audio_ignored', 'voicemail.playback_started', 'voicemail.playback_resumed', 'voicemail.playback_completed', 'voicemail.human_takeover', 'voicemail.takeover_unconfirmed', 'answer.transcript_received', 'answer.explicit_human_detected', 'answer.short_greeting_detected', 'answer.classification_requested', 'answer.classification_timeout', 'answer.classified_human', 'answer.classified_voicemail', 'answer.classified_unavailable', 'answer.classified_unknown'].entries()) {
       assert.equal((await app.inject({ method: 'POST', url: '/live-log', headers, payload: { sessionId, sequence, event, phase: 'voicemail-playing' } })).statusCode, 200);
     }
   } finally { await app.close(); journal.close(); }

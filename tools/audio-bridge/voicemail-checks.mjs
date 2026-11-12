@@ -7,6 +7,15 @@ vm.runInNewContext(await readFile(new URL('public/voicemail.js', import.meta.url
 const { Detector, tone } = window.SalesGodVoicemail;
 const wave = (frequency, rate = 48000) => Float32Array.from({ length: 2048 }, (_, i) => 0.2 * Math.sin(2 * Math.PI * frequency * i / rate));
 const silence = new Float32Array(2048);
+
+test('common mailbox invitations include detailed messages and name-and-number prompts but exclude screening', () => {
+  const { greetingInvitation, mailboxContinuation } = window.SalesGodVoicemail;
+  for (const text of ['Please leave a detailed message.', 'Leave me a brief message.', 'Please leave your name and number.', 'Please leave your name, telephone number and a message.']) assert.equal(greetingInvitation(text), true, text);
+  for (const text of ['Please state your name and reason for calling.', 'Hello, can you hear me?', 'Please call me tomorrow.']) assert.equal(greetingInvitation(text), false, text);
+  assert.equal(mailboxContinuation('When you have finished recording, you may hang up.'), true);
+  assert.equal(mailboxContinuation('Tone.'), true);
+  assert.equal(mailboxContinuation('Please hang up.'), false);
+});
 test('beep signal detection accepts mailbox tones and rejects silence, ringing and broadband audio', () => {
   for (const rate of [8000, 16000, 48000]) for (const frequency of [800, 1000, 1400]) assert.equal(tone(wave(frequency, rate), rate), true);
   assert.equal(tone(silence, 48000), false);

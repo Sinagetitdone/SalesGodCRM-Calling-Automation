@@ -2,7 +2,8 @@
 (() => {
   'use strict';
   const mailboxUnavailable = text => /\b(mailbox (?:is )?full|cannot accept|not accepting|unable to (?:record|accept)|cannot be recorded)\b/i.test(String(text).slice(0, 4000));
-  const greetingInvitation = text => /\b(leave (?:me |us |your |a )?(?:voice ?)?message|record (?:your |a )?(?:voice ?)?message|begin recording|after (?:the )?(?:tone|beep)|at (?:the )?(?:tone|beep)|reached (?:the )?voice ?mail|voice ?mail (?:box|service)|automated voice messag(?:e|ing) system|not available.*(?:message|record|tone|beep))\b/i.test(String(text).slice(0, 4000));
+  const greetingInvitation = text => /\b(leave (?:me |us |your |a )?(?:a )?(?:brief |short |detailed |voice ?)?message|leave your name(?:,)? (?:and )?(?:phone |telephone )?number|record (?:your |a )?(?:voice ?)?message|begin recording|after (?:the )?(?:tone|beep)|at (?:the )?(?:tone|beep)|reached (?:the )?voice ?mail|voice ?mail (?:box|service)|automated voice messag(?:e|ing) system|not available.*(?:message|record|tone|beep))\b/i.test(String(text).slice(0, 4000));
+  const mailboxContinuation = text => /^(?:beep|tone|recording)[.!? ]*$|\b(?:when|after) you (?:have |are )?finished.{0,70}(?:hang up|press|pound)\b|\b(?:you may|you can|please) hang up (?:when|after).{0,30}(?:finished|recording)\b/i.test(String(text).slice(0, 4000).trim());
   const screeningPrompt = text => {
     const value = String(text).slice(0, 4000);
     return /\b(?:say|state|leave|record|tell|provide|share)\b/i.test(value) && /\b(?:your |caller.?s )?name\b/i.test(value)
@@ -80,5 +81,5 @@
     }
     stop() { this.active = false; }
   }
-  window.SalesGodVoicemail = { Detector, tone, mailboxUnavailable, greetingInvitation, screeningPrompt, screeningHold };
+  window.SalesGodVoicemail = { Detector, tone, mailboxUnavailable, greetingInvitation, mailboxContinuation, screeningPrompt, screeningHold };
 })();
